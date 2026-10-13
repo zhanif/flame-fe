@@ -1,0 +1,197 @@
+/* Color channels behind the twind `zinc` scale and the accent text shades.
+   Dark is an ash gray (neutral, no blue or purple tint, not black); light
+   mirrors the scale (950 <-> 50, ...) so every class works in both themes. */
+:root {
+  color-scheme: dark;
+
+  --zinc-50: 250 250 251;
+  --zinc-100: 243 244 246;
+  --zinc-200: 228 229 233;
+  --zinc-300: 205 207 213;
+  --zinc-400: 168 170 178;
+  --zinc-500: 135 137 145;
+  --zinc-600: 100 102 110;
+  --zinc-700: 70 72 78;
+  --zinc-800: 49 51 56;
+  --zinc-900: 38 39 43;
+  --zinc-950: 30 31 34;
+
+  --orange-300: 253 186 116;
+  --orange-400: 251 146 60;
+  --sky-300: 125 211 252;
+  --sky-400: 56 189 248;
+  --violet-300: 196 181 253;
+  --violet-400: 167 139 250;
+  --emerald-300: 110 231 183;
+  --emerald-400: 52 211 153;
+  --amber-300: 252 211 77;
+  --amber-400: 251 191 36;
+  --red-300: 252 165 165;
+  --red-400: 248 113 113;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --zinc-50: 17 18 20;
+  --zinc-100: 30 31 34;
+  --zinc-200: 49 51 56;
+  --zinc-300: 70 72 78;
+  --zinc-400: 100 102 110;
+  --zinc-500: 135 137 145;
+  --zinc-600: 168 170 178;
+  --zinc-700: 205 207 213;
+  --zinc-800: 228 229 233;
+  --zinc-900: 240 241 243;
+  --zinc-950: 249 249 250;
+
+  --orange-300: 249 115 22;
+  --orange-400: 234 88 12;
+  --sky-300: 14 116 144;
+  --sky-400: 2 132 199;
+  --violet-300: 109 40 217;
+  --violet-400: 124 58 237;
+  --emerald-300: 4 120 87;
+  --emerald-400: 5 150 105;
+  --amber-300: 180 83 9;
+  --amber-400: 217 119 6;
+  --red-300: 185 28 28;
+  --red-400: 220 38 38;
+}
+
+/* Floating panels and their items (bits-ui Select, Popover, RangeCalendar). They are
+   styled by data attributes here, which twind's variants cannot express reliably. */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.pop {
+  transform-origin: var(--bits-popover-content-transform-origin, var(--bits-select-content-transform-origin, top left));
+}
+
+.pop[data-state='open'] {
+  animation: pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pop[data-state='closed'] {
+  animation: pop-out 120ms ease-in forwards;
+}
+
+.menu-item:hover,
+.menu-item[data-highlighted] {
+  background: rgb(var(--zinc-800));
+  color: rgb(var(--zinc-100));
+}
+
+.menu-item[data-selected] {
+  color: rgb(var(--orange-400));
+}
+
+.menu-item[data-disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* The range band is a strip behind the days, drawn on the cells *between* the two ends:
+   the committed middle (`data-range-middle`) and, while the second date is still being
+   chosen, everything from the first date to the hovered one (`data-highlighted`). */
+.cal-cell {
+  position: relative;
+  padding: 2px 0;
+  text-align: center;
+}
+
+.cal-cell::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.cal-cell[data-range-middle]::before,
+.cal-cell[data-highlighted]:not([data-selection-start])::before {
+  background: rgb(249 115 22 / 0.16);
+}
+
+.cal-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  position: relative;
+  z-index: 1;
+  color: rgb(var(--zinc-200));
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.cal-day:hover {
+  background: rgb(var(--zinc-800));
+}
+
+.cal-cell[data-selection-start] .cal-day,
+.cal-cell[data-selection-end] .cal-day,
+.cal-cell[data-highlighted] .cal-day:hover {
+  background: rgb(249 115 22);
+  color: #fff;
+  font-weight: 600;
+}
+
+.cal-cell[data-range-middle] .cal-day:hover {
+  background: rgb(249 115 22 / 0.32);
+}
+
+.cal-day[data-today]:not([data-selected]) {
+  box-shadow: inset 0 0 0 1px rgb(var(--orange-400));
+}
+
+.cal-day[data-outside-month] {
+  visibility: hidden;
+}
+
+.cal-day[data-disabled],
+.cal-day[data-unavailable] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.toast:hover .toast-bar {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop[data-state='open'] {
+    animation-name: fade-in;
+  }
+
+  .pop[data-state='closed'] {
+    animation-name: fade-out;
+  }
+}

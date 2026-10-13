@@ -1,32 +1,38 @@
 <script lang="ts">
+  import Badge from '$lib/components/Badge.svelte';
+  import BoltSwitch from '$lib/components/BoltSwitch.svelte';
   import Card from '$lib/components/Card.svelte';
+  import EmptyState from '$lib/components/EmptyState.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import Pagination from '$lib/components/Pagination.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type SlashCommand } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
-  import { Eraser, RefreshCw, Terminal, Upload } from '@lucide/svelte';
+  import { pageTone } from '$lib/nav';
+  import { td, th, toneText } from '$lib/ui';
+  import { Eraser, RefreshCw, Upload } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let { guildId }: { guildId: string } = $props();
 
+  const tone = pageTone();
+
   let commands: SlashCommand[] = $state([]);
   let loading = $state(true);
-  let busy = $state<'push' | 'prune' | null>(null);
+  let pending = $state<string | null>(null);
+  let page = $state(1);
+  let limit = $state(10);
 
-  const missing = $derived(commands.filter(c => c.state === 'missing').length);
-  const stale = $derived(commands.filter(c => c.state === 'stale').length);
+  const visible = $derived(commands.slice((page - 1) * limit, page * limit));
 
-  const BADGE = {
-    live: 'text-emerald-400 bg-emerald-500/10',
-    missing: 'text-amber-400 bg-amber-500/10',
-    stale: 'text-red-400 bg-red-500/10',
-  } as const;
+  const TONE = { live: 'success', missing: 'warning', stale: 'danger' } as const;
   const LABEL = { live: 'Live', missing: 'Not registered', stale: 'Stale' } as const;
 
   async function load() {
     loading = true;
     try {
       commands = (await api.slash(guildId)).commands;
+      page = Math.min(page, Math.max(Math.ceil(commands.length / limit), 1));
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -35,72 +41,75 @@
   }
   onMount(load);
 
-  async function push() {
-    busy = 'push';
+  // One command at a time, on an explicit click. The row is updated in place so the
+  // table does not flash back to its skeleton.
+  async function toggle(c: SlashCommand) {
+    if (pending) return;
+    pending = c.name;
     try {
-      const { registered } = await api.slashPush(guildId);
-      toast('success', `Registered ${registered.length} command(s)`);
-      await load();
+      if (c.state === 'missing') {
+        await api.slashRegister(guildId, c.name);
+        commands = commands.map(x => (x.name === c.name ? { ...x, state: 'live' } : x));
+        toast('success', `/${c.name} registered`, 'It is now live on Discord.');
+      } else {
+        await api.slashUnregister(guildId, c.name);
+        commands = c.module_id
+          ? commands.map(x => (x.name === c.name ? { ...x, state: 'missing' } : x))
+          : commands.filter(x => x.name !== c.name);
+        page = Math.min(page, Math.max(Math.ceil(commands.length / limit), 1));
+        toast('success', `/${c.name} removed`, c.module_id ? 'Register it again any time.' : 'It is gone from Discord.');
+      }
     } catch (e: any) {
       toast('error', e.message);
     } finally {
-      busy = null;
-    }
-  }
-
-  async function prune() {
-    busy = 'prune';
-    try {
-      const { removed } = await api.slashPrune(guildId);
-      toast('success', removed.length ? `Removed ${removed.join(', ')}` : 'Nothing to remove');
-      await load();
-    } catch (e: any) {
-      toast('error', e.message);
-    } finally {
-      busy = null;
+      pending = null;
     }
   }
 </script>
 
-<PageHeader title="Slash" description="Slash commands of the installed modules on Discord — nothing changes until you push or prune" icon={Terminal}>
-  {#snippet actions()}
-    <button onclick={load} disabled={loading || !!busy} class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/40 hover:bg-slate-700/50 text-sm font-semibold text-slate-300 ring-1 ring-slate-700/40 cursor-pointer disabled:opacity-40">
-      <RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''}" /> Refresh
-    </button>
-    <button onclick={prune} disabled={loading || !!busy || stale === 0} class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/40 hover:bg-slate-700/50 text-sm font-semibold text-slate-300 ring-1 ring-slate-700/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-      <Eraser class="w-3.5 h-3.5" /> {busy === 'prune' ? 'Pruning…' : `Prune${stale ? ` (${stale})` : ''}`}
-    </button>
-    <button onclick={push} disabled={loading || !!busy || missing === 0} class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-      <Upload class="w-3.5 h-3.5" /> {busy === 'push' ? 'Pushing…' : `Push${missing ? ` (${missing})` : ''}`}
-    </button>
-  {/snippet}
-</PageHeader>
+<PageHeader page="slash" description="Slash commands of the installed modules on Discord" />
 
-<Card>
+{#if !loading && commands.length === 0}
+  <EmptyState kind="commands" title="No commands yet" description="Install a module from the Dashboard to get slash commands." />
+{:else}
+<Card flush>
   {#if loading}
-    <TableSkeleton columns={['flex-1', 'w-40', 'w-36']} rows={3} />
-  {:else if commands.length === 0}
-    <p class="text-sm text-slate-500 text-center py-8">No commands yet — install a module first.</p>
+    <TableSkeleton columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28']} rows={3} />
   {:else}
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-800/40">
-          <th class="text-left py-3 px-3 font-medium">Command</th>
-          <th class="text-left py-3 px-3 font-medium w-40">Module</th>
-          <th class="text-left py-3 px-3 font-medium w-36">State</th>
+        <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+          <th class="{th} w-16">#</th>
+          <th class={th}>Command</th>
+          <th class="{th} w-40">Module</th>
+          <th class="{th} w-36">State</th>
+          <th class="{th} w-28 text-right">Live</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-800/30">
-        {#each commands as c (c.name)}
-          <tr>
-            <td class="py-3 px-3 font-mono text-[12px] text-slate-200"><span class="text-slate-600">/</span>{c.name}</td>
-            <td class="py-3 px-3 text-[12px] text-slate-400">{c.module_id ?? '—'}</td>
-            <td class="py-3 px-3">
-              <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold {BADGE[c.state]}">{LABEL[c.state]}</span>
+      <tbody class="divide-y divide-zinc-800/30">
+        {#each visible as c, i (c.name)}
+          <tr class="hover:bg-zinc-800/30 transition-colors">
+            <td class="{td} text-zinc-600">{(page - 1) * limit + i + 1}</td>
+            <td class="{td} font-mono text-zinc-100"><span class={toneText[tone()]}>/</span>{c.name}</td>
+            <td class="{td} text-zinc-400">{c.module_id ?? '-'}</td>
+            <td class={td}><Badge tone={TONE[c.state]}>{LABEL[c.state]}</Badge></td>
+            <td class="{td} text-right">
+              <div class="flex justify-end">
+                <BoltSwitch
+                  on={c.state !== 'missing'}
+                  danger={c.state === 'stale'}
+                  busy={pending === c.name}
+                  disabled={!!pending && pending !== c.name}
+                  label={c.state === 'missing' ? `Register /${c.name}` : `Remove /${c.name} from Discord`}
+                  onclick={() => toggle(c)}
+                />
+              </div>
             </td>
           </tr>
         {/each}
       </tbody>
     </table>
+    <Pagination {page} {limit} total={commands.length} onPage={p => (page = p)} onLimit={l => ((limit = l), (page = 1))} />
   {/if}
 </Card>
+{/if}

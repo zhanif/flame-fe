@@ -1,6 +1,6 @@
-export type GuildPage = 'modules' | 'slash' | 'settings' | 'audit';
+export type GuildPage = 'dashboard' | 'settings' | 'audit' | 'slash';
 
-const GUILD_PAGES: GuildPage[] = ['modules', 'slash', 'settings', 'audit'];
+const GUILD_PAGES: GuildPage[] = ['dashboard', 'settings', 'audit', 'slash'];
 
 interface Route {
   guildId: string | null;
@@ -11,9 +11,9 @@ interface Route {
 function parse(): Route {
   const [, root, guildId, page] = window.location.hash.replace(/^#/, '').split('/');
   if (root === 'guild' && guildId) {
-    return { guildId, page: GUILD_PAGES.includes(page as GuildPage) ? (page as GuildPage) : 'modules' };
+    return { guildId, page: GUILD_PAGES.includes(page as GuildPage) ? (page as GuildPage) : 'dashboard' };
   }
-  return { guildId: null, page: 'modules' };
+  return { guildId: null, page: 'dashboard' };
 }
 
 let _route: Route = $state(parse());
@@ -29,7 +29,7 @@ export const router = {
   home() {
     window.location.hash = '#/';
   },
-  guild(guildId: string, page: GuildPage = 'modules') {
+  guild(guildId: string, page: GuildPage = 'dashboard') {
     window.location.hash = `#/guild/${guildId}/${page}`;
   },
 };

@@ -30,7 +30,7 @@ export const session = {
     }
   },
 
-  /** Always fetched fresh — `bot_present` and `access` reflect the live bot. */
+  /** Always fetched fresh, `bot_present` and `access` reflect the live bot. */
   async loadGuilds(): Promise<void> {
     _guildsLoading = true;
     try {

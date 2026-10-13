@@ -15,8 +15,8 @@
 </script>
 
 {#if session.loading}
-  <div class="min-h-screen flex items-center justify-center bg-slate-950" aria-hidden="true">
-    <div class="w-10 h-10 rounded-full bg-slate-800 animate-pulse"></div>
+  <div class="min-h-screen flex items-center justify-center bg-zinc-950" aria-hidden="true">
+    <div class="w-10 h-10 rounded-full bg-zinc-800 animate-pulse"></div>
   </div>
 {:else if !session.me}
   <LandingPage />

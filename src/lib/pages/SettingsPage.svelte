@@ -1,12 +1,17 @@
 <script lang="ts">
+  import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import Combobox from '$lib/components/Combobox.svelte';
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import SectionTitle from '$lib/components/SectionTitle.svelte';
   import RolePicker from '$lib/components/RolePicker.svelte';
   import { api, type DiscordRole, type GuildSettings } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
-  import { Settings } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { timeIn, timezoneOptions } from '$lib/timezones';
+  import { control, label } from '$lib/ui';
+  import { Globe, Lock, ShieldCheck } from '@lucide/svelte';
+  import { onDestroy, onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -16,7 +21,13 @@
   let loading = $state(true);
   let saving = $state(false);
 
-  const timezones = ['UTC', ...Intl.supportedValuesOf('timeZone')];
+  const timezones = timezoneOptions();
+  const languages = [{ value: 'en', flag: '🇬🇧', name: 'English' }];
+  let now = $state(new Date());
+  const clock = setInterval(() => (now = new Date()), 15_000);
+  onDestroy(() => clearInterval(clock));
+  const adminByPermission = $derived(roles.filter(r => r.access === 'admin').map(r => r.id));
+  const moderatorByPermission = $derived(roles.filter(r => r.access === 'moderator').map(r => r.id));
   const dirty = $derived(!!saved && !!draft && JSON.stringify(saved) !== JSON.stringify(draft));
 
   onMount(async () => {
@@ -36,7 +47,7 @@
     try {
       saved = await api.updateSettings(guildId, draft);
       draft = structuredClone($state.snapshot(saved)) as GuildSettings;
-      toast('success', 'Settings saved');
+      toast('success', 'Settings saved', 'Your changes are now live for this server.');
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -45,57 +56,69 @@
   }
 </script>
 
-<PageHeader title="Settings" description="Server-wide settings" icon={Settings}>
-  {#snippet actions()}
-    {#if isAdmin}
-      <button
-        onclick={save}
-        disabled={!dirty || saving}
-        class="px-4 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {saving ? 'Saving…' : 'Save'}
-      </button>
-    {/if}
-  {/snippet}
-</PageHeader>
+{#snippet included(perms: string[])}
+  <p class="flex flex-wrap items-center gap-x-2 gap-y-1.5 mb-2.5 text-xs text-zinc-500">
+    <Lock class="w-3 h-3 shrink-0" />
+    Included automatically with
+    {#each perms as perm}
+      <span class="px-1.5 py-0.5 rounded-md bg-zinc-800 ring-1 ring-zinc-700 text-zinc-300 font-mono">{perm}</span>
+    {/each}
+  </p>
+{/snippet}
 
-<div class="space-y-4">
+<PageHeader page="settings" description="Server-wide settings" />
+
+<div class="space-y-5">
   <Card>
+    <SectionTitle icon={Globe} title="General" class="mb-5" />
     {#if loading || !draft}
       <FormSkeleton fields={2} />
     {:else}
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
         <div>
-          <label for="language" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Language</label>
-          <input id="language" bind:value={draft.language} disabled={!isAdmin} class="w-full px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-orange-500/30 disabled:opacity-60" />
+          <label for="language" class={label}>Language</label>
+          <p class="mb-2.5 text-xs text-zinc-500">Bot and dashboard language. English only for now.</p>
+          <div class="relative">
+            <select id="language" bind:value={draft.language} disabled title="English is the only language available for now" class="{control} appearance-none w-full h-9 pl-3 pr-9 text-sm cursor-not-allowed">
+              {#each languages as l}<option value={l.value}>{l.flag}  {l.name}</option>{/each}
+            </select>
+            <Lock class="w-3.5 h-3.5 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
         <div>
-          <label for="timezone" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Timezone</label>
-          <input id="timezone" list="timezones" bind:value={draft.timezone} disabled={!isAdmin} class="w-full px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-orange-500/30 disabled:opacity-60" />
-          <datalist id="timezones">{#each timezones as tz}<option value={tz}></option>{/each}</datalist>
+          <label for="timezone" class={label}>Timezone</label>
+          <p class="mb-2.5 text-xs text-zinc-500">
+            Used for dates and times. Now: {#if timeIn(draft.timezone, now)}<span class="text-zinc-300 font-medium">{timeIn(draft.timezone, now)}</span>{/if}
+          </p>
+          <Combobox id="timezone" bind:value={draft.timezone} options={timezones} placeholder="Search by city or offset, e.g. Jakarta, UTC +7" label="Timezone" disabled={!isAdmin} />
         </div>
       </div>
     {/if}
   </Card>
 
   <Card>
-    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Access roles</h3>
-    <p class="text-xs text-slate-500 mt-1 mb-4">
-      Admins are anyone with Administrator or Manage Server; moderators anyone with Manage Messages or a member-moderation permission. Add roles here to grant the same access by role.
-    </p>
+    <SectionTitle icon={ShieldCheck} title="Access roles" class="mb-5" />
     {#if loading || !draft}
       <FormSkeleton fields={2} />
     {:else}
-      <div class="space-y-4">
+      <div class="space-y-5">
         <div>
-          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Extra admin roles</span>
-          <RolePicker {roles} selected={draft.admin_role_ids} disabled={!isAdmin} onchange={(next) => (draft!.admin_role_ids = next)} />
+          <span class={label}>Admin roles</span>
+          {@render included(['Administrator', 'Manage Server'])}
+          <RolePicker {roles} selected={draft.admin_role_ids} locked={adminByPermission} lockedHint="Has Administrator or Manage Server, so it is always an admin role" disabled={!isAdmin} onchange={(next) => (draft!.admin_role_ids = next)} />
         </div>
         <div>
-          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Extra moderator roles</span>
-          <RolePicker {roles} selected={draft.moderator_role_ids} disabled={!isAdmin} onchange={(next) => (draft!.moderator_role_ids = next)} />
+          <span class={label}>Moderator roles</span>
+          {@render included(['Manage Messages', 'Moderate Members', 'Kick Members', 'Ban Members'])}
+          <RolePicker {roles} selected={draft.moderator_role_ids} locked={moderatorByPermission} hidden={adminByPermission} lockedHint="Has a moderation permission, so it is always a moderator role" disabled={!isAdmin} onchange={(next) => (draft!.moderator_role_ids = next)} />
         </div>
       </div>
     {/if}
   </Card>
+
+  {#if isAdmin && !loading}
+    <div class="flex justify-end">
+      <Button variant="primary" onclick={save} disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+    </div>
+  {/if}
 </div>

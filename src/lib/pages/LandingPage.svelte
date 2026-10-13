@@ -1,19 +1,24 @@
 <script lang="ts">
+  import Badge from '$lib/components/Badge.svelte';
+  import Button from '$lib/components/Button.svelte';
+  import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import { bot } from '$lib/stores/bot.svelte';
 </script>
 
-<div class="min-h-screen flex items-center justify-center p-6 bg-slate-950">
-  <div class="max-w-sm w-full text-center">
+<div class="relative min-h-screen flex items-center justify-center p-5">
+  <div class="absolute top-5 right-5 z-10"><ThemeToggle /></div>
+
+  <div class="relative max-w-sm w-full text-center">
     {#if bot.avatar}
-      <img src={bot.avatar} alt={bot.name} class="w-20 h-20 rounded-full mx-auto mb-6 ring-2 ring-orange-500/30" />
+      <img src={bot.avatar} alt={bot.name} class="w-24 h-24 rounded-full mx-auto mb-6 ring-4 ring-orange-500/30 shadow-lg shadow-orange-500/20" />
     {/if}
-    <h1 class="text-4xl font-extrabold tracking-tight mb-2 text-orange-400">{bot.name}</h1>
-    <p class="text-sm text-slate-400 mb-8">Manage your server and the modules installed in it.</p>
-    <a
-      href="/api/auth/login"
-      class="inline-flex items-center justify-center w-full px-5 py-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/30 transition-all"
-    >
-      Log in with Discord
-    </a>
+    <h1 class="font-display text-5xl font-extrabold tracking-tight mb-3 text-orange-400">{bot.name}</h1>
+    <p class="text-sm text-zinc-400 mb-6 leading-relaxed">Manage your server and the modules installed in it.</p>
+    <Button variant="primary" href="/api/auth/login" class="w-full !h-10 !text-sm">Log in with Discord</Button>
+    <div class="flex flex-wrap items-center justify-center gap-2 mt-6">
+      <Badge tone="brand">Modular</Badge>
+      <Badge tone="info">Per server</Badge>
+      <Badge tone="accent">Slash commands</Badge>
+    </div>
   </div>
 </div>

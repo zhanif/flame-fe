@@ -1,26 +1,24 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import type { Component } from 'svelte';
+  import { PAGES } from '$lib/nav';
+  import type { GuildPage } from '$lib/stores/router.svelte';
+  import ThemeToggle from './ThemeToggle.svelte';
+  import Tile from './Tile.svelte';
 
-  interface Props {
-    title: string;
-    description: string;
-    icon: Component<any>;
-    actions?: Snippet;
-  }
+  let { page, description }: { page: GuildPage; description: string } = $props();
 
-  let { title, description, icon: Icon, actions }: Props = $props();
+  const meta = $derived(PAGES[page]);
 </script>
 
-<div class="flex items-center justify-between gap-3 mb-4">
-  <div class="flex items-center gap-2.5">
-    <div class="w-8 h-8 rounded-lg bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
-      <Icon class="w-4 h-4 text-orange-400" />
-    </div>
-    <div>
-      <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">{title}</h2>
-      <p class="text-xs text-slate-500 mt-0.5">{description}</p>
+<!-- The top bar: page identity on the left (label, icon and color come from the
+     same table as the sidebar), the theme toggle on the right. Page actions
+     belong in the page content, not here. -->
+<div class="sticky top-0 z-30 flex items-center justify-between gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50 bg-zinc-950/70 backdrop-blur-md">
+  <div class="flex items-center gap-3 min-w-0">
+    <Tile icon={meta.icon} tone={meta.tone} />
+    <div class="min-w-0">
+      <h2 class="font-display text-base font-bold text-zinc-100 leading-5">{meta.label}</h2>
+      <p class="text-xs text-zinc-500 truncate">{description}</p>
     </div>
   </div>
-  {#if actions}<div class="flex items-center gap-2">{@render actions()}</div>{/if}
+  <ThemeToggle />
 </div>

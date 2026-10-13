@@ -9,7 +9,7 @@ export class ApiError extends Error {
 }
 
 /** Same-origin call to flame-be. The session lives in an httpOnly cookie, so
- *  there is no token handling here — only the `{ data }` / `{ error }` envelope. */
+ *  there is no token handling here, only the `{ data }` / `{ error }` envelope. */
 export async function apiCall<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, {
     method,
