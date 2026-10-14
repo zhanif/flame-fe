@@ -6,10 +6,12 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
+  import Select from '$lib/components/Select.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type SlashCommand } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { pageTone } from '$lib/nav';
+  import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { td, th, toneText } from '$lib/ui';
   import { CornerDownRight, RefreshCw } from '@lucide/svelte';
   import { onMount } from 'svelte';
@@ -24,8 +26,20 @@
   let pending = $state<string | null>(null);
   let page = $state(1);
   let limit = $state(10);
+  let moduleFilter = $state('');
 
-  const visible = $derived(commands.slice((page - 1) * limit, page * limit));
+  // A command no installed module owns has no module to filter by.
+  const NO_MODULE = '__none__';
+  // `core` is Flame's own built-in commands (/settings): not a module, so it is not in the catalog.
+  const moduleName = (id: string) => (id === 'core' ? 'Core' : (moduleCatalog.entries.find(m => m.id === id)?.name ?? id));
+
+  // The modules that have a command here, plus "no module" when some command has none.
+  const moduleOptions = $derived([
+    ...[...new Set(commands.flatMap(c => (c.module_id ? [c.module_id] : [])))].sort().map(id => ({ value: id, label: moduleName(id) })),
+    ...(commands.some(c => c.module_id === null) ? [{ value: NO_MODULE, label: 'No module (leftovers)' }] : []),
+  ]);
+  const filtered = $derived(commands.filter(c => !moduleFilter || (moduleFilter === NO_MODULE ? c.module_id === null : c.module_id === moduleFilter)));
+  const visible = $derived(filtered.slice((page - 1) * limit, page * limit));
 
   const label = (c: SlashCommand) => (c.kind === 'slash' ? `/${c.name}` : `"${c.name}"`);
   const TONE = { live: 'success', missing: 'warning', stale: 'danger' } as const;
@@ -35,7 +49,7 @@
     loading = true;
     try {
       commands = (await api.slash(guildId)).commands;
-      page = Math.min(page, Math.max(Math.ceil(commands.length / limit), 1));
+      page = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
       loaded = true;
     } catch (e: any) {
       toast('error', e.message);
@@ -73,7 +87,7 @@
         commands = c.module_id
           ? commands.map(x => (x.name === c.name ? { ...x, state: 'missing' } : x))
           : commands.filter(x => x.name !== c.name);
-        page = Math.min(page, Math.max(Math.ceil(commands.length / limit), 1));
+        page = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
         toast('success', `${label(c)} removed`, c.module_id ? 'Register it again any time.' : 'It is gone from Discord.');
       }
     } catch (e: any) {
@@ -86,7 +100,16 @@
 
 <PageHeader page="slash" description="Slash commands of the installed modules on Discord" />
 
-<div class="flex justify-end mb-5">
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <Select
+    bind:value={moduleFilter}
+    onchange={() => (page = 1)}
+    options={moduleOptions}
+    placeholder="All modules"
+    label="Module"
+    disabled={!loaded}
+    class="w-56"
+  />
   <Button onclick={refresh} disabled={loading || !!pending} title="Reload from Discord and remove commands that no installed module owns">
     <RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''}" /> Refresh
   </Button>
@@ -116,7 +139,7 @@
             <td class="{td} font-mono text-zinc-100">
               {#if c.kind === 'slash'}<span class={toneText[tone()]}>/</span>{c.name}{:else}<span class="flex items-center gap-2"><CornerDownRight class="w-3.5 h-3.5 {toneText[tone()]}" />{c.name}<Badge tone="neutral">Message menu</Badge></span>{/if}
             </td>
-            <td class="{td} text-zinc-400">{c.module_id ?? '-'}</td>
+            <td class="{td} text-zinc-400">{c.module_id ? moduleName(c.module_id) : '-'}</td>
             <td class={td}><Badge tone={TONE[c.state]}>{LABEL[c.state]}</Badge></td>
             <td class="{td} text-right">
               <div class="flex justify-end">
@@ -134,7 +157,10 @@
         {/each}
       </tbody>
     </table>
-    <Pagination {page} {limit} total={commands.length} onPage={p => (page = p)} onLimit={l => ((limit = l), (page = 1))} />
+    {#if filtered.length === 0}
+      <p class="px-5 py-8 text-center text-xs text-zinc-500">No command belongs to this module.</p>
+    {/if}
+    <Pagination {page} {limit} total={filtered.length} onPage={p => (page = p)} onLimit={l => ((limit = l), (page = 1))} />
   {/if}
 </Card>
 {/if}

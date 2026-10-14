@@ -150,16 +150,22 @@ export interface AntiTamperRules {
   exceptions: RoleExemption[];
 }
 
+/** What can be removed: messages with an image, with a video, with any file, or every message. */
+export type AutoremoverKind = 'image' | 'video' | 'file' | 'message';
+
 export interface AutoremoverConfig {
   enabled: boolean;
   ttl_seconds: number;
   target_ids: string[];
+  /** A message is removed when it matches any of these. */
+  remove_kinds: AutoremoverKind[];
+  exclude_mods: boolean;
+  exclude_admins: boolean;
+  exclude_pinned: boolean;
   /** Why the bot cannot delete in the watched place (a missing permission, a place that is gone). */
   warnings: string[];
   limits: { min_ttl_seconds: number; max_ttl_seconds: number; max_targets: number };
 }
-
-export type AutoremoverView = 'scheduled' | 'history';
 
 export interface AutoremoverItem {
   id: string;
@@ -200,6 +206,7 @@ export interface OcrTerm {
 export interface OcrTerms {
   /** How many terms Flame's default list has (a server gets a copy when it installs the module). */
   default_count: number;
+  /** The most terms a server's blocklist can have. */
   terms: OcrTerm[];
 }
 
@@ -305,11 +312,11 @@ export const api = {
   },
   autoremover: {
     config: (guildId: string) => apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`),
-    updateConfig: (guildId: string, config: Pick<AutoremoverConfig, 'enabled' | 'ttl_seconds' | 'target_ids'>) =>
+    updateConfig: (guildId: string, config: Pick<AutoremoverConfig, 'enabled' | 'ttl_seconds' | 'target_ids' | 'remove_kinds' | 'exclude_mods' | 'exclude_admins' | 'exclude_pinned'>) =>
       apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`, 'PUT', config),
-    items: (guildId: string, query: { view: AutoremoverView; page: number; limit: number }) =>
+    items: (guildId: string, query: { status?: string; page: number; limit: number }) =>
       apiCall<{ items: AutoremoverItem[]; pagination: Pagination }>(
-        `/guilds/${guildId}/m/autoremover/items?view=${query.view}&page=${query.page}&limit=${query.limit}`,
+        `/guilds/${guildId}/m/autoremover/items?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
       ),
     cancel: (guildId: string, id: string) => apiCall<{ success: boolean }>(`/guilds/${guildId}/m/autoremover/items/${id}`, 'DELETE'),
   },
@@ -318,10 +325,9 @@ export const api = {
     updateConfig: (guildId: string, config: Pick<OcrDetectionConfig, 'enabled' | 'report_channel_id' | 'threshold' | 'target_ids'>) =>
       apiCall<OcrDetectionConfig>(`/guilds/${guildId}/m/ocr-detection/config`, 'PUT', config),
     terms: (guildId: string) => apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`),
-    addTerm: (guildId: string, term: string, isRegex: boolean) =>
-      apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'POST', { term, is_regex: isRegex }),
+    saveTerms: (guildId: string, terms: { term: string; is_regex: boolean }[]) =>
+      apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'PUT', { terms }),
     restoreDefaults: (guildId: string) => apiCall<OcrTerms & { restored: number }>(`/guilds/${guildId}/m/ocr-detection/terms/defaults`, 'POST'),
-    removeTerm: (guildId: string, term: string) => apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'DELETE', { term }),
     detections: (guildId: string, query: { page: number; limit: number; status?: string }) =>
       apiCall<{ items: OcrDetectionItem[]; pending: number; pagination: Pagination }>(
         `/guilds/${guildId}/m/ocr-detection/detections?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,

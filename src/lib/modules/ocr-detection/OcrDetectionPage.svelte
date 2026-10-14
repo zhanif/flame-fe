@@ -11,6 +11,7 @@
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import Select from '$lib/components/Select.svelte';
+  import Textarea from '$lib/components/Textarea.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
@@ -18,12 +19,11 @@
   import ActorCell from '$lib/components/ActorCell.svelte';
   import { api, type DiscordChannel, type OcrDetectionConfig, type OcrDetectionItem, type OcrTerms } from '$lib/api/endpoints';
   import { onlyDecimal, restrictTo } from '$lib/number-input';
+  import { formatTerms, parseTerms, termsProblem } from './blocklist-text';
   import { toast } from '$lib/stores/toast.svelte';
   import { label, td, th } from '$lib/ui';
-  import { ListX, Plus, RotateCcw, ScanText, Search, Settings, Trash2 } from '@lucide/svelte';
+  import { ListX, RotateCcw, ScanText, Settings } from '@lucide/svelte';
   import { onMount } from 'svelte';
-  import { cubicOut } from 'svelte/easing';
-  import { slide } from 'svelte/transition';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -48,26 +48,20 @@
   let statusFilter = $state('');
 
   let terms: OcrTerms | null = $state(null);
-  let adding = $state(false);
-  let newTerm = $state('');
-  let newTermRegex = $state(false);
-  let addingBusy = $state(false);
-  let termQuery = $state('');
-  let termPage = $state(1);
-  let termLimit = $state(20);
+  // The blocklist as a text box, one term per line, until Save.
+  let termsText = $state('');
+  let savedText = $state('');
+  let savingTerms = $state(false);
   let restoring = $state(false);
 
   const cell = td.replace('h-11', 'h-14');
   const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const where = (id: string) => channels.find(c => c.id === id)?.name ?? id;
 
-  // The blocklist is filtered and paged here: it is a few hundred short rows.
-  const shownTerms = $derived.by(() => {
-    const q = termQuery.trim().toLowerCase();
-    const all = terms?.terms ?? [];
-    return q ? all.filter(t => t.term.toLowerCase().includes(q)) : all;
-  });
-  const pageTerms = $derived(shownTerms.slice((termPage - 1) * termLimit, termPage * termLimit));
+  const MAX_TERMS = 1000;
+  const termsDirty = $derived(termsText.trim() !== savedText.trim());
+  const termsError = $derived(termsProblem(termsText, MAX_TERMS));
+  const termCount = $derived(parseTerms(termsText).length);
 
   const thresholdNumber = $derived(threshold.trim() === '' ? NaN : Number(threshold));
   const thresholdError = $derived.by(() => {
@@ -133,33 +127,30 @@
     }
   }
 
-  async function changeTerms(action: () => Promise<OcrTerms>, success: string): Promise<boolean> {
-    try {
-      terms = await action();
-      toast('success', success);
-      return true;
-    } catch (e: any) {
-      toast('error', e.message);
-      return false;
-    }
+  function showTerms(next: OcrTerms) {
+    terms = next;
+    savedText = formatTerms(next.terms);
+    termsText = savedText;
   }
 
-  async function addTerm() {
-    if (!newTerm.trim() || addingBusy) return;
-    addingBusy = true;
-    if (await changeTerms(() => api.ocrDetection.addTerm(guildId, newTerm, newTermRegex), 'Term added')) {
-      newTerm = '';
-      newTermRegex = false;
-      adding = false;
+  async function saveTerms() {
+    if (termsError) return;
+    savingTerms = true;
+    try {
+      showTerms(await api.ocrDetection.saveTerms(guildId, parseTerms(termsText)));
+      toast('success', 'Blocklist saved', 'The next image that is read uses it.');
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      savingTerms = false;
     }
-    addingBusy = false;
   }
 
   async function restoreDefaults() {
     restoring = true;
     try {
       const res = await api.ocrDetection.restoreDefaults(guildId);
-      terms = res;
+      showTerms(res);
       toast('success', res.restored ? `Restored ${res.restored} default terms` : 'Nothing to restore', res.restored ? undefined : 'Every default term is already on the list.');
     } catch (e: any) {
       toast('error', e.message);
@@ -186,7 +177,7 @@
     void loadDetections();
     const [loadedConfig, channelList, termList] = await Promise.allSettled([api.ocrDetection.config(guildId), api.channels(guildId), api.ocrDetection.terms(guildId)]);
     if (channelList.status === 'fulfilled') channels = channelList.value;
-    if (termList.status === 'fulfilled') terms = termList.value;
+    if (termList.status === 'fulfilled') showTerms(termList.value);
     if (loadedConfig.status === 'fulfilled') apply(loadedConfig.value);
     else toast('error', loadedConfig.reason?.message ?? 'Could not load the OCR detection settings');
   });
@@ -199,21 +190,15 @@
 <PageHeader module="ocr-detection" description="Reports images whose text matches a blocklist" />
 
 <div class="space-y-5">
-  <div class="flex items-center justify-between gap-3 flex-wrap">
+  <div>
     <Tabs
       bind:value={tab}
       tabs={[
         { id: 'detections', label: 'Detections', icon: ScanText, count: loaded ? total : null },
-        { id: 'terms', label: 'Blocklist', icon: ListX, count: terms ? terms.terms.length : null },
+        { id: 'terms', label: 'Blocklist', icon: ListX, count: terms ? parseTerms(savedText).length : null },
         { id: 'settings', label: 'Settings', icon: Settings },
       ]}
     />
-    {#if isAdmin && tab === 'terms'}
-      <div class="flex items-center gap-2">
-        <Button variant="secondary" onclick={restoreDefaults} disabled={restoring} title="Add back the default terms that were removed"><RotateCcw class="w-3.5 h-3.5" />Restore defaults</Button>
-        <Button variant="primary" onclick={() => (adding = !adding)}><Plus class="w-3.5 h-3.5" />Add term</Button>
-      </div>
-    {/if}
   </div>
 
   {#if config}<WarningBanner warnings={config.warnings} />{/if}
@@ -271,69 +256,31 @@
       {/if}
     </Card>
   {:else if tab === 'terms'}
-    {#if isAdmin && adding}
-      <div transition:slide={{ duration: 220, easing: cubicOut }}>
-        <Card>
-          <SectionTitle icon={Plus} title="Add a term" class="mb-1" />
-          <p class="mb-4 text-xs text-zinc-500">A word matches when it contains the term or is similar enough. A regular expression is tested as written.</p>
-          <div class="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div class="w-full sm:w-80">
-              <span class={label}>Term</span>
-              <Input bind:value={newTerm} maxlength={100} placeholder="A word or a regular expression" aria-label="Term" />
+    <Card>
+      <SectionTitle icon={ListX} title="Blocklist" class="mb-1" />
+      <p class="mb-4 text-xs leading-relaxed text-zinc-500">
+        One term per line. A word matches when it contains the term or is similar enough (see Similarity). A line between slashes, like <span class="font-mono text-zinc-300">/\bass\b/</span>, is a regular expression tested as written.
+      </p>
+      {#if !terms}
+        <div class="h-80 w-full rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
+      {:else}
+        <Textarea bind:value={termsText} rows={16} mono disabled={!isAdmin} placeholder="One term per line" aria-label="Blocklist terms" />
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p class="text-xs {termsError ? 'text-red-400' : 'text-zinc-500'}">
+            {termsError ?? `${termCount} term${termCount === 1 ? '' : 's'}${termsDirty ? ', not saved yet' : ''}`}
+          </p>
+          {#if isAdmin}
+            <div class="flex items-center gap-2">
+              <Button variant="ghost" onclick={() => (termsText = savedText)} disabled={!termsDirty || savingTerms}>Discard</Button>
+              <Button variant="secondary" onclick={restoreDefaults} disabled={termsDirty || restoring} title={termsDirty ? 'Save or discard your changes first' : 'Add back the default terms that were removed'}>
+                <RotateCcw class="w-3.5 h-3.5" />Restore defaults
+              </Button>
+              <Button variant="primary" onclick={saveTerms} disabled={!termsDirty || !!termsError || savingTerms}>{savingTerms ? 'Saving…' : 'Save'}</Button>
             </div>
-            <label class="flex items-center gap-2 h-9 text-sm text-zinc-300">
-              <Toggle on={newTermRegex} label="Regular expression" onclick={() => (newTermRegex = !newTermRegex)} />Regular expression
-            </label>
-            <Button variant="primary" onclick={addTerm} disabled={!newTerm.trim() || addingBusy}><Plus class="w-3.5 h-3.5" />Add</Button>
-            <Button variant="ghost" onclick={() => (adding = false)}>Cancel</Button>
-          </div>
-        </Card>
-      </div>
-    {/if}
-
-    {#if terms && terms.terms.length === 0}
-      <EmptyState kind="search" title="The blocklist is empty" description="Nothing is detected until it has terms. Add one, or restore Flame's {terms.default_count} default terms." />
-    {:else}
-      <div class="relative w-full sm:w-72">
-        <Search class="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-        <Input bind:value={termQuery} oninput={() => (termPage = 1)} placeholder="Search terms..." aria-label="Search terms" class="pl-9" />
-      </div>
-      <Card flush>
-        {#if !terms}
-          <TableSkeleton columns={['w-16', 'flex-1', 'w-40', 'w-16']} rows={6} />
-        {:else if shownTerms.length === 0}
-          <p class="px-5 py-8 text-center text-xs text-zinc-500">No term matches "{termQuery}".</p>
-        {:else}
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
-                <th class="{th} w-16">#</th>
-                <th class={th}>Term</th>
-                <th class="{th} w-40">Type</th>
-                {#if isAdmin}<th class="{th} w-16"><span class="sr-only">Actions</span></th>{/if}
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-800/30">
-              {#each pageTerms as term, i (term.term)}
-                <tr class="hover:bg-zinc-800/30 transition-colors">
-                  <td class="{td} text-zinc-500">{(termPage - 1) * termLimit + i + 1}</td>
-                  <td class="{td} text-zinc-200 font-mono break-all">{term.term}</td>
-                  <td class={td}><Badge tone={term.is_regex ? 'accent' : 'neutral'}>{term.is_regex ? 'Regular expression' : 'Word'}</Badge></td>
-                  {#if isAdmin}
-                    <td class="{td} text-right">
-                      <Button variant="ghost" size="icon" aria-label="Remove term" onclick={() => changeTerms(() => api.ocrDetection.removeTerm(guildId, term.term), 'Term removed')}>
-                        <Trash2 class="w-3.5 h-3.5 text-red-400" />
-                      </Button>
-                    </td>
-                  {/if}
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-          <Pagination page={termPage} limit={termLimit} total={shownTerms.length} onPage={p => (termPage = p)} onLimit={l => ((termLimit = l), (termPage = 1))} />
-        {/if}
-      </Card>
-    {/if}
+          {/if}
+        </div>
+      {/if}
+    </Card>
   {:else if loaded && total === 0 && !statusFilter}
     <EmptyState kind="log" title="No detections yet" description="Images in the watched channel are listed here while they wait to be read, and when they match the blocklist." />
   {:else}

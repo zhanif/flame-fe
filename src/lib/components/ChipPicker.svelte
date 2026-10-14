@@ -41,6 +41,8 @@
   let input: HTMLInputElement | undefined = $state();
 
   const full = $derived(max !== undefined && selected.length >= max);
+  // Closed, with chips in it, the box is just the chips: no placeholder, and the search box takes no room.
+  const compact = $derived(!open && !query && (selected.length > 0 || locked.length > 0));
   const lockedItems = $derived(items.filter(i => locked.includes(i.id)));
   const selectedItems = $derived(
     selected.filter(id => !locked.includes(id) && !hidden.includes(id)).map(id => items.find(i => i.id === id)).filter((i): i is ChipItem => !!i),
@@ -111,10 +113,10 @@
         bind:value={query}
         onfocus={() => (open = true)}
         onkeydown={onKey}
-        {placeholder}
+        placeholder={compact ? '' : placeholder}
         aria-label={label}
         {disabled}
-        class="flex-1 min-w-[5rem] bg-transparent text-sm text-zinc-200 placeholder-zinc-500 outline-none"
+        class="bg-transparent text-sm text-zinc-200 placeholder-zinc-500 outline-none {compact ? 'w-0 min-w-0 flex-none p-0' : 'flex-1 min-w-[5rem]'}"
       />
     {/if}
   </div>
