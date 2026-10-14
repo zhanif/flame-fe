@@ -1,7 +1,7 @@
 import type { GuildPage } from '$lib/stores/router.svelte';
 import type { Tone } from '$lib/ui';
 import type { ModuleSection } from '$lib/api/endpoints';
-import { LayoutDashboard, Quote, ScrollText, Settings, Terminal } from '@lucide/svelte';
+import { LayoutDashboard, Quote, Rocket, ScrollText, Settings, ShieldAlert, Terminal } from '@lucide/svelte';
 import { type Component, getContext, setContext } from 'svelte';
 
 export interface PageMeta {
@@ -23,7 +23,22 @@ export const PAGES: Record<GuildPage, PageMeta> = {
 /** Label, icon and color of each installable module's page, by module id. */
 export const MODULE_PAGES: Record<string, PageMeta> = {
   quotes: { label: 'Quotes', icon: Quote, tone: 'cyan', adminOnly: false },
+  booster: { label: 'Booster', icon: Rocket, tone: 'fuchsia', adminOnly: false },
+  'anti-tamper': { label: 'Anti Tamper', icon: ShieldAlert, tone: 'red', adminOnly: false },
 };
+
+/** The color of an audit action (`booster.role.save`, `quote.delete`...): the color of the page it
+ *  belongs to, so a log row matches its module in the sidebar. Module actions start with the
+ *  module's id (Quotes uses the singular `quote`); core ones with their page (`slash`, `settings`). */
+export function actionTone(action: string): Tone {
+  const prefix = action.split('.')[0];
+  const moduleId = Object.keys(MODULE_PAGES).find(id => id === prefix || id === `${prefix}s`);
+  if (moduleId) return MODULE_PAGES[moduleId].tone;
+  if (prefix === 'module') return PAGES.dashboard.tone;
+  if (prefix === 'slash') return PAGES.slash.tone;
+  if (prefix === 'settings') return PAGES.settings.tone;
+  return PAGES.audit.tone;
+}
 
 /** Sidebar sections that hold installed modules, in order. */
 export const SECTIONS: { id: ModuleSection; label: string }[] = [

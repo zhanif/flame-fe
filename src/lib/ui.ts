@@ -18,7 +18,7 @@ export const td = 'h-11 px-5 align-middle text-xs';
 
 
 /** The accent palette: orange is the brand, the rest give each area its own color. */
-export type Tone = 'orange' | 'sky' | 'cyan' | 'violet' | 'emerald' | 'amber' | 'red';
+export type Tone = 'orange' | 'sky' | 'cyan' | 'violet' | 'emerald' | 'amber' | 'fuchsia' | 'red';
 
 /** A stable "random" tone for an id (a server, a module): same id, same color, everywhere. */
 const RANDOM_TONES: Tone[] = ['sky', 'violet', 'amber', 'emerald', 'orange'];
@@ -32,6 +32,7 @@ export const tile: Record<Tone, string> = {
   violet: 'bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/30',
   emerald: 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30',
   amber: 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30',
+  fuchsia: 'bg-fuchsia-500/20 text-fuchsia-400 ring-1 ring-fuchsia-500/30',
   red: 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30',
 };
 
@@ -43,5 +44,6 @@ export const toneText: Record<Tone, string> = {
   violet: 'text-violet-400',
   emerald: 'text-emerald-400',
   amber: 'text-amber-400',
+  fuchsia: 'text-fuchsia-400',
   red: 'text-red-400',
 };

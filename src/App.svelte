@@ -3,6 +3,8 @@
   import DashboardPage from '$lib/pages/DashboardPage.svelte';
   import GuildLayout from '$lib/pages/GuildLayout.svelte';
   import LandingPage from '$lib/pages/LandingPage.svelte';
+  import PrivacyPage from '$lib/pages/PrivacyPage.svelte';
+  import TermsPage from '$lib/pages/TermsPage.svelte';
   import { bot } from '$lib/stores/bot.svelte';
   import { router } from '$lib/stores/router.svelte';
   import { session } from '$lib/stores/session.svelte';
@@ -14,7 +16,11 @@
   });
 </script>
 
-{#if session.loading}
+{#if router.legal === 'privacy'}
+  <PrivacyPage />
+{:else if router.legal === 'terms'}
+  <TermsPage />
+{:else if session.loading}
   <div class="min-h-screen flex items-center justify-center bg-zinc-950" aria-hidden="true">
     <div class="w-10 h-10 rounded-full bg-zinc-800 animate-pulse"></div>
   </div>

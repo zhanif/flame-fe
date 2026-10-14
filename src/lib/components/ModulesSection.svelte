@@ -90,9 +90,10 @@
   {:else}
     <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
       {#each filtered as m (m.id)}
+        {@const Icon = MODULE_PAGES[m.id]?.icon ?? Blocks}
         <Card interactive class="flex flex-col {m.installed ? 'border-emerald-500/30' : ''}">
           <div class="flex items-center gap-2.5">
-            <Blocks class="w-4 h-4 shrink-0 {toneText[toneOf(m.id)]}" />
+            <Icon class="w-4 h-4 shrink-0 {toneText[toneOf(m.id)]}" />
             <h4 class="font-display text-sm font-bold text-zinc-100 min-w-0 flex-1 truncate">{m.name}</h4>
             {#if m.installed}
               <Badge tone="success"><Check class="w-3 h-3" /> Installed</Badge>

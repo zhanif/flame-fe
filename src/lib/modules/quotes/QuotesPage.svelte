@@ -3,13 +3,13 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import Input from '$lib/components/Input.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
-  import Select from '$lib/components/Select.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type DiscordChannel, type QuoteEntry } from '$lib/api/endpoints';
@@ -39,8 +39,6 @@
   let savedChannel = '';
   let settingsLoaded = $state(false);
 
-  // Text and announcement channels, the only ones quotes can be posted to.
-  const channelOptions = $derived(channels.filter(c => c.type === 0 || c.type === 5).map(c => ({ value: c.id, label: `#${c.name}` })));
   const cell = td.replace('h-11', 'h-14');
 
   const when = (ts: string) =>
@@ -134,15 +132,7 @@
       <span class={label}>Publish channel</span>
       <p class="mb-2.5 text-xs text-zinc-500">Where new quotes are posted. Pick Not published to stop posting them.</p>
       {#if settingsLoaded}
-        <Select
-          bind:value={publishChannel}
-          onchange={saveChannel}
-          options={channelOptions}
-          placeholder="Not published"
-          label="Publish channel"
-          disabled={!isAdmin}
-          class="w-full sm:w-80"
-        />
+        <ChannelPicker {channels} bind:value={publishChannel} onchange={saveChannel} none="Not published" label="Publish channel" disabled={!isAdmin} class="w-full sm:w-80" />
       {:else}
         <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
       {/if}

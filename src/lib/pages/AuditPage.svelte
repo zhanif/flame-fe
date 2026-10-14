@@ -12,6 +12,7 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type AuditFilters, type AuditLogEntry, type AuditQuery } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
+  import { actionTone } from '$lib/nav';
   import { td, th } from '$lib/ui';
 
   // Audit rows carry badges and avatars, so they get more vertical room than the default.
@@ -131,7 +132,7 @@
             <td class="{cell} text-zinc-600">{(page - 1) * limit + i + 1}</td>
             <td class="{cell} text-zinc-500 whitespace-nowrap">{when(log.created_at)}</td>
             <td class={cell}><ActorCell actor={log.actor} /></td>
-            <td class={cell}><Badge tone="accent">{log.action}</Badge></td>
+            <td class={cell}><Badge tone={actionTone(log.action)}>{log.action}</Badge></td>
             <td class="{cell} text-zinc-400">{log.reason ?? '-'}</td>
           </tr>
         {/each}

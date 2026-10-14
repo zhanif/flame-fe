@@ -73,3 +73,7 @@ Every table follows these rules; do not build a one-off table.
 5. Compact density: wrap the table in `<Card flush>` (no card padding, table runs edge to edge); header cells use the `th` token, body cells the `td` token (`py-2.5 px-5`, so text lines up with other panels); rows are separated by `divide-y divide-zinc-800/30`.
 6. The matching `TableSkeleton` lists the same columns, `#` included.
 7. Empty state: no card, no table header. Use `EmptyState` (`kind`: server / commands / log / search / modules, a gray title and a gray hint: always the illustration, a title AND a hint, never a bare title). It is centered on both axes in the space left under the top bar. Add a new illustration to `EmptyArt` when a new `kind` is needed; never write a bare "No X yet" line.
+
+## Module pages with roles and exceptions
+
+`Toggle` is the switch for a setting that applies right away (one per flag in a table row); `BoltSwitch` stays for slash commands. `RoleExceptions` is the shared "people a role rule leaves alone" tab (users by id, roles by picker). `lib/modules/booster` and `lib/modules/anti-tamper` are the reference: Tabs for Roles, Exceptions and Settings, moderators read and admins change, bulk actions behind a confirm `Modal`. Sweep now is locked for now (a disabled button that says why). The endpoints that two modules share are built by `roleRules()` in `api/endpoints.ts`.

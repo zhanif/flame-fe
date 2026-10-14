@@ -9,6 +9,10 @@
     hint?: string;
     /** Extra text matched by the search box (not displayed). */
     keywords?: string;
+    /** A role's color: shown as a dot before the label in the list. */
+    color?: string;
+    /** Listed but not pickable; `hint` says why. */
+    disabled?: boolean;
   }
 
   let {
@@ -44,6 +48,7 @@
   }
 
   function pick(option: Option) {
+    if (option.disabled) return;
     value = option.value;
     open = false;
     query = '';
@@ -104,9 +109,10 @@
           data-active={i === active}
           onmouseenter={() => (active = i)}
           onclick={() => pick(option)}
-          class="w-full flex items-center justify-between gap-3 min-h-8 px-2.5 py-1.5 rounded-lg text-left text-sm cursor-pointer {i === active ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}"
+          aria-disabled={option.disabled}
+          class="w-full flex items-center justify-between gap-3 min-h-8 px-2.5 py-1.5 rounded-lg text-left text-sm {option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} {i === active && !option.disabled ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}"
         >
-          <span class="truncate"><span class="font-medium">{option.label}</span>{#if option.hint}<span class="ml-2 text-zinc-500">{option.hint}</span>{/if}</span>
+          <span class="flex items-center gap-2 truncate">{#if option.color}<span class="w-2.5 h-2.5 shrink-0 rounded-full" style="background:{option.color === '#000000' ? 'rgb(var(--zinc-500))' : option.color}"></span>{/if}<span class="font-medium">{option.label}</span>{#if option.hint}<span class="ml-2 text-zinc-500">{option.hint}</span>{/if}</span>
           {#if option.value === value}<Check class="w-3.5 h-3.5 shrink-0 text-orange-400" />{/if}
         </button>
       {:else}

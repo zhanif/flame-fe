@@ -3,6 +3,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import LegalLinks from '$lib/components/LegalLinks.svelte';
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import { bot } from '$lib/stores/bot.svelte';
   import { router } from '$lib/stores/router.svelte';
@@ -20,7 +21,7 @@
   const loading = $derived(session.guildsLoading && guilds.length === 0);
 </script>
 
-<div class="max-w-5xl mx-auto p-5">
+<div class="max-w-5xl mx-auto p-5 min-h-screen flex flex-col">
   <div class="flex items-center justify-between gap-3">
     <div class="flex items-center gap-3 min-w-0">
       {#if bot.avatar}
@@ -97,4 +98,11 @@
       {/each}
     </div>
   {/if}
+
+  <footer class="mt-auto pt-12 pb-1">
+    <div class="pt-5 border-t border-zinc-800/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500">
+      <p>&copy; {new Date().getFullYear()} {bot.name}. Not affiliated with Discord.</p>
+      <LegalLinks />
+    </div>
+  </footer>
 </div>

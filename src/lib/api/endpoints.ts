@@ -59,12 +59,16 @@ export interface DiscordRole {
   color: string;
   /** Tier the role grants by its Discord permissions alone. */
   access: 'everyone' | 'moderator' | 'admin';
+  /** Why the bot cannot grant or take this role (above its role, managed...), or null. */
+  problem: string | null;
 }
 
 export interface DiscordChannel {
   id: string;
   name: string;
   type: number;
+  /** For a thread: the channel it lives in. */
+  parent_name: string | null;
 }
 
 export interface UserProfile {
@@ -112,6 +116,40 @@ export interface QuoteSettings {
   publish_channel_id: string | null;
 }
 
+/** Someone a role rule leaves alone: one user, or everyone who holds one role. */
+export interface RoleExemption {
+  target_type: 'user' | 'role';
+  target_id: string;
+  user?: UserProfile;
+}
+
+export interface BoosterRoleFlags {
+  assign_on_boost: boolean;
+  remove_on_unboost: boolean;
+  guard: boolean;
+}
+
+export interface BoosterRoleRule extends BoosterRoleFlags {
+  role_id: string;
+  /** Why the bot cannot manage the role, or null. */
+  problem: string | null;
+}
+
+export interface BoosterRules {
+  /** What stops the module from working right now, e.g. a missing permission. */
+  warnings: string[];
+  log_channel_id: string | null;
+  roles: BoosterRoleRule[];
+  exceptions: RoleExemption[];
+}
+
+export interface AntiTamperRules {
+  warnings: string[];
+  report_channel_id: string | null;
+  roles: { role_id: string; problem: string | null }[];
+  exceptions: RoleExemption[];
+}
+
 export interface AuditFilters {
   actions: string[];
   actors: UserProfile[];
@@ -134,6 +172,19 @@ export interface Pagination {
   total: number;
   total_pages: number;
 }
+
+/** The exceptions and sweep endpoints are the same for every module that guards roles. */
+const roleRules = <Rules>(moduleId: string) => {
+  const base = (guildId: string) => `/guilds/${guildId}/m/${moduleId}`;
+  return {
+    rules: (guildId: string) => apiCall<Rules>(`${base(guildId)}/rules`),
+    addException: (guildId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+      apiCall<Rules>(`${base(guildId)}/exceptions`, 'POST', target),
+    removeException: (guildId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+      apiCall<Rules>(`${base(guildId)}/exceptions/${target.target_type}/${target.target_id}`, 'DELETE'),
+    removeRole: (guildId: string, roleId: string) => apiCall<Rules>(`${base(guildId)}/roles/${roleId}`, 'DELETE'),
+  };
+};
 
 export const api = {
   botInfo: () => apiCall<BotInfo>('/bot/info'),
@@ -172,5 +223,18 @@ export const api = {
   quoteSettings: (guildId: string) => apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`),
   updateQuoteSettings: (guildId: string, publishChannelId: string | null) =>
     apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`, 'PUT', { publish_channel_id: publishChannelId }),
+  booster: {
+    ...roleRules<BoosterRules>('booster'),
+    setLogChannel: (guildId: string, channelId: string | null) =>
+      apiCall<BoosterRules>(`/guilds/${guildId}/m/booster/log-channel`, 'PUT', { log_channel_id: channelId }),
+    saveRole: (guildId: string, roleId: string, flags: BoosterRoleFlags) =>
+      apiCall<BoosterRules>(`/guilds/${guildId}/m/booster/roles/${roleId}`, 'PUT', flags),
+  },
+  antiTamper: {
+    ...roleRules<AntiTamperRules>('anti-tamper'),
+    setReportChannel: (guildId: string, channelId: string | null) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/report-channel`, 'PUT', { report_channel_id: channelId }),
+    addRole: (guildId: string, roleId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}`, 'PUT'),
+  },
   auditFilters: (guildId: string) => apiCall<AuditFilters>(`/guilds/${guildId}/audit-logs/filters`),
 };

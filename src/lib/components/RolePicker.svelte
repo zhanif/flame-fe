@@ -3,6 +3,8 @@
   import { control } from '$lib/ui';
   import { Lock, X } from '@lucide/svelte';
 
+  // Several roles at once, as colored chips in a box you can type in. Choosing one role
+  // is a different control: RoleSelect.
   interface Props {
     roles: DiscordRole[];
     selected: string[];
