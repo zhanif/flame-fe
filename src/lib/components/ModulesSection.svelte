@@ -27,10 +27,13 @@
   // The module's own color (its page color when it has one), the same everywhere it shows.
   const toneOf = (id: string) => MODULE_PAGES[id]?.tone ?? toneFor(id);
 
+  // What is not installed yet comes first (that is what a visitor is here to find), each group by name.
   const filtered = $derived.by(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return modules;
-    return modules.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.commands.some(c => c.name.toLowerCase().includes(q)));
+    const matching = q
+      ? modules.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.commands.some(c => c.name.toLowerCase().includes(q)))
+      : modules;
+    return [...matching].sort((a, b) => Number(a.installed) - Number(b.installed) || a.name.localeCompare(b.name));
   });
 
   async function install(m: ModuleEntry) {

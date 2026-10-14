@@ -150,6 +150,73 @@ export interface AntiTamperRules {
   exceptions: RoleExemption[];
 }
 
+export interface AutoremoverConfig {
+  enabled: boolean;
+  ttl_seconds: number;
+  target_ids: string[];
+  /** Why the bot cannot delete in the watched place (a missing permission, a place that is gone). */
+  warnings: string[];
+  limits: { min_ttl_seconds: number; max_ttl_seconds: number; max_targets: number };
+}
+
+export type AutoremoverView = 'scheduled' | 'history';
+
+export interface AutoremoverItem {
+  id: string;
+  channel_id: string;
+  message_id: string;
+  author?: UserProfile;
+  /** The file names. */
+  summary: string;
+  delete_at: string;
+  status: 'pending' | 'deleted' | 'failed' | 'cancelled';
+  error: string | null;
+  processed_at: string | null;
+  created_at: string;
+}
+
+export interface OcrProviderInfo {
+  id: string;
+  label: string;
+  configured: boolean;
+}
+
+export interface OcrDetectionConfig {
+  enabled: boolean;
+  report_channel_id: string | null;
+  threshold: number;
+  target_ids: string[];
+  warnings: string[];
+  provider: OcrProviderInfo;
+  limits: { min_threshold: number; max_threshold: number; max_targets: number };
+}
+
+export interface OcrTerm {
+  term: string;
+  is_regex: boolean;
+  created_at: string;
+}
+
+export interface OcrTerms {
+  /** How many terms Flame's default list has (a server gets a copy when it installs the module). */
+  default_count: number;
+  terms: OcrTerm[];
+}
+
+export interface OcrDetectionItem {
+  id: string;
+  channel_id: string;
+  message_id: string;
+  author?: UserProfile;
+  attachment_name: string;
+  status: 'pending' | 'safe' | 'flagged' | 'handled' | 'failed';
+  matched_terms: string[];
+  handled_by?: UserProfile;
+  handled_action: 'deleted' | 'ignored' | 'timeout' | null;
+  error: string | null;
+  created_at: string;
+}
+
 export interface AuditFilters {
   actions: string[];
   actors: UserProfile[];
@@ -235,6 +302,30 @@ export const api = {
     setReportChannel: (guildId: string, channelId: string | null) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/report-channel`, 'PUT', { report_channel_id: channelId }),
     addRole: (guildId: string, roleId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}`, 'PUT'),
+  },
+  autoremover: {
+    config: (guildId: string) => apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`),
+    updateConfig: (guildId: string, config: Pick<AutoremoverConfig, 'enabled' | 'ttl_seconds' | 'target_ids'>) =>
+      apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`, 'PUT', config),
+    items: (guildId: string, query: { view: AutoremoverView; page: number; limit: number }) =>
+      apiCall<{ items: AutoremoverItem[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/autoremover/items?view=${query.view}&page=${query.page}&limit=${query.limit}`,
+      ),
+    cancel: (guildId: string, id: string) => apiCall<{ success: boolean }>(`/guilds/${guildId}/m/autoremover/items/${id}`, 'DELETE'),
+  },
+  ocrDetection: {
+    config: (guildId: string) => apiCall<OcrDetectionConfig>(`/guilds/${guildId}/m/ocr-detection/config`),
+    updateConfig: (guildId: string, config: Pick<OcrDetectionConfig, 'enabled' | 'report_channel_id' | 'threshold' | 'target_ids'>) =>
+      apiCall<OcrDetectionConfig>(`/guilds/${guildId}/m/ocr-detection/config`, 'PUT', config),
+    terms: (guildId: string) => apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`),
+    addTerm: (guildId: string, term: string, isRegex: boolean) =>
+      apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'POST', { term, is_regex: isRegex }),
+    restoreDefaults: (guildId: string) => apiCall<OcrTerms & { restored: number }>(`/guilds/${guildId}/m/ocr-detection/terms/defaults`, 'POST'),
+    removeTerm: (guildId: string, term: string) => apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'DELETE', { term }),
+    detections: (guildId: string, query: { page: number; limit: number; status?: string }) =>
+      apiCall<{ items: OcrDetectionItem[]; pending: number; pagination: Pagination }>(
+        `/guilds/${guildId}/m/ocr-detection/detections?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
+      ),
   },
   auditFilters: (guildId: string) => apiCall<AuditFilters>(`/guilds/${guildId}/audit-logs/filters`),
 };

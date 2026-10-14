@@ -22,6 +22,8 @@
     <ul>
       <li><strong>Quotes</strong>: the text of a message someone chose to quote, its author and the person who quoted it (user IDs), the channel and message IDs, the IDs of the card and published messages the bot posted, the publish channel, and, for deleted quotes, who deleted them and why.</li>
       <li><strong>Booster</strong> and <strong>Anti Tamper</strong>: the role, channel and user IDs the server configured (protected roles, exceptions, log channel). They read members' roles and boost status to apply the rules, but do not store them.</li>
+      <li><strong>Autoremover</strong>: for each message with an attachment in the watched channel, the message, channel and author IDs, the file names, when it is due to be deleted, and how it ended. The files themselves are never copied.</li>
+      <li><strong>OCR Detection</strong>: for each image posted in the watched channel, the message, channel and author IDs, the file name, a temporary link to the image, and the result (safe, or which blocklist terms matched, and what a moderator did about the report). The text found in an image is compared with the blocklist and is not stored.</li>
     </ul>
     <p><strong>Command content.</strong> To recognise text commands the bot reads messages in servers it is in (Discord's Message Content intent), and to enforce role rules it sees member role and boost changes (Server Members intent). Messages and member details are used to run the command or rule and are not stored, except where a feature above says otherwise.</p>
     <p><strong>Cookies.</strong> Two functional cookies, both HTTP only: one during login to protect against forged logins, and one that keeps you signed in. We use no analytics, advertising or tracking cookies. Your theme choice and the bot's name and avatar are kept in your browser's local storage.</p>
@@ -36,13 +38,15 @@
   </LegalSection>
 
   <LegalSection n={3} title="Where it is processed">
-    <p>Data is stored in our own PostgreSQL database and Redis cache. Redis holds sessions, a short-lived cache of Discord display names and avatars (about an hour), your server list (about a minute), and per-server settings that are read often. Beyond Discord itself, which provides the platform and the data above, no other third party receives your data.</p>
+    <p>Data is stored in our own PostgreSQL database and Redis cache. Redis holds sessions, a short-lived cache of Discord display names and avatars (about an hour), your server list (about a minute), and per-server settings that are read often.</p>
+    <p>Besides Discord itself, which provides the platform and the data above, there is one third party: when a server turns on <strong>OCR Detection</strong>, each image posted in its watched channel is downloaded and sent to <strong>OCR.space</strong>, an online text recognition service, which returns the text it reads. Nothing else about you is sent. Images from servers that do not use OCR Detection are never sent anywhere.</p>
   </LegalSection>
 
   <LegalSection n={4} title="How long we keep it">
     <ul>
       <li><strong>Sessions</strong>: until they expire or you log out.</li>
       <li><strong>Module data</strong>: until the module is uninstalled in that server, which deletes everything it stored there.</li>
+      <li><strong>OCR image links</strong>: removed as soon as an image has been read and found safe, or when a moderator handles its report, and in any case after 30 days.</li>
       <li><strong>Deleted quotes</strong>: kept, marked as deleted, so the audit trail stays complete and the same message is not quoted twice, until the Quotes module is uninstalled or you ask us to erase them.</li>
       <li><strong>Audit logs and server records</strong>: while the server is registered with the bot. They are deleted when the server's record is removed.</li>
     </ul>

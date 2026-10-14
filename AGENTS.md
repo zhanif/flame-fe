@@ -77,3 +77,7 @@ Every table follows these rules; do not build a one-off table.
 ## Module pages with roles and exceptions
 
 `Toggle` is the switch for a setting that applies right away (one per flag in a table row); `BoltSwitch` stays for slash commands. `RoleExceptions` is the shared "people a role rule leaves alone" tab (users by id, roles by picker). `lib/modules/booster` and `lib/modules/anti-tamper` are the reference: Tabs for Roles, Exceptions and Settings, moderators read and admins change, bulk actions behind a confirm `Modal`. Sweep now is locked for now (a disabled button that says why). The endpoints that two modules share are built by `roleRules()` in `api/endpoints.ts`.
+
+## Pickers
+
+One choice is a dropdown you can type in: `ChannelPicker` (channels and threads) and `RoleSelect` (a role), both on `Combobox`. Several choices are chips in a box you can type in: `RolePicker` and `ChannelsPicker`, both on `ChipPicker`, which takes a `max` (a plan limit: at the limit the box says so and a chip has to be removed first). Number fields only accept digits (or one decimal dot): wire `restrictTo(onlyDigits | onlyDecimal, ...)` from `lib/number-input.ts`. A settings card is rows of `SettingRow`: the setting and its explanation on the left, the control on the right.

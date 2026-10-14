@@ -28,6 +28,8 @@ install(
           emerald: accent('emerald'),
           amber: accent('amber'),
           fuchsia: accent('fuchsia'),
+          green: accent('green'),
+          blue: accent('blue'),
           red: accent('red'),
         },
         fontFamily: { display: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },

@@ -1,5 +1,7 @@
 import AntiTamperPage from '$lib/modules/anti-tamper/AntiTamperPage.svelte';
+import AutoremoverPage from '$lib/modules/autoremover/AutoremoverPage.svelte';
 import BoosterPage from '$lib/modules/booster/BoosterPage.svelte';
+import OcrDetectionPage from '$lib/modules/ocr-detection/OcrDetectionPage.svelte';
 import QuotesPage from '$lib/modules/quotes/QuotesPage.svelte';
 import type { Component } from 'svelte';
 
@@ -9,4 +11,6 @@ export const MODULE_VIEWS: Record<string, Component<{ guildId: string; isAdmin: 
   quotes: QuotesPage,
   booster: BoosterPage,
   'anti-tamper': AntiTamperPage,
+  autoremover: AutoremoverPage,
+  'ocr-detection': OcrDetectionPage,
 };
