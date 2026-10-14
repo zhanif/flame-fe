@@ -5,6 +5,7 @@
   import Card from '$lib/components/Card.svelte';
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
   import Input from '$lib/components/Input.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -15,12 +16,33 @@
   import { api, type DiscordChannel, type QuoteEntry } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { label, td, th } from '$lib/ui';
-  import { Megaphone, Quote, ScrollText, Settings, Trash2 } from '@lucide/svelte';
+  import { Info, Megaphone, Quote, ScrollText, Settings, Trash2 } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
+  let info = $state(false);
+  // The hint follows the tab: each one explains what is in front of the person, not the whole module.
+  const HINTS: Record<string, { title: string; steps: InfoStep[] }> = {
+    quotes: {
+      title: 'How quotes are made',
+      steps: [
+        { text: 'Quoting a message saves it as a numbered quote: its text, its author, who quoted it and a link back to the original. A message can only be quoted once.' },
+        { text: 'Every quote is listed here, newest first, with its author and who quoted it.' },
+        { text: 'Deleting a quote needs a reason. It is not erased: its number is never reused, the same message cannot be quoted again, and its card and published copies are removed from Discord. Each deletion is kept in the audit log.' },
+      ],
+    },
+    settings: {
+      title: 'How publishing works',
+      steps: [
+        { text: 'When a message is quoted, the bot posts the quote as a card where it was quoted.' },
+        { text: 'With a publish channel set, the card is posted there too. Every published copy is remembered, so deleting the quote removes the copies as well.' },
+        { text: 'Without one (Not published), quotes stay only where they were made. Only new quotes are affected; the ones already published stay.' },
+      ],
+    },
+  };
   let tab = $state('quotes');
+  const hint = $derived(HINTS[tab] ?? HINTS.quotes);
 
   let quotes: QuoteEntry[] = $state([]);
   let page = $state(1);
@@ -118,13 +140,18 @@
 <PageHeader module="quotes" description="Memorable messages of this server" />
 
 <div class="space-y-5">
-  <Tabs
-    bind:value={tab}
-    tabs={[
-      { id: 'quotes', label: 'Quotes', icon: Quote, count: loaded ? total : null },
-      { id: 'settings', label: 'Settings', icon: Settings },
-    ]}
-  />
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <Tabs
+      bind:value={tab}
+      tabs={[
+        { id: 'quotes', label: 'Quotes', icon: Quote, count: loaded ? total : null },
+        { id: 'settings', label: 'Settings', icon: Settings },
+      ]}
+    />
+    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+  </div>
+
+  <InfoPanel show={info} title={hint.title} tone="cyan" steps={hint.steps} />
 
   {#if tab === 'settings'}
     <Card>

@@ -3,6 +3,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
   import ChipPicker from '$lib/components/ChipPicker.svelte';
@@ -23,12 +24,34 @@
   import { onlyDigits, restrictTo } from '$lib/number-input';
   import { toast } from '$lib/stores/toast.svelte';
   import { label, td, th } from '$lib/ui';
-  import { ExternalLink, ListChecks, ScrollText, Settings, Timer, X } from '@lucide/svelte';
+  import { ExternalLink, Info, ListChecks, ScrollText, Settings, Timer, X } from '@lucide/svelte';
   import { onDestroy, onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
+  let info = $state(false);
+  // The hint follows the tab: each one explains what is in front of the person, not the whole module.
+  const HINTS: Record<string, { title: string; steps: InfoStep[] }> = {
+    messages: {
+      title: 'How a message is removed',
+      steps: [
+        { text: 'A message sent in the watched channel that matches what is removed (images, videos, files or every message) is marked. Each row here is one marked message.' },
+        { text: 'Its delete time is the moment it was sent plus the time set in Settings. Until then it is waiting.' },
+        { text: 'A background task looks for messages whose time is up every few seconds and deletes them. One that is already gone counts as done; one Discord refuses to delete is recorded with the reason and not tried again. A waiting deletion can be cancelled from its row, and the message then stays for good.' },
+        { text: 'A message pinned after it was marked is kept, if pinned messages are excluded.' },
+      ],
+    },
+    settings: {
+      title: 'How these settings apply',
+      steps: [
+        { text: 'The watched channel decides where messages are picked up. A message is only marked when it is sent there.' },
+        { text: 'The time is counted from when a message is sent, not from now. Changing it only affects messages sent afterwards; the ones already marked keep their delete time.' },
+        { text: 'What to remove narrows which messages are marked. Moderators, admins and pinned messages can each be left alone.' },
+      ],
+    },
+  };
   let tab = $state('messages');
+  const hint = $derived(HINTS[tab] ?? HINTS.messages);
   let config: AutoremoverConfig | null = $state(null);
   let channels: DiscordChannel[] = $state([]);
 
@@ -205,13 +228,18 @@
 <PageHeader module="autoremover" description="Deletes messages after a set time" />
 
 <div class="space-y-5">
-  <Tabs
-    bind:value={tab}
-    tabs={[
-      { id: 'messages', label: 'Messages', icon: ListChecks, count: loaded && !statusFilter ? total : null },
-      { id: 'settings', label: 'Settings', icon: Settings },
-    ]}
-  />
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <Tabs
+      bind:value={tab}
+      tabs={[
+        { id: 'messages', label: 'Messages', icon: ListChecks, count: loaded && !statusFilter ? total : null },
+        { id: 'settings', label: 'Settings', icon: Settings },
+      ]}
+    />
+    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+  </div>
+
+  <InfoPanel show={info} title={hint.title} tone="green" steps={hint.steps} />
 
   {#if config}<WarningBanner warnings={config.warnings} />{/if}
 

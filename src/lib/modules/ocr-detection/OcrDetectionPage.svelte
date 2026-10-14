@@ -2,6 +2,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
   import SettingRow from '$lib/components/SettingRow.svelte';
@@ -22,12 +23,42 @@
   import { formatTerms, parseTerms, termsProblem } from './blocklist-text';
   import { toast } from '$lib/stores/toast.svelte';
   import { label, td, th } from '$lib/ui';
-  import { ListX, RotateCcw, ScanText, Settings } from '@lucide/svelte';
+  import { Info, ListX, RotateCcw, ScanText, Settings } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
+  let info = $state(false);
+  // The hint follows the tab: each one explains what is in front of the person, not the whole module.
+  const HINTS: Record<string, { title: string; steps: InfoStep[] }> = {
+    detections: {
+      title: 'How an image is checked',
+      steps: [
+        { text: 'An image posted in the watched channel goes on the watchlist as a pending detection. Each row here is one image.' },
+        { text: 'A background reader takes the pending images one at a time, shrinks each and sends it to a text recognition service (OCR.space), which returns the text it sees. If the service says it is busy, reading pauses for an hour and the images wait.' },
+        { text: 'The text is compared with the blocklist. No match: the image is marked safe and its stored link is dropped. A match is flagged and reported in the report channel, where a moderator can delete the message, ignore it or time the author out.' },
+        { text: 'An image that cannot be read is tried again later, a little longer each time, and fails with its reason if it never works. A message can also be read by hand with the Scan Text command.' },
+      ],
+    },
+    terms: {
+      title: 'How the blocklist is used',
+      steps: [
+        { text: 'The text read from an image is split into lines, and each line is compared with every term in this list.' },
+        { text: 'A line matches when it is close enough to a term. Small differences still count, so a misspelled or partly unreadable word is caught. How close is the similarity set in the Settings tab.' },
+        { text: 'One matching term is enough to flag the image. The list belongs to this server only; Restore defaults adds back the default terms that were removed, without touching the ones you added.' },
+      ],
+    },
+    settings: {
+      title: 'How these settings apply',
+      steps: [
+        { text: 'The watched channel decides which images are read: only the ones posted there from now on. Images posted before it was set, or elsewhere, are never read.' },
+        { text: 'The report channel is where a flagged image is posted, with the buttons to delete the message, ignore it or time the author out.' },
+        { text: 'The similarity decides how close a line of text must be to a term to count as a match: lower catches more, but flags more harmless images too.' },
+      ],
+    },
+  };
   let tab = $state('detections');
+  const hint = $derived(HINTS[tab] ?? HINTS.detections);
   let config: OcrDetectionConfig | null = $state(null);
   let channels: DiscordChannel[] = $state([]);
 
@@ -190,7 +221,7 @@
 <PageHeader module="ocr-detection" description="Reports images whose text matches a blocklist" />
 
 <div class="space-y-5">
-  <div>
+  <div class="flex items-center justify-between gap-3 flex-wrap">
     <Tabs
       bind:value={tab}
       tabs={[
@@ -199,7 +230,10 @@
         { id: 'settings', label: 'Settings', icon: Settings },
       ]}
     />
+    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
   </div>
+
+  <InfoPanel show={info} title={hint.title} tone="blue" steps={hint.steps} />
 
   {#if config}<WarningBanner warnings={config.warnings} />{/if}
 

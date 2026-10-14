@@ -6,6 +6,7 @@
   import ChipPicker from '$lib/components/ChipPicker.svelte';
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import InfoPanel from '$lib/components/InfoPanel.svelte';
   import Input from '$lib/components/Input.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -32,7 +33,7 @@
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, label, td, th, toneText } from '$lib/ui';
-  import { Check, ChevronRight, Eye, Infinity as InfinityIcon, Pencil, Plus, Trash2, X } from '@lucide/svelte';
+  import { Check, ChevronRight, Eye, Infinity as InfinityIcon, Info, Pencil, Plus, Trash2, X } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -48,6 +49,7 @@
   const kindName = (kind: FileKind) => KIND_ITEMS.find(item => item.id === kind)?.name ?? kind;
 
   let data: FileCollections | null = $state(null);
+  let info = $state(false);
   let roles: DiscordRole[] = $state([]);
 
   // Where the person is: the collections, one collection's rounds, or one round's entries.
@@ -223,6 +225,11 @@
     panel = false;
     go({ c: collection.id, tag: null, status: null, page: null, gp: null, e: null });
   };
+  // Each level has its own hint, so it starts closed when the person moves between them.
+  $effect(() => {
+    void [openId, openTag];
+    untrack(() => (info = false));
+  });
   const openRound = (tag: string) => go({ tag, status: null, page: null, e: null });
   const closeRound = () => go({ tag: null, status: null, page: null, e: null });
   const closeCollection = () => go({ c: null, tag: null, status: null, page: null, gp: null, e: null });
@@ -466,20 +473,51 @@
         <span class="font-semibold text-zinc-100">{openTag}</span>
       {/if}
     </nav>
-    {#if isAdmin && !openId}
+    {#if !openId}
       <div class="flex items-center gap-3">
-        {#if data}
-          <span class="text-xs text-zinc-500">{data.collections.length} of {data.max_collections} collections</span>
-          <Button variant="primary" disabled={full && !panel} onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add collection</Button>
-        {:else}
-          <ControlSkeleton class="w-36" h="h-8" />
-          <ControlSkeleton class="w-36" h="h-8" />
+        {#if isAdmin}
+          {#if data}
+            <span class="text-xs text-zinc-500">{data.collections.length} of {data.max_collections} collections</span>
+            <Button variant="primary" disabled={full && !panel} onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add collection</Button>
+          {:else}
+            <ControlSkeleton class="w-36" h="h-8" />
+            <ControlSkeleton class="w-36" h="h-8" />
+          {/if}
         {/if}
       </div>
+    {:else}
+      <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
     {/if}
   </div>
 
   {#if data}<WarningBanner warnings={data.warnings} />{/if}
+
+  {#if openId && openTag === null}
+    <!-- The rounds of a collection: how a round, and the entries in it, come to be. What happens to an entry is on the entries level. -->
+    <InfoPanel
+      show={info}
+      title="How rounds work"
+      tone="amber"
+      steps={[
+        { text: 'A round starts when staff post a Submit panel with this collection\'s command: a message with buttons that remembers the round name (tag) and the box, the channel or thread where entries go for review. Each tag shows up here as a round.', command: `/${opened?.command_name ?? 'command'} panel tag:<round> box:<channel or thread>` },
+        { text: 'A member presses Submit and attaches files. They are checked against the collection\'s rules: file kinds, how many in one upload, and how many entries that person already has in the round.' },
+        { text: 'Each valid entry is posted in the box as its own message (one per file, or one per upload, as the collection says) and counted in the round. Staff can submit for someone else.' },
+      ]}
+    />
+  {:else if openId && openTag !== null}
+    <!-- The entries of a round: what happens to an entry once it is in the box. -->
+    <InfoPanel
+      show={info}
+      title="How entries are handled"
+      tone="amber"
+      steps={[
+        { text: 'A new entry waits as pending. Its message in the box has Approve and Reject buttons (and Set Upvotes when the collection uses them).' },
+        { text: 'A reviewer approves or rejects, with a reason when the collection asks for one. The message in the box is updated and the approval or rejection role is given, if the collection has one. The same review can be done here: preview an entry, then use its menu.' },
+        { text: 'The member sees the outcome under Check Status: their counts, and the approved or rejected files (with the reason, when the collection shows it).' },
+        { text: 'Publishing posts the approved entries of this round in a channel, with the collection\'s reaction. The files are read from the box messages again, since Discord links expire, and kept for a month so this page stays fast.', command: `/${opened?.command_name ?? 'command'} publish tag:<round>` },
+      ]}
+    />
+  {/if}
 
   {#if openId && openTag !== null}
     <!-- The entries of one round -->
