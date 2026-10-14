@@ -148,7 +148,9 @@ export interface BoosterRules {
 export interface AntiTamperRules {
   warnings: string[];
   report_channel_id: string | null;
-  roles: { role_id: string; problem: string | null }[];
+  /** Each protected role with its own (local) exceptions: who may hold only that role. */
+  roles: { role_id: string; problem: string | null; exceptions: RoleExemption[] }[];
+  /** Global exceptions: who may hold every protected role. */
   exceptions: RoleExemption[];
 }
 
@@ -327,6 +329,7 @@ export interface AuditQuery {
   action?: string;
   actor?: string;
   q?: string;
+  module?: string;
 }
 
 export interface Pagination {
@@ -400,6 +403,10 @@ export const api = {
     setReportChannel: (guildId: string, channelId: string | null) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/report-channel`, 'PUT', { report_channel_id: channelId }),
     addRole: (guildId: string, roleId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}`, 'PUT'),
+    addRoleException: (guildId: string, roleId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/exceptions`, 'POST', target),
+    removeRoleException: (guildId: string, roleId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/exceptions/${target.target_type}/${target.target_id}`, 'DELETE'),
   },
   autoremover: {
     config: (guildId: string) => apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`),

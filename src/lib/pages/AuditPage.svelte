@@ -12,6 +12,8 @@
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type AuditFilters, type AuditLogEntry, type AuditQuery } from '$lib/api/endpoints';
+  import { moduleCatalog } from '$lib/stores/modules.svelte';
+  import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { actionTone } from '$lib/nav';
   import { td, th } from '$lib/ui';
@@ -19,7 +21,7 @@
   // Audit rows carry badges and avatars, so they get more vertical room than the default.
   const cell = td.replace('h-11', 'h-14');
   import { Search, X } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
 
   let { guildId }: { guildId: string } = $props();
 
@@ -37,8 +39,17 @@
   let actor = $state('');
   let from = $state('');
   let to = $state('');
+  // One module's trail only; in the URL (`?module=booster`) so the Modules cards can link straight to it.
+  let module = $state(router.query.get('module') ?? '');
+  $effect(() => {
+    const wanted = router.query.get('module') ?? '';
+    if (wanted !== module) {
+      module = wanted;
+      untrack(refilter);
+    }
+  });
 
-  const hasFilters = $derived(!!(search.trim() || action || actor || from || to));
+  const hasFilters = $derived(!!(search.trim() || action || actor || from || to || module));
 
   // A date input holds a local calendar day; send it as the instants that day starts and ends.
   const startOf = (day: string) => (day ? new Date(`${day}T00:00:00`).toISOString() : undefined);
@@ -49,7 +60,7 @@
     const mine = ++request;
     loading = true;
     try {
-      const query: AuditQuery = { page, limit, action, actor, q: search.trim(), from: startOf(from), to: endOf(to) };
+      const query: AuditQuery = { page, limit, action, actor, module, q: search.trim(), from: startOf(from), to: endOf(to) };
       const res = await api.auditLogs(guildId, query);
       if (mine !== request) return;
       logs = res.logs;
@@ -87,7 +98,8 @@
     typing = setTimeout(refilter, 300);
   }
   function clear() {
-    search = action = actor = from = to = '';
+    search = action = actor = from = to = module = '';
+    router.setQuery({ module: null });
     refilter();
   }
 
@@ -99,10 +111,19 @@
 
 <div class="flex flex-wrap items-center gap-3 mb-5">
   <Input bind:value={search} icon={Search} type="search" placeholder="Search details or actor" aria-label="Search details or actor" oninput={onSearch} class="w-full sm:w-72" />
-  {#if filtersLoaded}
+  {#if filtersLoaded && !moduleCatalog.loading}
+    <Select
+      bind:value={module}
+      onchange={() => router.setQuery({ module: module || null })}
+      placeholder="All modules"
+      label="Module"
+      options={moduleCatalog.entries.filter(m => m.installed).map(m => ({ value: m.id, label: m.name }))}
+      class="w-44"
+    />
     <Select bind:value={action} onchange={refilter} placeholder="All actions" label="Action" options={filters.actions.map(a => ({ value: a, label: a }))} class="w-44" />
     <Select bind:value={actor} onchange={refilter} placeholder="All actors" label="Actor" options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))} class="w-44" />
   {:else}
+    <ControlSkeleton class="w-44" />
     <ControlSkeleton class="w-44" />
     <ControlSkeleton class="w-44" />
   {/if}

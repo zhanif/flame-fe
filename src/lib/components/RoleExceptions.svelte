@@ -23,6 +23,7 @@
     canEdit,
     hint,
     adding = $bindable(false),
+    compact = false,
     onAdd,
     onRemove,
   }: {
@@ -32,6 +33,8 @@
     hint: string;
     /** Whether the add panel is open; the page's Add button toggles it. */
     adding?: boolean;
+    /** For a list inside another panel: an empty list is one quiet line, not the full empty state. */
+    compact?: boolean;
     /** Resolves true when the exception was added. */
     onAdd: (target: Pick<RoleExemption, 'target_type' | 'target_id'>) => Promise<boolean>;
     onRemove: (target: RoleExemption) => Promise<unknown>;
@@ -112,7 +115,11 @@
 {/if}
 
 {#if exceptions.length === 0}
-  <EmptyState kind="search" title="No exceptions" description="Nobody is left alone yet. Add a user or a role above." />
+  {#if compact}
+    <p class="text-xs text-zinc-500">No exceptions for this role yet.</p>
+  {:else}
+    <EmptyState kind="search" title="No exceptions" description="Nobody is left alone yet. Add a user or a role above." />
+  {/if}
 {:else}
   <Card flush>
     <table class="w-full text-sm">

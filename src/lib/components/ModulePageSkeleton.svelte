@@ -46,10 +46,10 @@
                 <div class="h-3.5 w-32 rounded bg-zinc-800/40 animate-pulse"></div>
                 <div class="h-3 w-24 rounded bg-zinc-800/30 animate-pulse"></div>
               </div>
-              <div class="grid grid-cols-3 gap-4">
-                {#each [0, 1, 2] as c (c)}
+              <div class="grid grid-cols-2 gap-4">
+                {#each [0, 1] as c (c)}
                   <div class="space-y-1.5">
-                    <div class="h-2.5 w-12 rounded bg-zinc-700/40 animate-pulse"></div>
+                    <div class="h-2.5 w-14 rounded bg-zinc-700/40 animate-pulse"></div>
                     <div class="h-3 w-16 rounded bg-zinc-800/40 animate-pulse"></div>
                   </div>
                 {/each}

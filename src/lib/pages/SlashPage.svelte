@@ -11,6 +11,7 @@
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type SlashCommand } from '$lib/api/endpoints';
+  import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { pageTone } from '$lib/nav';
   import { moduleCatalog } from '$lib/stores/modules.svelte';
@@ -32,7 +33,11 @@
   let pruning = $state(false);
   let page = $state(1);
   let limit = $state(10);
-  let moduleFilter = $state('');
+  // Which module's commands to show lives in the URL (`?module=booster`), so a link from the Modules cards opens it.
+  let moduleFilter = $state(router.query.get('module') ?? '');
+  $effect(() => {
+    moduleFilter = router.query.get('module') ?? '';
+  });
 
   // A command no installed module owns has no module to filter by.
   const NO_MODULE = '__none__';
@@ -118,7 +123,10 @@
   {#if loaded}
     <Select
       bind:value={moduleFilter}
-      onchange={() => (page = 1)}
+      onchange={() => {
+        page = 1;
+        router.setQuery({ module: moduleFilter || null });
+      }}
       options={moduleOptions}
       placeholder="All modules"
       label="Module"

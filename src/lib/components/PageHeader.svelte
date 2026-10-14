@@ -28,7 +28,7 @@
   <ThemeToggle />
 </div>
 {#if turnedOff}
-  <div class="mb-5 flex items-center gap-3 rounded-xl bg-sky-500/10 px-4 py-3" role="status">
+  <div class="mb-5 flex items-center gap-3 rounded-xl bg-sky-500/10 px-4 py-3 ring-1 ring-sky-500/25" role="status">
     <PowerOff class="h-4 w-4 shrink-0 text-sky-400" />
     <p class="text-xs leading-relaxed text-sky-300">
       <span class="font-bold text-sky-300">Turned off.</span> Its data and settings are kept, but nothing of it runs until an admin turns it on from the Dashboard.

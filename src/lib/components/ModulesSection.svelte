@@ -1,18 +1,20 @@
 <script lang="ts">
-  import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import Input from '$lib/components/Input.svelte';
   import Modal from '$lib/components/Modal.svelte';
+  import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import { api, type ModuleEntry } from '$lib/api/endpoints';
+  import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { MODULE_PAGES } from '$lib/nav';
   import { toneFor, toneText } from '$lib/ui';
-  import { Blocks, Check, CornerDownRight, Download, Package, Search, Trash2 } from '@lucide/svelte';
+  import { ArrowUpRight, Blocks, ChevronDown, CornerDownRight, Package, ScrollText, Search, Terminal, Trash2 } from '@lucide/svelte';
+  import { slide } from 'svelte/transition';
 
   let {
     guildId,
@@ -25,6 +27,8 @@
   let busyId = $state<string | null>(null);
   let uninstallTarget = $state<ModuleEntry | null>(null);
   let disableTarget = $state<ModuleEntry | null>(null);
+  // The commands of a module are behind a disclosure: only the ones a person opens are shown.
+  let showCommands = $state<Record<string, boolean>>({});
   let query = $state('');
 
   // The module's own color (its page color when it has one), the same everywhere it shows.
@@ -38,6 +42,18 @@
       : modules;
     return [...matching].sort((a, b) => Number(a.installed) - Number(b.installed) || a.name.localeCompare(b.name));
   });
+
+  // Everyone with access can open a module; the Slash page, the audit log and uninstalling are for admins.
+  const menuOf = (m: ModuleEntry): RowMenuItem[] => [
+    { label: 'Open', icon: ArrowUpRight, onclick: () => router.module(guildId, m.id) },
+    ...(isAdmin
+      ? [
+          { label: 'Slash commands', icon: Terminal, onclick: () => router.guild(guildId, 'slash', { module: m.id }) },
+          { label: 'Audit logs', icon: ScrollText, onclick: () => router.guild(guildId, 'audit', { module: m.id }) },
+          { label: 'Uninstall', icon: Trash2, danger: true, onclick: () => (uninstallTarget = m) },
+        ]
+      : []),
+  ];
 
   async function install(m: ModuleEntry) {
     busyId = m.id;
@@ -90,16 +106,23 @@
   </div>
 
   {#if loading}
-    <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
-      {#each Array(3) as _}
-        <Card class="space-y-3">
+    <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))" aria-hidden="true">
+      {#each Array(4) as _}
+        <Card class="flex flex-col">
           <div class="flex items-center gap-3">
-            <div class="w-4 h-4 rounded bg-zinc-700/40 animate-pulse"></div>
-            <div class="h-4 w-1/3 rounded bg-zinc-700/40 animate-pulse"></div>
+            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+              <div class="h-[18px] w-[18px] shrink-0 rounded bg-zinc-700/40 animate-pulse"></div>
+              <div class="h-4 w-1/3 rounded bg-zinc-700/40 animate-pulse"></div>
+            </div>
+            <div class="h-5 w-9 rounded-full bg-zinc-700/30 animate-pulse"></div>
+            <div class="h-7 w-7 rounded-lg bg-zinc-700/30 animate-pulse"></div>
           </div>
-          <div class="h-3 w-full rounded bg-zinc-700/30 animate-pulse"></div>
-          <div class="h-3 w-2/3 rounded bg-zinc-700/30 animate-pulse"></div>
-          <div class="h-7 w-24 rounded-lg bg-zinc-700/30 animate-pulse"></div>
+          <div class="mt-3 space-y-2">
+            <div class="h-3 w-full rounded bg-zinc-700/30 animate-pulse"></div>
+            <div class="h-3 w-5/6 rounded bg-zinc-700/30 animate-pulse"></div>
+            <div class="h-3 w-2/3 rounded bg-zinc-700/30 animate-pulse"></div>
+          </div>
+          <div class="mt-3 h-3 w-20 rounded bg-zinc-700/30 animate-pulse"></div>
         </Card>
       {/each}
     </div>
@@ -111,44 +134,46 @@
     <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
       {#each filtered as m (m.id)}
         {@const Icon = MODULE_PAGES[m.id]?.icon ?? Blocks}
-        <Card interactive class="flex flex-col {m.installed ? (m.enabled ? 'border-emerald-500/30' : 'border-amber-500/30') : ''}">
-          <div class="flex items-center gap-2.5">
-            <Icon class="w-4 h-4 shrink-0 {toneText[toneOf(m.id)]}" />
-            <h4 class="font-display text-sm font-bold text-zinc-100 min-w-0 flex-1 truncate">{m.name}</h4>
-            {#if m.installed && m.enabled}
-              <Badge tone="success"><Check class="w-3 h-3" /> Installed</Badge>
-            {:else if m.installed}
-              <Badge tone="warning">Turned off</Badge>
+        {@const dimmed = m.installed && !m.enabled}
+        <Card class="flex flex-col">
+          <div class="flex items-center gap-3">
+            <div class="flex min-w-0 flex-1 items-center gap-2.5 transition-opacity {dimmed ? 'opacity-50' : ''}">
+              <Icon class="h-[18px] w-[18px] shrink-0 {toneText[toneOf(m.id)]}" />
+              <h4 class="min-w-0 truncate font-display text-sm font-bold text-zinc-100">{m.name}</h4>
+            </div>
+            {#if m.installed}
+              <Toggle on={m.enabled} disabled={!isAdmin || busyId === m.id} label="{m.enabled ? 'Turn off' : 'Turn on'} {m.name}" onclick={() => (m.enabled ? (disableTarget = m) : setEnabled(m))} />
+              <RowMenu label="Actions for {m.name}" items={menuOf(m)} />
+            {:else}
+              <Button variant="soft" size="sm" onclick={() => install(m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? undefined : 'Admins only'}>
+                {busyId === m.id ? 'Installing…' : 'Install'}
+              </Button>
             {/if}
           </div>
-          <p class="text-xs text-zinc-400 mt-3 leading-relaxed flex-1">{m.description}</p>
+
+          <p class="mt-3 flex-1 text-xs leading-relaxed text-zinc-400 transition-opacity {dimmed ? 'opacity-50' : ''}">{m.description}</p>
 
           {#if m.commands.length}
-            <div class="flex flex-wrap gap-1 mt-3">
-              {#each m.commands as command (command.name)}
-                <span class="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded-md bg-zinc-900/60 ring-1 ring-zinc-700/40 text-zinc-300">
-                  <!-- A slash command is typed as /name; a message command lives in the right-click menu, so it gets an arrow instead. -->
-                  {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<CornerDownRight class="w-3 h-3 {toneText[toneOf(m.id)]}" />{/if}{command.name}
-                </span>
-              {/each}
-            </div>
-          {/if}
-
-          <div class="mt-4 flex items-center justify-between gap-3">
-            {#if m.installed}
-              <Button variant="danger" size="sm" onclick={() => (uninstallTarget = m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? 'Uninstall and delete its data' : 'Admins only'}>
-                <Trash2 class="w-3.5 h-3.5" /> Uninstall
-              </Button>
-              <span class="flex items-center gap-2 text-xs text-zinc-400">
-                {m.enabled ? 'On' : 'Off'}
-                <Toggle on={m.enabled} disabled={!isAdmin || busyId === m.id} label="{m.enabled ? 'Turn off' : 'Turn on'} {m.name}" onclick={() => (m.enabled ? (disableTarget = m) : setEnabled(m))} />
-              </span>
-            {:else}
-              <Button variant="soft" size="sm" onclick={() => install(m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? 'Install' : 'Admins only'}>
-                <Download class="w-3.5 h-3.5" /> {busyId === m.id ? 'Installing…' : 'Install'}
-              </Button>
+            <button
+              type="button"
+              class="mt-3 flex w-fit cursor-pointer items-center gap-1 text-xs text-zinc-500 outline-none transition hover:text-zinc-300 focus-visible:text-zinc-300"
+              aria-expanded={!!showCommands[m.id]}
+              onclick={() => (showCommands[m.id] = !showCommands[m.id])}
+            >
+              {m.commands.length} {m.commands.length === 1 ? 'command' : 'commands'}
+              <ChevronDown class="h-3.5 w-3.5 transition-transform {showCommands[m.id] ? 'rotate-180' : ''}" />
+            </button>
+            {#if showCommands[m.id]}
+              <div class="mt-2 flex flex-wrap gap-1" transition:slide={{ duration: 160 }}>
+                {#each m.commands as command (command.name)}
+                  <span class="inline-flex items-center gap-1 rounded-md bg-zinc-800/60 px-1.5 py-0.5 font-mono text-xs text-zinc-300">
+                    <!-- A slash command is typed as /name; a message command lives in the right-click menu, so it gets an arrow instead. -->
+                    {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<CornerDownRight class="h-3 w-3 {toneText[toneOf(m.id)]}" />{/if}{command.name}
+                  </span>
+                {/each}
+              </div>
             {/if}
-          </div>
+          {/if}
         </Card>
       {/each}
     </div>
@@ -161,7 +186,7 @@
       <Trash2 class="w-4 h-4 shrink-0 text-red-400" />Uninstall {uninstallTarget.name}?
     </h3>
     <p class="text-xs text-zinc-400 mt-3 leading-relaxed">
-      Everything this module stored for this server is deleted. Its slash commands stay registered on Discord until you prune them from the Slash page.
+      Everything this module stored for this server (its settings and records) is deleted. The audit log keeps what was recorded about it. Its slash commands stay registered on Discord until you prune them from the Slash page.
     </p>
     <div class="flex justify-end gap-2 mt-5">
       <Button variant="ghost" onclick={() => (uninstallTarget = null)}>Cancel</Button>

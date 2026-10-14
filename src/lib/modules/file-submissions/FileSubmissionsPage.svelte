@@ -32,7 +32,7 @@
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, label, td, th, toneText } from '$lib/ui';
-  import { Check, ChevronRight, Eye, Pencil, Plus, Trash2, X } from '@lucide/svelte';
+  import { Check, ChevronRight, Eye, Infinity as InfinityIcon, Pencil, Plus, Trash2, X } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -43,7 +43,7 @@
     { id: 'image', name: 'Images' },
     { id: 'video', name: 'Videos' },
     { id: 'audio', name: 'Audio' },
-    { id: 'other', name: 'Other files' },
+    { id: 'other', name: 'Other Files' },
   ];
   const kindName = (kind: FileKind) => KIND_ITEMS.find(item => item.id === kind)?.name ?? kind;
 
@@ -647,10 +647,10 @@
                   <div class="h-3.5 w-32 rounded bg-zinc-800/40 animate-pulse"></div>
                   <div class="h-3 w-24 rounded bg-zinc-800/30 animate-pulse"></div>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
-                  {#each [0, 1, 2] as c (c)}
+                <div class="grid grid-cols-2 gap-4">
+                  {#each [0, 1] as c (c)}
                     <div class="space-y-1.5">
-                      <div class="h-2.5 w-12 rounded bg-zinc-700/40 animate-pulse"></div>
+                      <div class="h-2.5 w-14 rounded bg-zinc-700/40 animate-pulse"></div>
                       <div class="h-3 w-16 rounded bg-zinc-800/40 animate-pulse"></div>
                     </div>
                   {/each}
@@ -682,23 +682,21 @@
                 onclick={() => openCollection(collection)}
                 aria-label="Open {collection.name}"
               >
-                <div class="min-w-0">
+                <div class="min-w-0" title="/{collection.command_name}">
                   <p class="truncate text-sm font-semibold text-zinc-100">{collection.name}</p>
-                  <p class="mt-0.5 font-mono text-xs text-zinc-300"><span class={toneText.amber}>/</span>{collection.command_name}</p>
-                  {#if collection.description}<p class="mt-1.5 text-xs text-zinc-500 truncate">{collection.description}</p>{/if}
+                  <p class="mt-1 truncate text-xs text-zinc-400">Accepted: {collection.file_types.map(kindName).join(', ')}</p>
+                  {#if collection.description}<p class="mt-1 truncate text-xs text-zinc-500">{collection.description}</p>{/if}
                 </div>
-                <dl class="grid grid-cols-3 gap-4 text-xs">
-                  <div class="min-w-0">
-                    <dt class="{caps} text-zinc-500">Files</dt>
-                    <dd class="mt-1 truncate text-zinc-300">{collection.file_types.map(kindName).join(', ')}</dd>
-                  </div>
+                <dl class="grid grid-cols-2 gap-4 text-xs">
                   <div class="min-w-0">
                     <dt class="{caps} text-zinc-500">Per upload</dt>
                     <dd class="mt-1 truncate text-zinc-300">{collection.max_files}{collection.entry_style === 'grouped' ? ', one entry' : ''}</dd>
                   </div>
                   <div class="min-w-0">
                     <dt class="{caps} text-zinc-500">Per member</dt>
-                    <dd class="mt-1 truncate text-zinc-300">{collection.max_entries ?? 'Unlimited'}</dd>
+                    <dd class="mt-1 flex items-center truncate text-zinc-300" title={collection.max_entries ? undefined : 'Unlimited entries per member'}>
+                      {#if collection.max_entries}{collection.max_entries}{:else}<InfinityIcon class="h-4 w-4 shrink-0" aria-label="Unlimited" />{/if}
+                    </dd>
                   </div>
                 </dl>
                 <dl class="grid grid-cols-2 gap-4 text-xs">

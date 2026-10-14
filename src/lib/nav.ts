@@ -16,7 +16,7 @@ export interface PageMeta {
 export const PAGES: Record<GuildPage, PageMeta> = {
   dashboard: { label: 'Dashboard', icon: LayoutDashboard, tone: 'orange', adminOnly: false },
   settings: { label: 'Settings', icon: Settings, tone: 'sky', adminOnly: false },
-  audit: { label: 'Audit logs', icon: ScrollText, tone: 'violet', adminOnly: true },
+  audit: { label: 'Audit Logs', icon: ScrollText, tone: 'violet', adminOnly: true },
   slash: { label: 'Slash', icon: Terminal, tone: 'emerald', adminOnly: true },
 };
 

@@ -67,8 +67,10 @@ export const router = {
     window.location.hash = `#/${page}`;
     window.scrollTo(0, 0);
   },
-  guild(guildId: string, page: GuildPage = 'dashboard') {
-    window.location.hash = `#/guild/${guildId}/${page}`;
+  /** A server page, optionally opened with a filter already set (`router.guild(id, 'slash', { module: 'booster' })`). */
+  guild(guildId: string, page: GuildPage = 'dashboard', query: Record<string, string> = {}) {
+    const search = new URLSearchParams(query).toString();
+    window.location.hash = `#/guild/${guildId}/${page}${search ? `?${search}` : ''}`;
   },
   module(guildId: string, moduleId: string) {
     window.location.hash = `#/guild/${guildId}/m/${moduleId}`;
