@@ -23,18 +23,23 @@ export interface UserGuild {
   access: Access;
 }
 
+export type ModuleSection = 'management' | 'utilities';
+
 export interface ModuleEntry {
   id: string;
   name: string;
   description: string;
+  section: ModuleSection;
   installed: boolean;
-  commands: string[];
+  commands: { name: string; kind: 'slash' | 'message' }[];
 }
 
 export type SlashState = 'live' | 'missing' | 'stale';
 
 export interface SlashCommand {
   name: string;
+  /** `slash` is typed as /name, `message` lives in a message's right-click menu. */
+  kind: 'slash' | 'message' | 'user';
   module_id: string | null;
   state: SlashState;
 }
@@ -42,6 +47,8 @@ export interface SlashCommand {
 export interface GuildSettings {
   language: string;
   timezone: string;
+  /** What a text command starts with, e.g. `f!` in `f!ping`. */
+  prefix: string;
   admin_role_ids: string[];
   moderator_role_ids: string[];
 }
@@ -76,6 +83,33 @@ export interface AuditLogEntry {
   entity_id: string | null;
   reason: string | null;
   created_at: string;
+}
+
+export interface QuoteEntry {
+  id: string;
+  number: number;
+  content: string;
+  channel_id: string;
+  message_id: string;
+  author?: UserProfile;
+  creator?: UserProfile;
+  published: boolean;
+  deleted: boolean;
+  deleted_at: string | null;
+  delete_reason: string | null;
+  deleted_by?: UserProfile;
+  message_created_at: string;
+  created_at: string;
+}
+
+export interface QuoteDeleteResult {
+  number: number;
+  removed: number;
+  failed: number;
+}
+
+export interface QuoteSettings {
+  publish_channel_id: string | null;
 }
 
 export interface AuditFilters {
@@ -116,6 +150,7 @@ export const api = {
   slash: (guildId: string) => apiCall<{ commands: SlashCommand[] }>(`/guilds/${guildId}/slash`),
   slashRegister: (guildId: string, name: string) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/slash/commands/${encodeURIComponent(name)}`, 'PUT'),
+  slashPrune: (guildId: string) => apiCall<{ removed: string[] }>(`/guilds/${guildId}/slash/prune`, 'POST'),
   slashUnregister: (guildId: string, name: string) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/slash/commands/${encodeURIComponent(name)}`, 'DELETE'),
 
@@ -130,5 +165,12 @@ export const api = {
     for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));
     return apiCall<{ logs: AuditLogEntry[]; pagination: Pagination }>(`/guilds/${guildId}/audit-logs?${params}`);
   },
+  quotes: (guildId: string, query: { page: number; limit: number }) =>
+    apiCall<{ quotes: QuoteEntry[]; pagination: Pagination }>(`/guilds/${guildId}/m/quotes/quotes?page=${query.page}&limit=${query.limit}`),
+  deleteQuote: (guildId: string, id: string, reason: string) =>
+    apiCall<QuoteDeleteResult>(`/guilds/${guildId}/m/quotes/quotes/${id}`, 'DELETE', { reason }),
+  quoteSettings: (guildId: string) => apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`),
+  updateQuoteSettings: (guildId: string, publishChannelId: string | null) =>
+    apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`, 'PUT', { publish_channel_id: publishChannelId }),
   auditFilters: (guildId: string) => apiCall<AuditFilters>(`/guilds/${guildId}/audit-logs/filters`),
 };

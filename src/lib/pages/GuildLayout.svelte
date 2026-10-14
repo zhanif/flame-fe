@@ -5,10 +5,12 @@
   import { bot } from '$lib/stores/bot.svelte';
   import { type GuildPage, router } from '$lib/stores/router.svelte';
   import { session } from '$lib/stores/session.svelte';
-  import { NAV_ORDER, PAGES, providePageTone } from '$lib/nav';
+  import { MODULE_VIEWS } from '$lib/modules/views';
+  import { MODULE_PAGES, NAV_ORDER, PAGES, providePageTone, SECTIONS } from '$lib/nav';
+  import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { toneText } from '$lib/ui';
   import { ArrowLeft } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { fly } from 'svelte/transition';
   import AuditPage from './AuditPage.svelte';
   import OverviewPage from './OverviewPage.svelte';
@@ -27,11 +29,30 @@
 
   // Administration is for admins only; moderators just see the dashboard and settings.
   const visibleNav = $derived(NAV_ORDER.filter(id => !PAGES[id].adminOnly || isAdmin));
-  providePageTone(() => PAGES[current].tone);
+  const corePage = $derived(visibleNav.includes(page) ? page : 'dashboard');
 
   // Without the bot (or without access) there is nothing to navigate: only the back button stays.
   const available = $derived(!!guild?.bot_present);
-  const current = $derived(visibleNav.includes(page) ? page : 'dashboard');
+
+  // The sidebar and the Dashboard share one catalog, loaded when a server with the bot is open.
+  $effect(() => {
+    if (available) untrack(() => moduleCatalog.load(guildId).catch(() => {}));
+  });
+
+  const moduleId = $derived(router.moduleId);
+  const moduleOpening = $derived(!!moduleId && moduleCatalog.loading);
+  const activeModule = $derived(
+    moduleId && MODULE_VIEWS[moduleId] && moduleCatalog.entries.some(m => m.id === moduleId && m.installed) ? moduleId : null,
+  );
+  const current = $derived(activeModule ? `module:${activeModule}` : corePage);
+  providePageTone(() => (activeModule ? MODULE_PAGES[activeModule]?.tone : PAGES[corePage].tone) ?? 'orange');
+
+  const sections = $derived(
+    SECTIONS.map(section => ({
+      ...section,
+      items: moduleCatalog.entries.filter(m => m.installed && m.section === section.id && MODULE_VIEWS[m.id] && MODULE_PAGES[m.id]),
+    })).filter(section => section.items.length > 0),
+  );
 </script>
 
 <div class="min-h-screen flex">
@@ -73,6 +94,35 @@
           </button>
         {/each}
       </nav>
+
+      {#each sections as section (section.id)}
+        <nav class="px-3 pt-5 space-y-1">
+          <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">{section.label}</p>
+          {#each section.items as entry (entry.id)}
+            {@const item = MODULE_PAGES[entry.id]}
+            {@const active = activeModule === entry.id}
+            <button
+              onclick={() => router.module(guildId, entry.id)}
+              class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {active
+                ? 'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'}"
+            >
+              <item.icon class="w-[18px] h-[18px] shrink-0 {toneText[item.tone]}" />
+              {entry.name}
+            </button>
+          {/each}
+        </nav>
+      {:else}
+        {#if moduleCatalog.loading}
+          <div class="px-3 pt-5 space-y-1" aria-hidden="true">
+            <div class="mx-3 mb-2.5 h-3 w-16 rounded bg-zinc-700/40 animate-pulse"></div>
+            <div class="h-10 px-3 flex items-center gap-3">
+              <div class="w-[18px] h-[18px] rounded bg-zinc-700/40 animate-pulse"></div>
+              <div class="h-3 w-20 rounded bg-zinc-700/40 animate-pulse"></div>
+            </div>
+          </div>
+        {/if}
+      {/each}
     {:else if !guild && session.guildsLoading}
       <div class="px-3 pt-3 space-y-1" aria-hidden="true">
         <div class="mx-3 mb-2.5 h-3 w-12 rounded bg-zinc-700/40 animate-pulse"></div>
@@ -103,10 +153,26 @@
         </div>
       {:else if !guild || !guild.bot_present}
         <EmptyState fill kind="server" title="This server isn't available" description="The bot isn't in it, or you don't have access to manage it." />
+      {:else if moduleOpening}
+        <div aria-hidden="true">
+          <div class="flex items-center gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50">
+            <div class="w-9 h-9 rounded-xl bg-zinc-700/40 animate-pulse"></div>
+            <div class="space-y-2">
+              <div class="h-3 w-28 rounded bg-zinc-700/40 animate-pulse"></div>
+              <div class="h-2.5 w-52 rounded bg-zinc-700/30 animate-pulse"></div>
+            </div>
+          </div>
+          <Card>
+            <FormSkeleton fields={2} />
+          </Card>
+        </div>
       {:else}
         {#key current}
           <div in:fly={{ y: 8, duration: 220 }}>
-            {#if current === 'dashboard'}
+            {#if activeModule}
+              {@const View = MODULE_VIEWS[activeModule]}
+              <View {guildId} {isAdmin} />
+            {:else if current === 'dashboard'}
               <OverviewPage {guildId} {isAdmin} />
             {:else if current === 'slash'}
               <SlashPage {guildId} />

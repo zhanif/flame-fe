@@ -3,6 +3,7 @@
   import Card from '$lib/components/Card.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
+  import Input from '$lib/components/Input.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import RolePicker from '$lib/components/RolePicker.svelte';
@@ -91,6 +92,13 @@
             Used for dates and times. Now: {#if timeIn(draft.timezone, now)}<span class="text-zinc-300 font-medium">{timeIn(draft.timezone, now)}</span>{/if}
           </p>
           <Combobox id="timezone" bind:value={draft.timezone} options={timezones} placeholder="Search by city or offset, e.g. Jakarta, UTC +7" label="Timezone" disabled={!isAdmin} />
+        </div>
+        <div>
+          <label for="prefix" class={label}>Prefix</label>
+          <p class="mb-2.5 text-xs text-zinc-500">
+            Starts a text command, like <span class="font-mono text-zinc-300">{draft.prefix || 'f!'}ping</span>. 1 to 5 characters, no spaces.
+          </p>
+          <Input id="prefix" bind:value={draft.prefix} maxlength={5} disabled={!isAdmin} />
         </div>
       </div>
     {/if}

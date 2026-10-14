@@ -20,6 +20,8 @@
   --orange-400: 251 146 60;
   --sky-300: 125 211 252;
   --sky-400: 56 189 248;
+  --cyan-300: 103 232 249;
+  --cyan-400: 34 211 238;
   --violet-300: 196 181 253;
   --violet-400: 167 139 250;
   --emerald-300: 110 231 183;
@@ -49,6 +51,8 @@
   --orange-400: 234 88 12;
   --sky-300: 14 116 144;
   --sky-400: 2 132 199;
+  --cyan-300: 14 116 144;
+  --cyan-400: 8 145 178;
   --violet-300: 109 40 217;
   --violet-400: 124 58 237;
   --emerald-300: 4 120 87;
@@ -91,6 +95,24 @@
 
 .pop[data-state='closed'] {
   animation: pop-out 120ms ease-in forwards;
+}
+
+.tab {
+  color: rgb(var(--zinc-400));
+}
+
+.tab:hover {
+  color: rgb(var(--zinc-100));
+}
+
+.tab[data-state='active'] {
+  background: rgb(var(--zinc-900));
+  color: rgb(var(--zinc-100));
+  box-shadow: 0 0 0 1px rgb(var(--zinc-700));
+}
+
+.tab:focus-visible {
+  box-shadow: 0 0 0 2px rgb(249 115 22 / 0.6);
 }
 
 .menu-item:hover,

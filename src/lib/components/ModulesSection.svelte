@@ -8,8 +8,9 @@
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import { api, type ModuleEntry } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
+  import { MODULE_PAGES } from '$lib/nav';
   import { toneFor, toneText } from '$lib/ui';
-  import { Blocks, Check, Download, Package, Search, Trash2 } from '@lucide/svelte';
+  import { Blocks, Check, CornerDownRight, Download, Package, Search, Trash2 } from '@lucide/svelte';
 
   let {
     guildId,
@@ -23,10 +24,13 @@
   let uninstallTarget = $state<ModuleEntry | null>(null);
   let query = $state('');
 
+  // The module's own color (its page color when it has one), the same everywhere it shows.
+  const toneOf = (id: string) => MODULE_PAGES[id]?.tone ?? toneFor(id);
+
   const filtered = $derived.by(() => {
     const q = query.trim().toLowerCase();
     if (!q) return modules;
-    return modules.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.commands.some(c => c.toLowerCase().includes(q)));
+    return modules.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.commands.some(c => c.name.toLowerCase().includes(q)));
   });
 
   async function install(m: ModuleEntry) {
@@ -88,7 +92,7 @@
       {#each filtered as m (m.id)}
         <Card interactive class="flex flex-col {m.installed ? 'border-emerald-500/30' : ''}">
           <div class="flex items-center gap-2.5">
-            <Blocks class="w-4 h-4 shrink-0 {toneText[toneFor(m.id)]}" />
+            <Blocks class="w-4 h-4 shrink-0 {toneText[toneOf(m.id)]}" />
             <h4 class="font-display text-sm font-bold text-zinc-100 min-w-0 flex-1 truncate">{m.name}</h4>
             {#if m.installed}
               <Badge tone="success"><Check class="w-3 h-3" /> Installed</Badge>
@@ -98,8 +102,11 @@
 
           {#if m.commands.length}
             <div class="flex flex-wrap gap-1 mt-3">
-              {#each m.commands as command}
-                <span class="text-xs font-mono px-1.5 py-0.5 rounded-md bg-zinc-900/60 ring-1 ring-zinc-700/40 text-zinc-300"><span class={toneText[toneFor(m.id)]}>/</span>{command}</span>
+              {#each m.commands as command (command.name)}
+                <span class="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded-md bg-zinc-900/60 ring-1 ring-zinc-700/40 text-zinc-300">
+                  <!-- A slash command is typed as /name; a message command lives in the right-click menu, so it gets an arrow instead. -->
+                  {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<CornerDownRight class="w-3 h-3 {toneText[toneOf(m.id)]}" />{/if}{command.name}
+                </span>
               {/each}
             </div>
           {/if}

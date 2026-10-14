@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { PAGES } from '$lib/nav';
+  import { MODULE_PAGES, PAGES } from '$lib/nav';
   import type { GuildPage } from '$lib/stores/router.svelte';
   import ThemeToggle from './ThemeToggle.svelte';
   import Tile from './Tile.svelte';
 
-  let { page, description }: { page: GuildPage; description: string } = $props();
+  // A core page (`page`) or an installable module's page (`module`).
+  let { page, module, description }: { page?: GuildPage; module?: string; description: string } = $props();
 
-  const meta = $derived(PAGES[page]);
+  const meta = $derived(module ? MODULE_PAGES[module] : PAGES[page ?? 'dashboard']);
 </script>
 
 <!-- The top bar: page identity on the left (label, icon and color come from the

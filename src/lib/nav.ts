@@ -1,6 +1,7 @@
 import type { GuildPage } from '$lib/stores/router.svelte';
 import type { Tone } from '$lib/ui';
-import { LayoutDashboard, ScrollText, Settings, Terminal } from '@lucide/svelte';
+import type { ModuleSection } from '$lib/api/endpoints';
+import { LayoutDashboard, Quote, ScrollText, Settings, Terminal } from '@lucide/svelte';
 import { type Component, getContext, setContext } from 'svelte';
 
 export interface PageMeta {
@@ -18,6 +19,17 @@ export const PAGES: Record<GuildPage, PageMeta> = {
   audit: { label: 'Audit logs', icon: ScrollText, tone: 'violet', adminOnly: true },
   slash: { label: 'Slash', icon: Terminal, tone: 'emerald', adminOnly: true },
 };
+
+/** Label, icon and color of each installable module's page, by module id. */
+export const MODULE_PAGES: Record<string, PageMeta> = {
+  quotes: { label: 'Quotes', icon: Quote, tone: 'cyan', adminOnly: false },
+};
+
+/** Sidebar sections that hold installed modules, in order. */
+export const SECTIONS: { id: ModuleSection; label: string }[] = [
+  { id: 'management', label: 'Management' },
+  { id: 'utilities', label: 'Utilities' },
+];
 
 /** Sidebar order. */
 export const NAV_ORDER: GuildPage[] = ['dashboard', 'settings', 'audit', 'slash'];

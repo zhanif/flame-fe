@@ -1,7 +1,7 @@
 <script lang="ts">
   // Flat gray illustrations for empty states. All share one ground shadow and the
   // same two grays, so they read as a set.
-  export type ArtKind = 'server' | 'commands' | 'log' | 'search' | 'modules';
+  export type ArtKind = 'server' | 'commands' | 'log' | 'search' | 'modules' | 'quote';
 
   let { kind }: { kind: ArtKind } = $props();
 </script>
@@ -38,6 +38,9 @@
     <circle cx="76" cy="70" r="16" class="fill-zinc-900 stroke-zinc-500" />
     <path d="M88 82l10 10" class="stroke-zinc-400" />
     <path d="M70 70h12" class="stroke-zinc-400" />
+  {:else if kind === 'quote'}
+    <path d="M26 22h68a10 10 0 0 1 10 10v38a10 10 0 0 1-10 10H64L46 96V80H26a10 10 0 0 1-10-10V32a10 10 0 0 1 10-10Z" class="fill-zinc-800 stroke-zinc-600" />
+    <path d="M40 60c0-9 2-15 9-19M66 60c0-9 2-15 9-19" class="stroke-zinc-400" stroke-width="4" />
   {:else}
     <rect x="18" y="52" width="40" height="40" rx="9" class="fill-zinc-800 stroke-zinc-600" />
     <rect x="62" y="52" width="40" height="40" rx="9" class="fill-zinc-800 stroke-zinc-600" />

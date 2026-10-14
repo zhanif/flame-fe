@@ -4,9 +4,9 @@
   import Card from '$lib/components/Card.svelte';
   import ModulesSection from '$lib/components/ModulesSection.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { api, type ModuleEntry } from '$lib/api/endpoints';
+  import { api } from '$lib/api/endpoints';
+  import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { session } from '$lib/stores/session.svelte';
-  import { toast } from '$lib/stores/toast.svelte';
   import { caps, type Tone, toneText } from '$lib/ui';
   import { Blocks, Hash, Package, Shield, Users } from '@lucide/svelte';
   import type { Component } from 'svelte';
@@ -14,11 +14,12 @@
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
-  let modules: ModuleEntry[] = $state([]);
   let roleCount: number | null = $state(null);
   let channelCount: number | null = $state(null);
-  let loading = $state(true);
+  let countsLoading = $state(true);
 
+  const modules = $derived(moduleCatalog.entries);
+  const loading = $derived(countsLoading || moduleCatalog.loading);
   const guild = $derived(session.guild(guildId));
   const installed = $derived(modules.filter(m => m.installed).length);
 
@@ -29,21 +30,11 @@
     { label: 'Channels', value: channelCount, icon: Hash, tone: 'amber' },
   ];
 
-  async function reloadModules() {
-    try {
-      modules = await api.modules(guildId);
-    } catch (e: any) {
-      toast('error', e.message);
-    }
-  }
-
   onMount(async () => {
-    const [mods, roles, channels] = await Promise.allSettled([api.modules(guildId), api.roles(guildId), api.channels(guildId)]);
-    if (mods.status === 'fulfilled') modules = mods.value;
-    else toast('error', mods.reason?.message ?? 'Could not load modules');
+    const [roles, channels] = await Promise.allSettled([api.roles(guildId), api.channels(guildId)]);
     if (roles.status === 'fulfilled') roleCount = roles.value.length;
     if (channels.status === 'fulfilled') channelCount = channels.value.length;
-    loading = false;
+    countsLoading = false;
   });
 </script>
 
@@ -84,5 +75,5 @@
     </Card>
   {/if}
 
-  <ModulesSection {guildId} {isAdmin} {modules} {loading} onchange={reloadModules} />
+  <ModulesSection {guildId} {isAdmin} {modules} {loading} onchange={() => moduleCatalog.reload()} />
 </div>
