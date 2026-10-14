@@ -16,7 +16,11 @@
       <Tabs.Trigger value={tab.id} class="tab h-8 px-3 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-pointer outline-none transition-colors">
         <tab.icon class="w-4 h-4" />
         {tab.label}
-        {#if tab.count != null}<span class="text-xs text-zinc-500">{tab.count}</span>{/if}
+        {#if tab.count === null}
+          <span class="h-3 w-4 rounded bg-zinc-700/50 animate-pulse" aria-hidden="true"></span>
+        {:else if tab.count !== undefined}
+          <span class="text-xs text-zinc-500">{tab.count}</span>
+        {/if}
       </Tabs.Trigger>
     {/each}
   </Tabs.List>

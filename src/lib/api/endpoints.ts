@@ -31,6 +31,8 @@ export interface ModuleEntry {
   description: string;
   section: ModuleSection;
   installed: boolean;
+  /** Installed and turned on. A turned-off module keeps its data but does nothing. */
+  enabled: boolean;
   commands: { name: string; kind: 'slash' | 'message' }[];
 }
 
@@ -224,6 +226,93 @@ export interface OcrDetectionItem {
   created_at: string;
 }
 
+export interface RoleColorEntry {
+  id: string;
+  name: string;
+  command_name: string;
+  role_id: string;
+  max_colors: number;
+  description: string | null;
+  /** Why the bot cannot change the role, or null. */
+  problem: string | null;
+  /** The colors the role has now (empty when it has none). */
+  current: string[];
+}
+
+export interface RoleColors {
+  /** Whether the server has Enhanced Role Colors, which more than one color needs. */
+  enhanced: boolean;
+  colors: RoleColorEntry[];
+  warnings: string[];
+}
+
+export type RoleColorInput = Pick<RoleColorEntry, 'name' | 'command_name' | 'role_id' | 'max_colors' | 'description'>;
+
+export interface RoleColorChange {
+  id: string;
+  color_id: string;
+  color_name: string;
+  user?: UserProfile;
+  before: string[];
+  after: string[];
+  created_at: string;
+}
+
+export type FileKind = 'image' | 'video' | 'audio' | 'other';
+
+export interface FileCollectionEntry {
+  id: string;
+  name: string;
+  command_name: string;
+  description: string | null;
+  file_types: FileKind[];
+  entry_style: 'separate' | 'grouped';
+  max_files: number;
+  max_entries: number | null;
+  count_rejected: boolean;
+  allow_upvotes: boolean;
+  require_reject_reason: boolean;
+  show_reject_reason: boolean;
+  approve_role_id: string | null;
+  reject_role_id: string | null;
+  publish_reaction: string | null;
+  /** Why the bot cannot grant its roles, if it cannot. */
+  problems: string[];
+}
+
+export interface FileCollections {
+  max_collections: number;
+  collections: FileCollectionEntry[];
+  warnings: string[];
+}
+
+export type FileCollectionInput = Omit<FileCollectionEntry, 'id' | 'problems'>;
+
+export interface FileSubmissionGroup {
+  tag: string;
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  last_at: string;
+}
+
+export interface FileSubmissionRow {
+  id: string;
+  collection_name: string;
+  tag: string;
+  user?: UserProfile;
+  submitted_by?: UserProfile;
+  file_count: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reason: string | null;
+  upvotes: number | null;
+  reviewer?: UserProfile;
+  reviewed_at: string | null;
+  files: { url: string; name: string; type: string | null }[];
+  created_at: string;
+}
+
 export interface AuditFilters {
   actions: string[];
   actors: UserProfile[];
@@ -269,6 +358,8 @@ export const api = {
   modules: (guildId: string) => apiCall<ModuleEntry[]>(`/guilds/${guildId}/modules`),
   installModule: (guildId: string, moduleId: string) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}/install`, 'POST'),
+  setModuleEnabled: (guildId: string, moduleId: string, enabled: boolean) =>
+    apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}/enabled`, 'PUT', { enabled }),
   uninstallModule: (guildId: string, moduleId: string) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}`, 'DELETE'),
 
@@ -331,6 +422,35 @@ export const api = {
     detections: (guildId: string, query: { page: number; limit: number; status?: string }) =>
       apiCall<{ items: OcrDetectionItem[]; pending: number; pagination: Pagination }>(
         `/guilds/${guildId}/m/ocr-detection/detections?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
+      ),
+  },
+  fileSubmissions: {
+    collections: (guildId: string) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections`),
+    create: (guildId: string, input: FileCollectionInput) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections`, 'POST', input),
+    update: (guildId: string, id: string, input: FileCollectionInput) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'PUT', input),
+    remove: (guildId: string, id: string) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'DELETE'),
+    groups: (guildId: string, query: { page: number; limit: number; collectionId: string }) =>
+      apiCall<{ groups: FileSubmissionGroup[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/file-submissions/submissions/groups?page=${query.page}&limit=${query.limit}&collection_id=${query.collectionId}`,
+      ),
+    submissions: (guildId: string, query: { page: number; limit: number; status: string; collectionId: string; tag: string }) =>
+      apiCall<{ submissions: FileSubmissionRow[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/file-submissions/submissions?page=${query.page}&limit=${query.limit}&status=${query.status}&collection_id=${query.collectionId}&tag=${encodeURIComponent(query.tag)}`,
+      ),
+    approve: (guildId: string, id: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/approve`, 'POST'),
+    reject: (guildId: string, id: string, reason: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/reject`, 'POST', { reason }),
+    upvotes: (guildId: string, id: string, upvotes: number) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/upvotes`, 'POST', { upvotes }),
+  },
+  roleColors: {
+    list: (guildId: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors`),
+    create: (guildId: string, input: RoleColorInput) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors`, 'POST', input),
+    update: (guildId: string, id: string, input: RoleColorInput) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}`, 'PUT', input),
+    remove: (guildId: string, id: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}`, 'DELETE'),
+    revert: (guildId: string, changeId: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/changes/${changeId}/revert`, 'POST'),
+    apply: (guildId: string, id: string, colors: string[]) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}/apply`, 'POST', { colors }),
+    changes: (guildId: string, query: { page: number; limit: number; colorId?: string }) =>
+      apiCall<{ changes: RoleColorChange[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/role-colors/changes?page=${query.page}&limit=${query.limit}${query.colorId ? `&color_id=${query.colorId}` : ''}`,
       ),
   },
   auditFilters: (guildId: string) => apiCall<AuditFilters>(`/guilds/${guildId}/audit-logs/filters`),

@@ -305,7 +305,13 @@
     </div>
     <Card flush>
       {#if !loaded}
-        <TableSkeleton columns={['w-16', 'w-64', 'flex-1', 'w-56', 'w-36', 'w-44']} rows={5} rowHeight="h-14" />
+        <TableSkeleton
+            columns={['w-16', 'w-64', 'flex-1', 'w-56', 'w-36', 'w-44']}
+            headings={['#', 'User', 'Image', 'Matched', 'Status', 'Detected']}
+            kinds={['bar', 'actor', 'bar', 'bar', 'pill', 'bar']}
+            rows={5}
+            rowHeight="h-14"
+          />
       {:else if items.length === 0}
         <p class="px-5 py-8 text-center text-xs text-zinc-500">No detection has this status.</p>
       {:else}

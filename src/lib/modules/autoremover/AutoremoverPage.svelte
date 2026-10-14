@@ -3,6 +3,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
   import ChipPicker from '$lib/components/ChipPicker.svelte';
   import SettingRow from '$lib/components/SettingRow.svelte';
@@ -141,13 +142,20 @@
     }
   }
 
-  async function cancel(item: AutoremoverItem) {
+  let cancelTarget: AutoremoverItem | null = $state(null);
+  let cancelling = $state(false);
+  async function cancel() {
+    if (!cancelTarget) return;
+    cancelling = true;
     try {
-      await api.autoremover.cancel(guildId, item.id);
+      await api.autoremover.cancel(guildId, cancelTarget.id);
       toast('success', 'Deletion cancelled', 'The message stays.');
+      cancelTarget = null;
       await loadItems();
     } catch (e: any) {
       toast('error', e.message);
+    } finally {
+      cancelling = false;
     }
   }
 
@@ -295,7 +303,13 @@
     />
     <Card flush>
       {#if !loaded}
-        <TableSkeleton columns={['w-16', 'w-64', 'flex-1', 'w-44', 'w-40', 'w-52', 'w-24']} rows={5} rowHeight="h-14" />
+        <TableSkeleton
+            columns={['w-16', 'w-64', 'flex-1', 'w-44', 'w-40', 'w-52', 'w-24']}
+            headings={['#', 'Author', 'Files', 'Channel', 'Status', 'When', '']}
+            kinds={['bar', 'actor', 'bar', 'bar', 'pill', 'bar', 'action']}
+            rows={5}
+            rowHeight="h-14"
+          />
       {:else if items.length === 0}
         <p class="px-5 py-8 text-center text-xs text-zinc-500">No message has this status.</p>
       {:else}
@@ -334,7 +348,7 @@
                     <ScrollText class="w-3.5 h-3.5" />
                   </Button>
                   {#if item.status === 'pending'}
-                    <Button variant="ghost" size="icon" aria-label="Cancel this deletion" title="Cancel this deletion" onclick={() => cancel(item)}>
+                    <Button variant="ghost" size="icon" aria-label="Cancel this deletion" title="Cancel this deletion" onclick={() => (cancelTarget = item)}>
                       <X class="w-3.5 h-3.5 text-red-400" />
                     </Button>
                   {/if}
@@ -403,9 +417,22 @@
 
     <div class="flex justify-end gap-2 mt-6">
       {#if item.status === 'pending'}
-        <Button variant="danger" onclick={async () => { const target = item; logTarget = null; await cancel(target); }}>Cancel deletion</Button>
+        <Button variant="danger" onclick={() => { cancelTarget = item; logTarget = null; }}>Cancel deletion</Button>
       {/if}
       <Button variant="secondary" onclick={() => (logTarget = null)}>Close</Button>
     </div>
   {/if}
 </Modal>
+
+<ConfirmModal
+  show={!!cancelTarget}
+  title="Cancel this deletion?"
+  confirmLabel="Cancel deletion"
+  busyLabel="Cancelling…"
+  busy={cancelling}
+  icon={X}
+  onConfirm={cancel}
+  onClose={() => (cancelTarget = null)}
+>
+  The message stays in the channel and is not deleted automatically. This cannot be undone: it will not be marked again.
+</ConfirmModal>

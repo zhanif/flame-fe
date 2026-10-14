@@ -2,6 +2,8 @@
   import Card from '$lib/components/Card.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
+  import ModulePageSkeleton from '$lib/components/ModulePageSkeleton.svelte';
+  import PageHeaderSkeleton from '$lib/components/PageHeaderSkeleton.svelte';
   import { bot } from '$lib/stores/bot.svelte';
   import { type GuildPage, router } from '$lib/stores/router.svelte';
   import { session } from '$lib/stores/session.svelte';
@@ -103,7 +105,8 @@
             {@const active = activeModule === entry.id}
             <button
               onclick={() => router.module(guildId, entry.id)}
-              class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {active
+              title={entry.enabled ? undefined : 'Turned off'}
+              class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {entry.enabled ? '' : 'opacity-50'} {active
                 ? 'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-700'
                 : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'}"
             >
@@ -140,31 +143,27 @@
     <div>
       {#if !guild && session.guildsLoading}
         <div aria-hidden="true">
-          <div class="flex items-center gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50">
-            <div class="w-9 h-9 rounded-xl bg-zinc-700/40 animate-pulse"></div>
-            <div class="space-y-2">
-              <div class="h-3 w-28 rounded bg-zinc-700/40 animate-pulse"></div>
-              <div class="h-2.5 w-52 rounded bg-zinc-700/30 animate-pulse"></div>
-            </div>
-          </div>
-          <Card>
-            <FormSkeleton fields={2} />
-          </Card>
+          <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
+          {#if moduleId}
+            <ModulePageSkeleton module={moduleId} {guildId} />
+          {:else}
+            <Card>
+              <FormSkeleton fields={2} />
+            </Card>
+          {/if}
         </div>
       {:else if !guild || !guild.bot_present}
         <EmptyState fill kind="server" title="This server isn't available" description="The bot isn't in it, or you don't have access to manage it." />
       {:else if moduleOpening}
         <div aria-hidden="true">
-          <div class="flex items-center gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50">
-            <div class="w-9 h-9 rounded-xl bg-zinc-700/40 animate-pulse"></div>
-            <div class="space-y-2">
-              <div class="h-3 w-28 rounded bg-zinc-700/40 animate-pulse"></div>
-              <div class="h-2.5 w-52 rounded bg-zinc-700/30 animate-pulse"></div>
-            </div>
-          </div>
-          <Card>
-            <FormSkeleton fields={2} />
-          </Card>
+          <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
+          {#if moduleId}
+            <ModulePageSkeleton module={moduleId} {guildId} />
+          {:else}
+            <Card>
+              <FormSkeleton fields={2} />
+            </Card>
+          {/if}
         </div>
       {:else}
         {#key current}

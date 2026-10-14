@@ -1,13 +1,16 @@
 <script lang="ts">
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import RoleChip from '$lib/components/RoleChip.svelte';
   import RoleExceptions from '$lib/components/RoleExceptions.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import RoleSelect from '$lib/components/RoleSelect.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
+  import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import { cubicOut } from 'svelte/easing';
@@ -58,7 +61,14 @@
     pickedRole = '';
     if (await change(() => api.antiTamper.addRole(guildId, roleId), 'Role protected')) addingRole = false;
   };
-  const removeRole = (roleId: string) => change(() => api.antiTamper.removeRole(guildId, roleId), 'Role is no longer protected');
+  let removeTarget: string | null = $state(null);
+  let removing = $state(false);
+  async function confirmRemove() {
+    if (!removeTarget) return;
+    removing = true;
+    if (await change(() => api.antiTamper.removeRole(guildId, removeTarget!), 'Role is no longer protected')) removeTarget = null;
+    removing = false;
+  }
   const saveChannel = () =>
     change(() => api.antiTamper.setReportChannel(guildId, reportChannel || null), reportChannel ? 'Report channel saved' : 'Reporting stopped');
 
@@ -122,7 +132,15 @@
         onRemove={async target => change(() => api.antiTamper.removeException(guildId, target), 'Exception removed')}
       />
     {:else}
-      <Card flush><TableSkeleton columns={['w-16', 'flex-1', 'w-36', 'w-16']} rows={4} rowHeight="h-14" /></Card>
+      <Card flush>
+        <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-36', ...(isAdmin ? ['w-16'] : [])]}
+            headings={['#', 'Who', 'Type', ...(isAdmin ? [''] : [])]}
+            kinds={['bar', 'bar', 'pill', ...(isAdmin ? ['action' as const] : [])]}
+            rows={4}
+            rowHeight="h-14"
+          />
+      </Card>
     {/if}
   {:else}
     {#if isAdmin && addingRole}
@@ -133,7 +151,11 @@
         <div class="flex flex-col sm:flex-row sm:items-end gap-3">
           <div class="w-full sm:w-80">
             <span class={label}>Role</span>
-            <RoleSelect {roles} manageable exclude={takenRoles} bind:value={pickedRole} class="w-full" disabled={!rules} />
+            {#if rules}
+              <RoleSelect {roles} manageable exclude={takenRoles} bind:value={pickedRole} class="w-full" />
+            {:else}
+              <ControlSkeleton class="w-full" />
+            {/if}
           </div>
           <Button variant="primary" onclick={addRole} disabled={!pickedRole}><Plus class="w-3.5 h-3.5" />Protect</Button>
           <Button variant="ghost" onclick={() => (addingRole = false)}>Cancel</Button>
@@ -147,7 +169,13 @@
     {:else}
       <Card flush>
         {#if !rules}
-          <TableSkeleton columns={['w-16', 'flex-1', 'w-16']} rows={4} rowHeight="h-14" />
+          <TableSkeleton
+            columns={['w-16', 'flex-1', ...(isAdmin ? ['w-16'] : [])]}
+            headings={['#', 'Role', ...(isAdmin ? [''] : [])]}
+            kinds={['bar', 'bar', ...(isAdmin ? ['action' as const] : [])]}
+            rows={4}
+            rowHeight="h-14"
+          />
         {:else}
           <table class="w-full text-sm">
             <thead>
@@ -163,20 +191,14 @@
                 <tr class="hover:bg-zinc-800/30 transition-colors">
                   <td class="{cell} text-zinc-500">{i + 1}</td>
                   <td class={cell}>
-                    {#if role}
-                      <span class="inline-flex items-center gap-2 text-zinc-200">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background:{role.color === '#000000' ? 'rgb(var(--zinc-500))' : role.color}"></span>{role.name}
-                      </span>
-                    {:else}
-                      <span class="text-zinc-500">Deleted role <span class="font-mono">{rule.role_id}</span></span>
-                    {/if}
+                    <RoleChip {role} />
                     {#if rule.problem}
                       <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400"><TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}</p>
                     {/if}
                   </td>
                   {#if isAdmin}
                     <td class="{cell} text-right">
-                      <Button variant="ghost" size="icon" aria-label="Stop protecting this role" onclick={() => removeRole(rule.role_id)}>
+                      <Button variant="ghost" size="icon" aria-label="Stop protecting this role" onclick={() => (removeTarget = rule.role_id)}>
                         <Trash2 class="w-3.5 h-3.5 text-red-400" />
                       </Button>
                     </td>
@@ -190,3 +212,18 @@
     {/if}
   {/if}
 </div>
+
+<ConfirmModal
+  show={!!removeTarget}
+  title="Stop protecting this role?"
+  confirmLabel="Stop protecting"
+  busyLabel="Removing…"
+  busy={removing}
+  icon={Trash2}
+  onConfirm={confirmRemove}
+  onClose={() => (removeTarget = null)}
+>
+  {#if removeTarget}
+    <span class="text-zinc-200">{roles.find(r => r.id === removeTarget)?.name ?? 'This role'}</span> can then be held by anyone again. People who hold it now keep it.
+  {/if}
+</ConfirmModal>

@@ -142,7 +142,13 @@
   {:else}
     <Card flush>
       {#if !loaded}
-        <TableSkeleton columns={['w-16', 'flex-1', 'w-64', 'w-64', 'w-36', 'w-36', 'w-16']} rows={5} rowHeight="h-14" />
+        <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-64', 'w-64', 'w-36', 'w-36', 'w-16']}
+            headings={['#', 'Quote', 'Author', 'Quoted by', 'Quoted', 'Status', '']}
+            kinds={['bar', 'bar', 'actor', 'actor', 'bar', 'pill', 'action']}
+            rows={5}
+            rowHeight="h-14"
+          />
       {:else}
         <table class="w-full text-sm">
           <thead>

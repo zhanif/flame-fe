@@ -9,6 +9,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import Select from '$lib/components/Select.svelte';
+  import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type AuditFilters, type AuditLogEntry, type AuditQuery } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
@@ -30,6 +31,7 @@
   let loaded = $state(false);
 
   let filters: AuditFilters = $state({ actions: [], actors: [] });
+  let filtersLoaded = $state(false);
   let search = $state('');
   let action = $state('');
   let actor = $state('');
@@ -62,7 +64,7 @@
 
   onMount(() => {
     load();
-    api.auditFilters(guildId).then(f => (filters = f)).catch(() => {});
+    api.auditFilters(guildId).then(f => ((filters = f), (filtersLoaded = true))).catch(() => (filtersLoaded = true));
   });
 
   function goTo(p: number) {
@@ -97,8 +99,13 @@
 
 <div class="flex flex-wrap items-center gap-3 mb-5">
   <Input bind:value={search} icon={Search} type="search" placeholder="Search details or actor" aria-label="Search details or actor" oninput={onSearch} class="w-full sm:w-72" />
-  <Select bind:value={action} onchange={refilter} placeholder="All actions" label="Action" options={filters.actions.map(a => ({ value: a, label: a }))} class="w-44" />
-  <Select bind:value={actor} onchange={refilter} placeholder="All actors" label="Actor" options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))} class="w-44" />
+  {#if filtersLoaded}
+    <Select bind:value={action} onchange={refilter} placeholder="All actions" label="Action" options={filters.actions.map(a => ({ value: a, label: a }))} class="w-44" />
+    <Select bind:value={actor} onchange={refilter} placeholder="All actors" label="Actor" options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))} class="w-44" />
+  {:else}
+    <ControlSkeleton class="w-44" />
+    <ControlSkeleton class="w-44" />
+  {/if}
   <DateRangePicker bind:from bind:to onchange={refilter} class="w-64" />
   {#if hasFilters}
     <Button variant="ghost" onclick={clear}><X class="w-3.5 h-3.5" /> Clear</Button>
@@ -114,7 +121,13 @@
 {:else}
 <Card flush>
   {#if !loaded}
-    <TableSkeleton columns={['w-16', 'w-32', 'w-64', 'w-44', 'flex-1']} rows={5} rowHeight="h-14" />
+    <TableSkeleton
+            columns={['w-16', 'w-32', 'w-64', 'w-44', 'flex-1']}
+            headings={['#', 'When', 'Actor', 'Action', 'Details']}
+            kinds={['bar', 'bar', 'actor', 'pill', 'bar']}
+            rows={5}
+            rowHeight="h-14"
+    />
   {:else}
     <table class="w-full text-sm">
       <thead>

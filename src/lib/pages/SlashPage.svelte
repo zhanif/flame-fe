@@ -3,17 +3,19 @@
   import BoltSwitch from '$lib/components/BoltSwitch.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import Select from '$lib/components/Select.svelte';
+  import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type SlashCommand } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { pageTone } from '$lib/nav';
   import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { td, th, toneText } from '$lib/ui';
-  import { CornerDownRight, RefreshCw } from '@lucide/svelte';
+  import { CornerDownRight, RefreshCw, Trash2 } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let { guildId }: { guildId: string } = $props();
@@ -24,6 +26,10 @@
   let loading = $state(true);
   let loaded = $state(false);
   let pending = $state<string | null>(null);
+  // A removal that cannot be undone from here asks first: a command no module owns, or the leftovers a Refresh would prune.
+  let removeAsk = $state<SlashCommand | null>(null);
+  let pruneAsk = $state<SlashCommand[]>([]);
+  let pruning = $state(false);
   let page = $state(1);
   let limit = $state(10);
   let moduleFilter = $state('');
@@ -62,14 +68,22 @@
   // Refresh brings the table in line with Discord: commands that are on stay on, nothing
   // new is registered, and registered commands no installed module owns are removed.
   async function refresh() {
-    loading = true;
+    await load();
+    pruneAsk = commands.filter(c => c.module_id === null);
+  }
+
+  async function prune() {
+    pruning = true;
     try {
       const { removed } = await api.slashPrune(guildId);
       if (removed.length) toast('success', `Removed ${removed.length} unlisted ${removed.length === 1 ? 'command' : 'commands'}`, removed.join(', '));
+      pruneAsk = [];
+      await load();
     } catch (e: any) {
       toast('error', e.message);
+    } finally {
+      pruning = false;
     }
-    await load();
   }
 
   // One command at a time, on an explicit click. The row is updated in place so the
@@ -101,15 +115,18 @@
 <PageHeader page="slash" description="Slash commands of the installed modules on Discord" />
 
 <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-  <Select
-    bind:value={moduleFilter}
-    onchange={() => (page = 1)}
-    options={moduleOptions}
-    placeholder="All modules"
-    label="Module"
-    disabled={!loaded}
-    class="w-56"
-  />
+  {#if loaded}
+    <Select
+      bind:value={moduleFilter}
+      onchange={() => (page = 1)}
+      options={moduleOptions}
+      placeholder="All modules"
+      label="Module"
+      class="w-56"
+    />
+  {:else}
+    <ControlSkeleton class="w-56" />
+  {/if}
   <Button onclick={refresh} disabled={loading || !!pending} title="Reload from Discord and remove commands that no installed module owns">
     <RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''}" /> Refresh
   </Button>
@@ -120,7 +137,13 @@
 {:else}
 <Card flush>
   {#if !loaded}
-    <TableSkeleton columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28']} rows={3} />
+    <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28']}
+            headings={['#', 'Command', 'Module', 'State', 'Live']}
+            kinds={['bar', 'bar', 'bar', 'pill', 'bar']}
+            rows={3}
+            rowHeight="h-11"
+    />
   {:else}
     <table class="w-full text-sm">
       <thead>
@@ -149,7 +172,7 @@
                   busy={pending === c.name}
                   disabled={!!pending && pending !== c.name}
                   label={c.state === 'missing' ? `Register ${label(c)}` : `Remove ${label(c)} from Discord`}
-                  onclick={() => toggle(c)}
+                  onclick={() => (c.state !== 'missing' && c.module_id === null ? (removeAsk = c) : toggle(c))}
                 />
               </div>
             </td>
@@ -164,3 +187,32 @@
   {/if}
 </Card>
 {/if}
+
+<ConfirmModal
+  show={!!removeAsk}
+  title="Remove {removeAsk ? label(removeAsk) : ''} from Discord?"
+  confirmLabel="Remove"
+  busyLabel="Removing…"
+  busy={!!pending}
+  icon={Trash2}
+  onConfirm={async () => { if (removeAsk) await toggle(removeAsk); removeAsk = null; }}
+  onClose={() => (removeAsk = null)}
+>
+  No installed module owns this command, so it cannot be registered again from here.
+</ConfirmModal>
+
+<ConfirmModal
+  show={pruneAsk.length > 0}
+  title="Remove {pruneAsk.length} unlisted {pruneAsk.length === 1 ? 'command' : 'commands'}?"
+  confirmLabel="Remove"
+  busyLabel="Removing…"
+  busy={pruning}
+  icon={Trash2}
+  onConfirm={prune}
+  onClose={() => (pruneAsk = [])}
+>
+  <p>These are registered on Discord but no installed module owns them, so they are removed for good:</p>
+  <p class="mt-2 flex flex-wrap gap-1.5">
+    {#each pruneAsk as c (c.name)}<span class="rounded-md bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-200">{label(c)}</span>{/each}
+  </p>
+</ConfirmModal>

@@ -2,10 +2,12 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import Input from '$lib/components/Input.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
+  import Toggle from '$lib/components/Toggle.svelte';
   import { api, type ModuleEntry } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { MODULE_PAGES } from '$lib/nav';
@@ -22,6 +24,7 @@
 
   let busyId = $state<string | null>(null);
   let uninstallTarget = $state<ModuleEntry | null>(null);
+  let disableTarget = $state<ModuleEntry | null>(null);
   let query = $state('');
 
   // The module's own color (its page color when it has one), the same everywhere it shows.
@@ -41,6 +44,20 @@
     try {
       await api.installModule(guildId, m.id);
       toast('success', `${m.name} installed`, 'Push its commands from the Slash page to use them on Discord.');
+      await onchange();
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      busyId = null;
+    }
+  }
+
+  async function setEnabled(m: ModuleEntry) {
+    busyId = m.id;
+    disableTarget = null;
+    try {
+      await api.setModuleEnabled(guildId, m.id, !m.enabled);
+      toast('success', m.enabled ? `${m.name} turned off` : `${m.name} turned on`, m.enabled ? 'It keeps its data and settings, but nothing of it runs.' : 'It runs again.');
       await onchange();
     } catch (e: any) {
       toast('error', e.message);
@@ -94,12 +111,14 @@
     <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
       {#each filtered as m (m.id)}
         {@const Icon = MODULE_PAGES[m.id]?.icon ?? Blocks}
-        <Card interactive class="flex flex-col {m.installed ? 'border-emerald-500/30' : ''}">
+        <Card interactive class="flex flex-col {m.installed ? (m.enabled ? 'border-emerald-500/30' : 'border-amber-500/30') : ''}">
           <div class="flex items-center gap-2.5">
             <Icon class="w-4 h-4 shrink-0 {toneText[toneOf(m.id)]}" />
             <h4 class="font-display text-sm font-bold text-zinc-100 min-w-0 flex-1 truncate">{m.name}</h4>
-            {#if m.installed}
+            {#if m.installed && m.enabled}
               <Badge tone="success"><Check class="w-3 h-3" /> Installed</Badge>
+            {:else if m.installed}
+              <Badge tone="warning">Turned off</Badge>
             {/if}
           </div>
           <p class="text-xs text-zinc-400 mt-3 leading-relaxed flex-1">{m.description}</p>
@@ -115,11 +134,15 @@
             </div>
           {/if}
 
-          <div class="mt-4">
+          <div class="mt-4 flex items-center justify-between gap-3">
             {#if m.installed}
-              <Button variant="danger" size="sm" onclick={() => (uninstallTarget = m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? 'Uninstall' : 'Admins only'}>
+              <Button variant="danger" size="sm" onclick={() => (uninstallTarget = m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? 'Uninstall and delete its data' : 'Admins only'}>
                 <Trash2 class="w-3.5 h-3.5" /> Uninstall
               </Button>
+              <span class="flex items-center gap-2 text-xs text-zinc-400">
+                {m.enabled ? 'On' : 'Off'}
+                <Toggle on={m.enabled} disabled={!isAdmin || busyId === m.id} label="{m.enabled ? 'Turn off' : 'Turn on'} {m.name}" onclick={() => (m.enabled ? (disableTarget = m) : setEnabled(m))} />
+              </span>
             {:else}
               <Button variant="soft" size="sm" onclick={() => install(m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? 'Install' : 'Admins only'}>
                 <Download class="w-3.5 h-3.5" /> {busyId === m.id ? 'Installing…' : 'Install'}
@@ -148,3 +171,15 @@
     </div>
   {/if}
 </Modal>
+
+<ConfirmModal
+  show={!!disableTarget}
+  title="Turn off {disableTarget?.name}?"
+  confirmLabel="Turn off"
+  busyLabel="Turning off…"
+  busy={!!disableTarget && busyId === disableTarget.id}
+  onConfirm={async () => { if (disableTarget) await setEnabled(disableTarget); }}
+  onClose={() => (disableTarget = null)}
+>
+  Its commands stop answering, its events are ignored and its background work waits. Its data and settings are kept, and turning it on again brings everything back.
+</ConfirmModal>

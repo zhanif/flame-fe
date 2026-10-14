@@ -2,13 +2,16 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import RoleChip from '$lib/components/RoleChip.svelte';
   import RoleExceptions from '$lib/components/RoleExceptions.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import RoleSelect from '$lib/components/RoleSelect.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
+  import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
@@ -69,7 +72,14 @@
         [flag]: !rule[flag],
       }),
     );
-  const removeRole = (rule: BoosterRoleRule) => change(() => api.booster.removeRole(guildId, rule.role_id), 'Booster role removed');
+  let removeTarget: BoosterRoleRule | null = $state(null);
+  let removing = $state(false);
+  async function confirmRemove() {
+    if (!removeTarget) return;
+    removing = true;
+    if (await change(() => api.booster.removeRole(guildId, removeTarget!.role_id), 'Booster role removed')) removeTarget = null;
+    removing = false;
+  }
   const saveChannel = () => change(() => api.booster.setLogChannel(guildId, logChannel || null), logChannel ? 'Log channel saved' : 'Logging stopped');
 
   onMount(async () => {
@@ -132,7 +142,15 @@
         onRemove={async target => change(() => api.booster.removeException(guildId, target), 'Exception removed')}
       />
     {:else}
-      <Card flush><TableSkeleton columns={['w-16', 'flex-1', 'w-36', 'w-16']} rows={4} rowHeight="h-14" /></Card>
+      <Card flush>
+        <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-36', ...(isAdmin ? ['w-16'] : [])]}
+            headings={['#', 'Who', 'Type', ...(isAdmin ? [''] : [])]}
+            kinds={['bar', 'bar', 'pill', ...(isAdmin ? ['action' as const] : [])]}
+            rows={4}
+            rowHeight="h-14"
+          />
+      </Card>
     {/if}
   {:else}
     {#if isAdmin && addingRole}
@@ -143,7 +161,11 @@
         <div class="flex flex-col sm:flex-row sm:items-end gap-3">
           <div class="w-full sm:w-80">
             <span class={label}>Role</span>
-            <RoleSelect {roles} manageable exclude={takenRoles} bind:value={pickedRole} class="w-full" disabled={!rules} />
+            {#if rules}
+              <RoleSelect {roles} manageable exclude={takenRoles} bind:value={pickedRole} class="w-full" />
+            {:else}
+              <ControlSkeleton class="w-full" />
+            {/if}
           </div>
           <Button variant="primary" onclick={addRole} disabled={!pickedRole}><Plus class="w-3.5 h-3.5" />Add</Button>
           <Button variant="ghost" onclick={() => (addingRole = false)}>Cancel</Button>
@@ -157,7 +179,13 @@
     {:else}
       <Card flush>
         {#if !rules}
-          <TableSkeleton columns={['w-16', 'flex-1', 'w-40', 'w-40', 'w-40', 'w-16']} rows={4} rowHeight="h-14" />
+          <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-40', 'w-40', 'w-40', ...(isAdmin ? ['w-16'] : [])]}
+            headings={['#', 'Role', 'Assign on boost', 'Remove on stop', 'Guard', ...(isAdmin ? [''] : [])]}
+            kinds={['bar', 'bar', 'toggle', 'toggle', 'toggle', ...(isAdmin ? ['action' as const] : [])]}
+            rows={4}
+            rowHeight="h-14"
+          />
         {:else}
           <table class="w-full text-sm">
             <thead>
@@ -176,13 +204,7 @@
                 <tr class="hover:bg-zinc-800/30 transition-colors">
                   <td class="{cell} text-zinc-500">{i + 1}</td>
                   <td class={cell}>
-                    {#if role}
-                      <span class="inline-flex items-center gap-2 text-zinc-200">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background:{role.color === '#000000' ? 'rgb(var(--zinc-500))' : role.color}"></span>{role.name}
-                      </span>
-                    {:else}
-                      <span class="text-zinc-500">Deleted role <span class="font-mono">{rule.role_id}</span></span>
-                    {/if}
+                    <RoleChip {role} />
                     {#if rule.problem}
                       <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400"><TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}</p>
                     {/if}
@@ -192,7 +214,7 @@
                   <td class={cell}><Toggle on={rule.guard} disabled={!isAdmin} label="Guard {role?.name ?? rule.role_id}" onclick={() => setFlag(rule, 'guard')} /></td>
                   {#if isAdmin}
                     <td class="{cell} text-right">
-                      <Button variant="ghost" size="icon" aria-label="Remove booster role" onclick={() => removeRole(rule)}>
+                      <Button variant="ghost" size="icon" aria-label="Remove booster role" onclick={() => (removeTarget = rule)}>
                         <Trash2 class="w-3.5 h-3.5 text-red-400" />
                       </Button>
                     </td>
@@ -206,3 +228,18 @@
     {/if}
   {/if}
 </div>
+
+<ConfirmModal
+  show={!!removeTarget}
+  title="Remove this booster role?"
+  confirmLabel="Remove"
+  busyLabel="Removing…"
+  busy={removing}
+  icon={Trash2}
+  onConfirm={confirmRemove}
+  onClose={() => (removeTarget = null)}
+>
+  {#if removeTarget}
+    <span class="text-zinc-200">{roles.find(r => r.id === removeTarget!.role_id)?.name ?? 'This role'}</span> stops being managed for boosters: it is no longer given, taken back or guarded. The role itself and who holds it stay as they are.
+  {/if}
+</ConfirmModal>

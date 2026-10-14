@@ -1,8 +1,10 @@
 <script lang="ts">
+  import RoleChip from '$lib/components/RoleChip.svelte';
   import ActorCell from '$lib/components/ActorCell.svelte';
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import Input from '$lib/components/Input.svelte';
   import RoleSelect from '$lib/components/RoleSelect.svelte';
@@ -40,12 +42,28 @@
   let pickedRole = $state('');
   let userId = $state('');
   let busy = $state(false);
+  let removeTarget: RoleExemption | null = $state(null);
+  let removing = $state(false);
 
   const cell = td.replace('h-11', 'h-14');
   const takenRoles = $derived(exceptions.filter(e => e.target_type === 'role').map(e => e.target_id));
   const isUser = $derived(kind === 'user');
   const target = $derived(isUser ? userId.trim() : pickedRole);
   const roleOf = (id: string) => roles.find(r => r.id === id);
+
+  const nameOf = (exception: RoleExemption) =>
+    exception.target_type === 'user' ? (exception.user?.name ?? exception.target_id) : (roleOf(exception.target_id)?.name ?? 'this role');
+
+  async function confirmRemove() {
+    if (!removeTarget) return;
+    removing = true;
+    try {
+      await onRemove(removeTarget);
+      removeTarget = null;
+    } finally {
+      removing = false;
+    }
+  }
 
   async function add() {
     if (!target || busy) return;
@@ -114,18 +132,14 @@
             <td class={cell}>
               {#if exception.target_type === 'user' && exception.user}
                 <ActorCell actor={exception.user} />
-              {:else if role}
-                <span class="inline-flex items-center gap-2 text-zinc-200">
-                  <span class="w-2.5 h-2.5 rounded-full" style="background:{role.color === '#000000' ? 'rgb(var(--zinc-500))' : role.color}"></span>{role.name}
-                </span>
               {:else}
-                <span class="text-zinc-500">Deleted role <span class="font-mono">{exception.target_id}</span></span>
+                <RoleChip {role} missing="Deleted role" />
               {/if}
             </td>
             <td class={cell}><Badge tone={exception.target_type === 'role' ? 'accent' : 'neutral'}>{exception.target_type === 'role' ? 'Role' : 'User'}</Badge></td>
             {#if canEdit}
               <td class="{cell} text-right">
-                <Button variant="ghost" size="icon" aria-label="Remove exception" onclick={() => onRemove(exception)}>
+                <Button variant="ghost" size="icon" aria-label="Remove exception" onclick={() => (removeTarget = exception)}>
                   <Trash2 class="w-3.5 h-3.5 text-red-400" />
                 </Button>
               </td>
@@ -136,3 +150,18 @@
     </table>
   </Card>
 {/if}
+
+<ConfirmModal
+  show={!!removeTarget}
+  title="Remove this exception?"
+  confirmLabel="Remove"
+  busyLabel="Removing…"
+  busy={removing}
+  icon={Trash2}
+  onConfirm={confirmRemove}
+  onClose={() => (removeTarget = null)}
+>
+  {#if removeTarget}
+    <span class="text-zinc-200">{nameOf(removeTarget)}</span> will no longer be left alone by this rule, so the rule applies to {removeTarget.target_type === 'user' ? 'them' : 'everyone who holds this role'} again.
+  {/if}
+</ConfirmModal>

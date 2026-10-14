@@ -25,6 +25,7 @@
     fuchsia: 'text-fuchsia-400 bg-fuchsia-500/10 ring-fuchsia-500/20',
     green: 'text-green-400 bg-green-500/10 ring-green-500/20',
     blue: 'text-blue-400 bg-blue-500/10 ring-blue-500/20',
+    lime: 'text-lime-400 bg-lime-500/10 ring-lime-500/20',
     red: 'text-red-400 bg-red-500/10 ring-red-500/20',
   };
 </script>

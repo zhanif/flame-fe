@@ -3,7 +3,7 @@
   import type { HTMLButtonAttributes } from 'svelte/elements';
 
   type Props = HTMLButtonAttributes & {
-    variant?: 'primary' | 'soft' | 'secondary' | 'ghost' | 'danger';
+    variant?: 'primary' | 'soft' | 'secondary' | 'ghost' | 'danger' | 'success';
     size?: 'sm' | 'md' | 'icon';
     href?: string;
     target?: string;
@@ -22,6 +22,7 @@
     secondary: 'bg-zinc-800/60 text-zinc-300 ring-1 ring-zinc-700/60 hover:bg-zinc-700/60 hover:text-zinc-100',
     ghost: 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60',
     danger: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/25 hover:bg-red-500/20',
+    success: 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-600',
   } as const;
   const SIZES = { sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3 text-xs', icon: 'h-7 w-7' } as const;
 </script>
