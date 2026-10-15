@@ -19,13 +19,16 @@
   import { slide } from 'svelte/transition';
   import { api, type BoosterRoleFlags, type BoosterRoleRule, type BoosterRules, type DiscordChannel, type DiscordRole } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
   import { Lock, Megaphone, Plus, Radar, Rocket, Settings, TriangleAlert, Trash2, UserCheck } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
-  let tab = $state('roles');
+  // The tab lives in the address (`?tab=`), so a link or a reload opens the same one.
+  const tabParam = urlParam('tab', 'roles');
+  const tab = $derived(tabParam.value);
   let rules: BoosterRules | null = $state(null);
   let roles: DiscordRole[] = $state([]);
   let channels: DiscordChannel[] = $state([]);
@@ -96,7 +99,7 @@
 <div class="space-y-5">
   <div class="flex items-center justify-between gap-3 flex-wrap">
     <Tabs
-      bind:value={tab}
+      bind:value={tabParam.value}
       tabs={[
         { id: 'roles', label: 'Roles', icon: Rocket, count: rules ? rules.roles.length : null },
         { id: 'exceptions', label: 'Exceptions', icon: UserCheck, count: rules ? rules.exceptions.length : null },

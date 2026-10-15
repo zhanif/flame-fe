@@ -15,6 +15,7 @@
   import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlNumber, urlParam } from '$lib/url-param';
   import { actionTone } from '$lib/nav';
   import { td, th } from '$lib/ui';
 
@@ -26,7 +27,6 @@
   let { guildId }: { guildId: string } = $props();
 
   let logs: AuditLogEntry[] = $state([]);
-  let page = $state(1);
   let limit = $state(10);
   let total = $state(0);
   let loading = $state(true);
@@ -34,19 +34,26 @@
 
   let filters: AuditFilters = $state({ actions: [], actors: [] });
   let filtersLoaded = $state(false);
-  let search = $state('');
-  let action = $state('');
-  let actor = $state('');
-  let from = $state('');
-  let to = $state('');
-  // One module's trail only; in the URL (`?module=booster`) so the Modules cards can link straight to it.
-  let module = $state(router.query.get('module') ?? '');
+  // Every filter and the page live in the address (`?q=&action=&actor=&from=&to=&module=&page=`): a link opens the
+  // same view, Back goes one step, and the Modules cards can link straight to one module's trail.
+  const pageParam = urlNumber('page');
+  const qParam = urlParam('q');
+  const actionParam = urlParam('action');
+  const actorParam = urlParam('actor');
+  const fromParam = urlParam('from');
+  const toParam = urlParam('to');
+  const moduleParam = urlParam('module');
+  const page = $derived(pageParam.value);
+  const search = $derived(qParam.value);
+  const action = $derived(actionParam.value);
+  const actor = $derived(actorParam.value);
+  const from = $derived(fromParam.value);
+  const to = $derived(toParam.value);
+  const module = $derived(moduleParam.value);
+  // The search box is typed in freely and written to the address after a pause.
+  let searchText = $state(qParam.value);
   $effect(() => {
-    const wanted = router.query.get('module') ?? '';
-    if (wanted !== module) {
-      module = wanted;
-      untrack(refilter);
-    }
+    searchText = qParam.value;
   });
 
   const hasFilters = $derived(!!(search.trim() || action || actor || from || to || module));
@@ -73,35 +80,32 @@
     }
   }
 
+  // The log is read whenever a filter, the page or its size changes, the browser's Back included.
+  $effect(() => {
+    void [page, limit, search, action, actor, from, to, module];
+    untrack(() => void load());
+  });
+
   onMount(() => {
-    load();
     api.auditFilters(guildId).then(f => ((filters = f), (filtersLoaded = true))).catch(() => (filtersLoaded = true));
   });
 
-  function goTo(p: number) {
-    page = p;
-    load();
-  }
+  const goTo = (p: number) => (pageParam.value = p);
   function setLimit(l: number) {
     limit = l;
-    page = 1;
-    load();
+    pageParam.value = 1;
   }
   // Any filter change goes back to the first page.
-  function refilter() {
-    page = 1;
-    load();
-  }
+  const refilter = () => (pageParam.value = 1);
   let typing: ReturnType<typeof setTimeout>;
   function onSearch() {
     clearTimeout(typing);
-    typing = setTimeout(refilter, 300);
+    typing = setTimeout(() => {
+      qParam.value = searchText.trim();
+      refilter();
+    }, 300);
   }
-  function clear() {
-    search = action = actor = from = to = module = '';
-    router.setQuery({ module: null });
-    refilter();
-  }
+  const clear = () => router.setQuery({ q: null, action: null, actor: null, from: null, to: null, module: null, page: null });
 
   const when = (ts: string) =>
     new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -110,24 +114,24 @@
 <PageHeader page="audit" description="Every configuration change made in this server" />
 
 <div class="flex flex-wrap items-center gap-3 mb-5">
-  <Input bind:value={search} icon={Search} type="search" placeholder="Search details or actor" aria-label="Search details or actor" oninput={onSearch} class="w-full sm:w-72" />
+  <Input bind:value={searchText} icon={Search} type="search" placeholder="Search details or actor" aria-label="Search details or actor" oninput={onSearch} class="w-full sm:w-72" />
   {#if filtersLoaded && !moduleCatalog.loading}
     <Select
-      bind:value={module}
-      onchange={() => router.setQuery({ module: module || null })}
+      bind:value={moduleParam.value}
+      onchange={refilter}
       placeholder="All modules"
       label="Module"
       options={moduleCatalog.entries.filter(m => m.installed).map(m => ({ value: m.id, label: m.name }))}
       class="w-44"
     />
-    <Select bind:value={action} onchange={refilter} placeholder="All actions" label="Action" options={filters.actions.map(a => ({ value: a, label: a }))} class="w-44" />
-    <Select bind:value={actor} onchange={refilter} placeholder="All actors" label="Actor" options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))} class="w-44" />
+    <Select bind:value={actionParam.value} onchange={refilter} placeholder="All actions" label="Action" options={filters.actions.map(a => ({ value: a, label: a }))} class="w-44" />
+    <Select bind:value={actorParam.value} onchange={refilter} placeholder="All actors" label="Actor" options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))} class="w-44" />
   {:else}
     <ControlSkeleton class="w-44" />
     <ControlSkeleton class="w-44" />
     <ControlSkeleton class="w-44" />
   {/if}
-  <DateRangePicker bind:from bind:to onchange={refilter} class="w-64" />
+  <DateRangePicker bind:from={fromParam.value} bind:to={toParam.value} onchange={refilter} class="w-64" />
   {#if hasFilters}
     <Button variant="ghost" onclick={clear}><X class="w-3.5 h-3.5" /> Clear</Button>
   {/if}

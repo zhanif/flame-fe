@@ -14,7 +14,7 @@
 </script>
 
 <span
-  class="inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium"
+  class="inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium"
   style="background:{tint(0.12)}; box-shadow: inset 0 0 0 1px {tint(0.35)}; color:{color}"
 >
   <span class="h-2 w-2 shrink-0 rounded-full" style="background:{color}"></span>

@@ -31,6 +31,7 @@ install(
           green: accent('green'),
           blue: accent('blue'),
           lime: accent('lime'),
+          teal: accent('teal'),
           red: accent('red'),
         },
         fontFamily: { display: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },

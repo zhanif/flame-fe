@@ -8,6 +8,19 @@ export interface BotInfo {
   invite_url: string;
 }
 
+/** How the bot looks in one server: its nickname and avatar there, and the ones it has everywhere else. */
+export interface BotProfile {
+  /** Changing the nickname or the avatar is a premium feature. */
+  premium: boolean;
+  /** What members see: the server nickname when set, else the bot's own name. */
+  name: string;
+  nickname: string | null;
+  avatar_url: string;
+  has_guild_avatar: boolean;
+  global_name: string;
+  global_avatar_url: string;
+}
+
 export interface Me {
   user_id: string;
   username: string;
@@ -38,8 +51,22 @@ export interface ModuleEntry {
 
 export type SlashState = 'live' | 'missing' | 'stale';
 
+/** One part of what a slash command takes: a subcommand group, a subcommand, or an option (a parameter). */
+export interface SlashOption {
+  kind: 'group' | 'subcommand' | 'option';
+  name: string;
+  description: string;
+  /** What an option holds (`text`, `number`, `member`...); empty for a group or a subcommand. */
+  type: string;
+  required: boolean;
+  choices: string[];
+  options: SlashOption[];
+}
+
 export interface SlashCommand {
   name: string;
+  description: string;
+  options: SlashOption[];
   /** `slash` is typed as /name, `message` lives in a message's right-click menu. */
   kind: 'slash' | 'message' | 'user';
   module_id: string | null;
@@ -71,6 +98,8 @@ export interface DiscordChannel {
   type: number;
   /** For a thread: the channel it lives in. */
   parent_name: string | null;
+  /** Why the bot cannot manage the channel's permissions (View Channel and Manage Roles in it), or null when it can. */
+  problem?: string | null;
 }
 
 export interface UserProfile {
@@ -116,13 +145,19 @@ export interface QuoteDeleteResult {
 
 export interface QuoteSettings {
   publish_channel_id: string | null;
+  /** What stops quotes from working right now (a missing permission). */
+  warnings: string[];
 }
 
 /** Someone a role rule leaves alone: one user, or everyone who holds one role. */
+export type ExceptionScope = 'all' | 'roles' | 'channels';
+
 export interface RoleExemption {
   target_type: 'user' | 'role';
   target_id: string;
   user?: UserProfile;
+  /** Anti Tamper's global exceptions: what it applies to (protected roles, protected channels, or both). */
+  scope?: ExceptionScope;
 }
 
 export interface BoosterRoleFlags {
@@ -148,10 +183,46 @@ export interface BoosterRules {
 export interface AntiTamperRules {
   warnings: string[];
   report_channel_id: string | null;
-  /** Each protected role with its own (local) exceptions: who may hold only that role. */
-  roles: { role_id: string; problem: string | null; exceptions: RoleExemption[] }[];
-  /** Global exceptions: who may hold every protected role. */
+  /** The server-wide switches: a kind that is off is not enforced at all. */
+  roles_enabled: boolean;
+  channels_enabled: boolean;
+  /** Each protected role with its own (local) exceptions: who may hold only that role. `enabled` off pauses just this one. */
+  roles: { role_id: string; enabled: boolean; problem: string | null; exceptions: RoleExemption[] }[];
+  /** Protected channels (their permissions), each with its own (local) exceptions. */
+  channels: { channel_id: string; enabled: boolean; problem: string | null; overwrites: number; exceptions: RoleExemption[] }[];
+  /** Global exceptions: who is left alone by every protected role and/or channel, as their scope says. */
   exceptions: RoleExemption[];
+}
+
+/** One permission overwrite of a channel: who it is for, and the permissions it allows and denies. */
+export interface OverwriteDetail {
+  id: string;
+  type: 'role' | 'member';
+  name: string | null;
+  color: string | null;
+  allow: string[];
+  deny: string[];
+  user?: UserProfile;
+}
+
+export interface ChannelPermissions {
+  saved: OverwriteDetail[];
+  current: OverwriteDetail[];
+  same: boolean;
+}
+
+export interface AntiTamperLog {
+  id: string;
+  kind: 'role' | 'channel';
+  result: 'reverted' | 'failed' | 'unverified';
+  created_at: string;
+  channel_id: string | null;
+  role_ids: string[];
+  /** The member who held the role (a role log). */
+  member?: UserProfile;
+  /** Who gave the role, or who changed the channel, when known. */
+  by?: UserProfile;
+  reason: string | null;
 }
 
 /** What can be removed: messages with an image, with a video, with any file, or every message. */
@@ -315,6 +386,64 @@ export interface FileSubmissionRow {
   created_at: string;
 }
 
+/** One name and value block of an announcement's embed. */
+export interface AnnouncementField {
+  name: string;
+  value: string;
+  inline: boolean;
+}
+
+export interface AnnouncementFields {
+  /** Plain message text above the embed. */
+  content: string | null;
+  title: string | null;
+  body: string | null;
+  color: string | null;
+  image_url: string | null;
+  thumbnail_url: string | null;
+  footer: string | null;
+  fields: AnnouncementField[];
+  mention_role_ids: string[];
+  mention_everyone: boolean;
+  /** The message text starts on a new line after the mentions. */
+  mention_newline: boolean;
+}
+
+/** What a variable is asked as when its template is sent. */
+export type AnnouncementVariableType = 'text' | 'number' | 'link' | 'user' | 'role' | 'channel';
+
+export interface AnnouncementTemplateEntry extends AnnouncementFields {
+  id: string;
+  name: string;
+  channel_id: string | null;
+  /** The `{names}` asked for when it is sent. */
+  variables: string[];
+  /** The type of each variable, by name. */
+  variable_types: Record<string, AnnouncementVariableType>;
+  /** A line of help under each variable's box, by name. */
+  variable_descriptions: Record<string, string>;
+  /** The faint example inside each variable's box, by name. */
+  variable_placeholders: Record<string, string>;
+}
+
+export interface AnnouncementTemplates {
+  templates: AnnouncementTemplateEntry[];
+  max_templates: number;
+  /** What stops announcements from being sent right now (a missing permission). */
+  warnings: string[];
+}
+
+export interface AnnouncementEntry extends AnnouncementFields {
+  id: string;
+  template_name: string | null;
+  channel_id: string;
+  message_id: string;
+  status: 'sent' | 'deleted';
+  sent_by?: UserProfile;
+  created_at: string;
+  edited_at: string | null;
+}
+
 export interface AuditFilters {
   actions: string[];
   actors: UserProfile[];
@@ -344,7 +473,7 @@ const roleRules = <Rules>(moduleId: string) => {
   const base = (guildId: string) => `/guilds/${guildId}/m/${moduleId}`;
   return {
     rules: (guildId: string) => apiCall<Rules>(`${base(guildId)}/rules`),
-    addException: (guildId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+    addException: (guildId: string, target: Pick<RoleExemption, 'target_type' | 'target_id' | 'scope'>) =>
       apiCall<Rules>(`${base(guildId)}/exceptions`, 'POST', target),
     removeException: (guildId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
       apiCall<Rules>(`${base(guildId)}/exceptions/${target.target_type}/${target.target_id}`, 'DELETE'),
@@ -374,6 +503,8 @@ export const api = {
     apiCall<{ success: boolean }>(`/guilds/${guildId}/slash/commands/${encodeURIComponent(name)}`, 'DELETE'),
 
   settings: (guildId: string) => apiCall<GuildSettings>(`/guilds/${guildId}/settings`),
+  botProfile: (guildId: string) => apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`),
+  updateBotProfile: (guildId: string, patch: { nickname?: string | null; avatar?: string | null }) => apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`, 'PUT', patch),
   updateSettings: (guildId: string, patch: Partial<GuildSettings>) =>
     apiCall<GuildSettings>(`/guilds/${guildId}/settings`, 'PUT', patch),
   roles: (guildId: string) => apiCall<DiscordRole[]>(`/guilds/${guildId}/roles`),
@@ -403,6 +534,23 @@ export const api = {
     setReportChannel: (guildId: string, channelId: string | null) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/report-channel`, 'PUT', { report_channel_id: channelId }),
     addRole: (guildId: string, roleId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}`, 'PUT'),
+    setProtection: (guildId: string, kind: 'roles' | 'channels', enabled: boolean) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/protection/${kind}`, 'PUT', { enabled }),
+    setRoleEnabled: (guildId: string, roleId: string, enabled: boolean) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/enabled`, 'PUT', { enabled }),
+    setChannelEnabled: (guildId: string, channelId: string, enabled: boolean) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/enabled`, 'PUT', { enabled }),
+    addChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}`, 'PUT'),
+    removeChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}`, 'DELETE'),
+    channelPermissions: (guildId: string, channelId: string) => apiCall<ChannelPermissions>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/permissions`),
+    restoreChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/restore`, 'POST'),
+    lockChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/lock`, 'POST'),
+    addChannelException: (guildId: string, channelId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/exceptions`, 'POST', target),
+    removeChannelException: (guildId: string, channelId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/exceptions/${target.target_type}/${target.target_id}`, 'DELETE'),
+    logs: (guildId: string, query: { page: number; limit: number }) =>
+      apiCall<{ logs: AntiTamperLog[]; pagination: Pagination }>(`/guilds/${guildId}/m/anti-tamper/logs?page=${query.page}&limit=${query.limit}`),
     addRoleException: (guildId: string, roleId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/exceptions`, 'POST', target),
     removeRoleException: (guildId: string, roleId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
@@ -447,6 +595,17 @@ export const api = {
     approve: (guildId: string, id: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/approve`, 'POST'),
     reject: (guildId: string, id: string, reason: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/reject`, 'POST', { reason }),
     upvotes: (guildId: string, id: string, upvotes: number) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/upvotes`, 'POST', { upvotes }),
+  },
+  announcements: {
+    templates: (guildId: string) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates`),
+    createTemplate: (guildId: string, body: Record<string, unknown>) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates`, 'POST', body),
+    updateTemplate: (guildId: string, id: string, body: Record<string, unknown>) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates/${id}`, 'PUT', body),
+    removeTemplate: (guildId: string, id: string) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates/${id}`, 'DELETE'),
+    list: (guildId: string, query: { page: number; limit: number }) =>
+      apiCall<{ announcements: AnnouncementEntry[]; pagination: Pagination }>(`/guilds/${guildId}/m/announcements/announcements?page=${query.page}&limit=${query.limit}`),
+    send: (guildId: string, body: Record<string, unknown>) => apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements`, 'POST', body),
+    edit: (guildId: string, id: string, body: Record<string, unknown>) => apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements/${id}`, 'PUT', body),
+    remove: (guildId: string, id: string) => apiCall<{ success: boolean }>(`/guilds/${guildId}/m/announcements/announcements/${id}`, 'DELETE'),
   },
   roleColors: {
     list: (guildId: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors`),

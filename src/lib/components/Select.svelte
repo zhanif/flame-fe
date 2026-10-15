@@ -14,6 +14,7 @@
     label,
     disabled = false,
     onchange,
+    defaulted = false,
     class: className = '',
   }: {
     value?: string;
@@ -22,6 +23,8 @@
     label: string;
     disabled?: boolean;
     onchange?: () => void;
+    /** The empty choice is a real default ("Text"), not an absent one: it is shown like any chosen value. */
+    defaulted?: boolean;
     class?: string;
   } = $props();
 
@@ -44,7 +47,7 @@
     title={label}
     class="{control} h-9 px-3 text-sm flex items-center justify-between gap-2 cursor-pointer data-[disabled]:opacity-50 {className}"
   >
-    <span class="truncate {value ? 'text-zinc-100' : 'text-zinc-400'}">{shown}</span>
+    <span class="truncate {value || defaulted ? 'text-zinc-100' : 'text-zinc-400'}">{shown}</span>
     <ChevronDown class="w-4 h-4 shrink-0 text-zinc-500" />
   </Select.Trigger>
 

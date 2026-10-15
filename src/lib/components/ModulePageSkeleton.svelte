@@ -12,10 +12,11 @@
   const TABS: Record<string, number[]> = {
     quotes: [28, 28],
     booster: [28, 36, 36],
-    'anti-tamper': [28, 36, 36],
+    'anti-tamper': [32, 44, 24, 28],
     autoremover: [28, 28],
     'ocr-detection': [36, 32],
     'role-colors': [],
+    announcements: [28, 32, 28],
   };
 
   // The number of panels the last visit had, so a reload shows as many.

@@ -4,6 +4,7 @@
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
   import ModulePageSkeleton from '$lib/components/ModulePageSkeleton.svelte';
   import PageHeaderSkeleton from '$lib/components/PageHeaderSkeleton.svelte';
+  import { api } from '$lib/api/endpoints';
   import { bot } from '$lib/stores/bot.svelte';
   import { type GuildPage, router } from '$lib/stores/router.svelte';
   import { session } from '$lib/stores/session.svelte';
@@ -39,6 +40,17 @@
   // The sidebar and the Dashboard share one catalog, loaded when a server with the bot is open.
   $effect(() => {
     if (available) untrack(() => moduleCatalog.load(guildId).catch(() => {}));
+  });
+
+  // Inside a server the bot may have its own nickname and avatar: they replace the global ones while it is open.
+  // The last known look is set before the page paints, then the live one replaces it.
+  $effect.pre(() => {
+    bot.enterGuild(guildId);
+    return () => bot.leaveGuild();
+  });
+  $effect(() => {
+    const id = guildId;
+    if (available) api.botProfile(id).then(profile => bot.useGuild(id, { name: profile.name, avatar_url: profile.avatar_url })).catch(() => {});
   });
 
   const moduleId = $derived(router.moduleId);

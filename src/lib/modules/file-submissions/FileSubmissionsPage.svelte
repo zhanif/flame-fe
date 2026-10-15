@@ -3,6 +3,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import ChipPicker from '$lib/components/ChipPicker.svelte';
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -452,7 +453,7 @@
           </div>
           <div class="mt-5 flex justify-end gap-2">
             <Button variant="ghost" onclick={() => (panel = false)}>Cancel</Button>
-            <Button variant="primary" onclick={save} disabled={saving || !name.trim() || !commandName || !kinds.length}>{saving ? 'Saving…' : 'Save'}</Button>
+            <SaveButton onclick={save} disabled={!name.trim() || !commandName || !kinds.length} {saving} />
           </div>
 {/snippet}
 

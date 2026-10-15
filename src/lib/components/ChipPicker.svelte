@@ -13,6 +13,12 @@
     icon?: Component<any>;
     /** Dimmed text beside the name in the list, e.g. "thread in #general". */
     hint?: string;
+    /** Listed in its own color but locked and not pickable; `hint` says why (a role the bot cannot manage). */
+    disabled?: boolean;
+    /** The full explanation, as a tooltip, when `hint` is the short form. */
+    tooltip?: string;
+    /** A small icon after a disabled item's name (a lock, a link) saying why it is out of reach. */
+    badge?: Component<any>;
   }
 
   // Several choices at once, as chips in a box you can type in, with a search list under it. The one
@@ -73,7 +79,8 @@
   function onKey(e: KeyboardEvent) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (matches[0]) add(matches[0].id);
+      const first = matches.find(i => !i.disabled);
+      if (first) add(first.id);
     } else if (e.key === 'Backspace' && query === '' && selectedItems.length) {
       remove(selectedItems[selectedItems.length - 1].id);
     } else if (e.key === 'Escape') {
@@ -82,7 +89,7 @@
   }
 </script>
 
-<svelte:window onclick={(e) => container && !container.contains(e.target as Node) && (open = false)} />
+<svelte:window onpointerdown={(e) => container && !container.contains(e.target as Node) && (open = false)} />
 
 <div bind:this={container} class="relative">
   <div
@@ -93,13 +100,13 @@
   >
     {#each lockedItems as item (item.id)}
       {@const c = tint(item)}
-      <span class="inline-flex items-center gap-1 pl-2 pr-2 py-0.5 rounded-md text-xs font-medium" style="background:{c.bg};color:{c.text}" title={lockedHint}>
+      <span class="inline-flex items-center gap-1 pl-2 pr-2 py-1 rounded-md text-xs font-medium" style="background:{c.bg};color:{c.text}" title={lockedHint}>
         <Lock class="w-3 h-3 opacity-70" />{item.name}
       </span>
     {/each}
     {#each selectedItems as item (item.id)}
       {@const c = tint(item)}
-      <span class="inline-flex items-center gap-1 max-w-full pl-2 pr-1 py-0.5 rounded-md text-xs font-medium" style="background:{c.bg};color:{c.text}">
+      <span class="inline-flex items-center gap-1 max-w-full pl-2 pr-1 py-1 rounded-md text-xs font-medium" style="background:{c.bg};color:{c.text}">
         {#if item.icon}<item.icon class="w-3 h-3 shrink-0 opacity-70" />{/if}<span class="truncate">{item.name}</span>
         <button type="button" class="p-0.5 rounded hover:bg-black/20 cursor-pointer" onclick={() => remove(item.id)} aria-label="Remove {item.name}">
           <X class="w-3 h-3" />
@@ -126,13 +133,21 @@
     <div class="absolute top-full left-0 right-0 mt-1 z-40 max-h-56 overflow-y-auto rounded-lg bg-zinc-800 border border-zinc-700/60 shadow-lg shadow-black/30">
       {#each matches as item (item.id)}
         {@const c = tint(item)}
-        <button type="button" class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-700/50 cursor-pointer" onclick={() => add(item.id)}>
+        <button
+          type="button"
+          disabled={item.disabled}
+          aria-disabled={item.disabled}
+          title={item.tooltip}
+          class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm {item.disabled ? 'cursor-not-allowed opacity-60' : 'text-zinc-200 hover:bg-zinc-700/50 cursor-pointer'}"
+          onclick={() => add(item.id)}
+        >
           {#if item.color}
             <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:{c.text}"></span>
           {:else if item.icon}
             <item.icon class="w-3.5 h-3.5 shrink-0 text-zinc-500" />
           {/if}
-          <span class="truncate">{item.name}</span>
+          <span class="truncate" style={item.disabled ? `color:${c.text}` : undefined}>{item.name}</span>
+          {#if item.disabled && item.badge}<item.badge class="w-3 h-3 shrink-0 text-zinc-500" />{/if}
           {#if item.hint}<span class="ml-1 text-xs text-zinc-500 truncate">{item.hint}</span>{/if}
         </button>
       {:else}

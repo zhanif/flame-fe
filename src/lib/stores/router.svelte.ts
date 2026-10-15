@@ -59,6 +59,8 @@ export const router = {
     const path = window.location.hash.replace(/^#/, '').split('?')[0];
     const search = next.toString();
     window.location.hash = `#${path}${search ? `?${search}` : ''}`;
+    // The address changed, but `hashchange` arrives a moment later: read it now, so what follows sees the new state.
+    _route = parse();
   },
   home() {
     window.location.hash = '#/';

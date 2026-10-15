@@ -1,7 +1,7 @@
 import type { GuildPage } from '$lib/stores/router.svelte';
 import type { Tone } from '$lib/ui';
 import type { ModuleSection } from '$lib/api/endpoints';
-import { Images, LayoutDashboard, Palette, Quote, Rocket, ScanText, ScrollText, Settings, ShieldAlert, Terminal, Timer } from '@lucide/svelte';
+import { Images, LayoutDashboard, Megaphone, Palette, Quote, Rocket, ScanText, ScrollText, Settings, ShieldAlert, Terminal, Timer } from '@lucide/svelte';
 import { type Component, getContext, setContext } from 'svelte';
 
 export interface PageMeta {
@@ -28,6 +28,7 @@ export const MODULE_PAGES: Record<string, PageMeta> = {
   autoremover: { label: 'Autoremover', icon: Timer, tone: 'green', adminOnly: false },
   'ocr-detection': { label: 'OCR Detection', icon: ScanText, tone: 'blue', adminOnly: false },
   'file-submissions': { label: 'File Submissions', icon: Images, tone: 'amber', adminOnly: false },
+  announcements: { label: 'Announcements', icon: Megaphone, tone: 'teal', adminOnly: false },
   'role-colors': { label: 'Role Colors', icon: Palette, tone: 'lime', adminOnly: false },
 };
 

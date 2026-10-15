@@ -2,7 +2,9 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
+  import ChannelChip from '$lib/components/ChannelChip.svelte';
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
   import SettingRow from '$lib/components/SettingRow.svelte';
@@ -22,9 +24,10 @@
   import { onlyDecimal, restrictTo } from '$lib/number-input';
   import { formatTerms, parseTerms, termsProblem } from './blocklist-text';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
   import { Info, ListX, RotateCcw, ScanText, Settings } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -57,7 +60,13 @@
       ],
     },
   };
-  let tab = $state('detections');
+  // Where the person is lives in the address: the tab, the page and the status filter.
+  const tabParam = urlParam('tab', 'detections');
+  const tab = $derived(tabParam.value);
+  const pageParam = urlNumber('page');
+  const page = $derived(pageParam.value);
+  const statusParam = urlParam('status');
+  const statusFilter = $derived(statusParam.value);
   const hint = $derived(HINTS[tab] ?? HINTS.detections);
   let config: OcrDetectionConfig | null = $state(null);
   let channels: DiscordChannel[] = $state([]);
@@ -71,12 +80,10 @@
 
   let items: OcrDetectionItem[] = $state([]);
   let pending = $state(0);
-  let page = $state(1);
   let limit = $state(10);
   let total = $state(0);
   let loaded = $state(false);
   let loading = $state(false);
-  let statusFilter = $state('');
 
   let terms: OcrTerms | null = $state(null);
   // The blocklist as a text box, one term per line, until Save.
@@ -87,7 +94,7 @@
 
   const cell = td.replace('h-11', 'h-14');
   const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  const where = (id: string) => channels.find(c => c.id === id)?.name ?? id;
+  const channelOf = (id: string) => channels.find(c => c.id === id);
 
   const MAX_TERMS = 1000;
   const termsDirty = $derived(termsText.trim() !== savedText.trim());
@@ -190,22 +197,19 @@
     }
   }
 
-  const goTo = (p: number) => {
-    page = p;
-    void loadDetections();
-  };
-  const refilter = () => {
-    page = 1;
-    void loadDetections();
-  };
+  // The detections are read whenever the page, its size or the status filter changes, the browser's Back included.
+  $effect(() => {
+    void [page, limit, statusFilter];
+    untrack(() => void loadDetections());
+  });
+  const goTo = (p: number) => (pageParam.value = p);
+  const refilter = () => (pageParam.value = 1);
   const setLimit = (l: number) => {
     limit = l;
-    page = 1;
-    void loadDetections();
+    pageParam.value = 1;
   };
 
   onMount(async () => {
-    void loadDetections();
     const [loadedConfig, channelList, termList] = await Promise.allSettled([api.ocrDetection.config(guildId), api.channels(guildId), api.ocrDetection.terms(guildId)]);
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (termList.status === 'fulfilled') showTerms(termList.value);
@@ -223,7 +227,7 @@
 <div class="space-y-5">
   <div class="flex items-center justify-between gap-3 flex-wrap">
     <Tabs
-      bind:value={tab}
+      bind:value={tabParam.value}
       tabs={[
         { id: 'detections', label: 'Detections', icon: ScanText, count: loaded ? total : null },
         { id: 'terms', label: 'Blocklist', icon: ListX, count: terms ? parseTerms(savedText).length : null },
@@ -284,7 +288,7 @@
 
         {#if isAdmin}
           <div class="flex justify-end pt-5">
-            <Button variant="primary" onclick={save} disabled={!dirty || !!thresholdError || saving}>{saving ? 'Saving…' : 'Save'}</Button>
+            <SaveButton onclick={save} disabled={!dirty || !!thresholdError} {saving} />
           </div>
         {/if}
       {/if}
@@ -309,7 +313,7 @@
               <Button variant="secondary" onclick={restoreDefaults} disabled={termsDirty || restoring} title={termsDirty ? 'Save or discard your changes first' : 'Add back the default terms that were removed'}>
                 <RotateCcw class="w-3.5 h-3.5" />Restore defaults
               </Button>
-              <Button variant="primary" onclick={saveTerms} disabled={!termsDirty || !!termsError || savingTerms}>{savingTerms ? 'Saving…' : 'Save'}</Button>
+              <SaveButton onclick={saveTerms} disabled={!termsDirty || !!termsError} saving={savingTerms} />
             </div>
           {/if}
         </div>
@@ -320,7 +324,7 @@
   {:else}
     <div class="flex flex-wrap items-center justify-between gap-3">
       <Select
-        bind:value={statusFilter}
+        bind:value={statusParam.value}
         onchange={refilter}
         placeholder="All except safe"
         label="Status"
@@ -367,7 +371,7 @@
                 <td class={cell}>{#if item.author}<ActorCell actor={item.author} />{/if}</td>
                 <td class="{cell} text-zinc-200">
                   <p class="truncate">{item.attachment_name}</p>
-                  <p class="text-xs text-zinc-500">#{where(item.channel_id)}</p>
+                  <div class="mt-1"><ChannelChip channel={channelOf(item.channel_id)} /></div>
                 </td>
                 <td class={cell}>
                   <div class="flex flex-wrap gap-1">

@@ -11,9 +11,10 @@
   import { api, type ModuleEntry } from '$lib/api/endpoints';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlParam } from '$lib/url-param';
   import { MODULE_PAGES } from '$lib/nav';
   import { toneFor, toneText } from '$lib/ui';
-  import { ArrowUpRight, Blocks, ChevronDown, CornerDownRight, Package, ScrollText, Search, Terminal, Trash2 } from '@lucide/svelte';
+  import { ArrowUpRight, Blocks, ChevronDown, MessageSquare, Package, ScrollText, Search, Terminal, Trash2 } from '@lucide/svelte';
   import { slide } from 'svelte/transition';
 
   let {
@@ -29,7 +30,18 @@
   let disableTarget = $state<ModuleEntry | null>(null);
   // The commands of a module are behind a disclosure: only the ones a person opens are shown.
   let showCommands = $state<Record<string, boolean>>({});
-  let query = $state('');
+  // The search lives in the address (`?q=`), like the rest of where a page is inside itself.
+  const queryParam = urlParam('q');
+  const query = $derived(queryParam.value);
+  let queryText = $state(queryParam.value);
+  $effect(() => {
+    queryText = queryParam.value;
+  });
+  let typing: ReturnType<typeof setTimeout>;
+  const onSearch = () => {
+    clearTimeout(typing);
+    typing = setTimeout(() => (queryParam.value = queryText.trim()), 250);
+  };
 
   // The module's own color (its page color when it has one), the same everywhere it shows.
   const toneOf = (id: string) => MODULE_PAGES[id]?.tone ?? toneFor(id);
@@ -102,7 +114,7 @@
 <section>
   <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
     <SectionTitle icon={Package} tone="orange" title="Modules" />
-    <Input bind:value={query} icon={Search} type="search" placeholder="Search modules…" disabled={loading} class="w-full sm:w-64" />
+    <Input bind:value={queryText} icon={Search} type="search" placeholder="Search modules…" oninput={onSearch} disabled={loading} class="w-full sm:w-64" />
   </div>
 
   {#if loading}
@@ -168,7 +180,7 @@
                 {#each m.commands as command (command.name)}
                   <span class="inline-flex items-center gap-1 rounded-md bg-zinc-800/60 px-1.5 py-0.5 font-mono text-xs text-zinc-300">
                     <!-- A slash command is typed as /name; a message command lives in the right-click menu, so it gets an arrow instead. -->
-                    {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<CornerDownRight class="h-3 w-3 {toneText[toneOf(m.id)]}" />{/if}{command.name}
+                    {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<MessageSquare class="h-3 w-3 {toneText[toneOf(m.id)]}" aria-label="Message menu command" />{/if}{command.name}
                   </span>
                 {/each}
               </div>

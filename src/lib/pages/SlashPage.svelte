@@ -10,14 +10,17 @@
   import Select from '$lib/components/Select.svelte';
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
-  import { api, type SlashCommand } from '$lib/api/endpoints';
+  import { api, type SlashCommand, type SlashOption } from '$lib/api/endpoints';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlNumber, urlParam } from '$lib/url-param';
   import { pageTone } from '$lib/nav';
   import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { td, th, toneText } from '$lib/ui';
-  import { CornerDownRight, RefreshCw, Trash2 } from '@lucide/svelte';
+  import { ChevronDown, ChevronRight, MessageSquare, RefreshCw, Trash2 } from '@lucide/svelte';
   import { onMount } from 'svelte';
+  import { slide } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   let { guildId }: { guildId: string } = $props();
 
@@ -31,13 +34,31 @@
   let removeAsk = $state<SlashCommand | null>(null);
   let pruneAsk = $state<SlashCommand[]>([]);
   let pruning = $state(false);
-  let page = $state(1);
   let limit = $state(10);
-  // Which module's commands to show lives in the URL (`?module=booster`), so a link from the Modules cards opens it.
-  let moduleFilter = $state(router.query.get('module') ?? '');
-  $effect(() => {
-    moduleFilter = router.query.get('module') ?? '';
-  });
+  // Which module's commands to show, and the page, live in the address, so a link from the Modules cards opens it.
+  const moduleParam = urlParam('module');
+  const moduleFilter = $derived(moduleParam.value);
+  const pageParam = urlNumber('page');
+  // The command whose details are open lives in the address too (`?open=<name>`).
+  const openParam = urlParam('open');
+  const openName = $derived(openParam.value);
+  const toggleOpen = (name: string) => (openParam.value = openName === name ? '' : name);
+  interface Usage {
+    group: string | null;
+    /** The subcommand, or null when the command takes its options directly. */
+    name: string | null;
+    description: string;
+    params: SlashOption[];
+  }
+  // Every way of calling a command: each subcommand (under its group, if any), or the command itself when it takes options directly.
+  function usagesOf(c: SlashCommand): Usage[] {
+    const walk = (options: SlashOption[], group: string | null): Usage[] =>
+      options.flatMap(option =>
+        option.kind === 'option' ? [] : option.kind === 'subcommand' ? [{ group, name: option.name, description: option.description, params: option.options }] : walk(option.options, option.name),
+      );
+    return c.options.some(option => option.kind !== 'option') ? walk(c.options, null) : c.options.length ? [{ group: null, name: null, description: '', params: c.options }] : [];
+  }
+  const page = $derived(pageParam.value);
 
   // A command no installed module owns has no module to filter by.
   const NO_MODULE = '__none__';
@@ -60,7 +81,7 @@
     loading = true;
     try {
       commands = (await api.slash(guildId)).commands;
-      page = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
+      pageParam.value = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
       loaded = true;
     } catch (e: any) {
       toast('error', e.message);
@@ -106,7 +127,7 @@
         commands = c.module_id
           ? commands.map(x => (x.name === c.name ? { ...x, state: 'missing' } : x))
           : commands.filter(x => x.name !== c.name);
-        page = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
+        pageParam.value = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
         toast('success', `${label(c)} removed`, c.module_id ? 'Register it again any time.' : 'It is gone from Discord.');
       }
     } catch (e: any) {
@@ -122,11 +143,8 @@
 <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
   {#if loaded}
     <Select
-      bind:value={moduleFilter}
-      onchange={() => {
-        page = 1;
-        router.setQuery({ module: moduleFilter || null });
-      }}
+      bind:value={moduleParam.value}
+      onchange={() => (pageParam.value = 1)}
       options={moduleOptions}
       placeholder="All modules"
       label="Module"
@@ -140,15 +158,66 @@
   </Button>
 </div>
 
+<!-- What a command does and how to type it: one block per way of calling it (a subcommand, or the command itself), with its parameters. -->
+{#snippet details(c: SlashCommand)}
+  <div class="border-t border-zinc-800/40 bg-zinc-800/10 px-5 py-4" transition:slide={{ duration: 220, easing: cubicOut }}>
+    {#if c.description}<p class="text-xs text-zinc-300">{c.description}</p>{/if}
+    {#if c.kind === 'message'}
+      <p class="{c.description ? 'mt-1.5' : ''} text-xs text-zinc-500">Right-click a message, then Apps, then {c.name}. It takes no options: it works on the message you pick.</p>
+    {:else}
+      {@const usages = usagesOf(c)}
+      <div class="{c.description ? 'mt-3' : ''} grid gap-3">
+        {#each usages as usage, i (i)}
+          <div class="rounded-xl bg-zinc-800/40 p-3.5 ring-1 ring-zinc-800/60">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              {#if usage.group}
+                <Badge tone="accent">Group</Badge>
+                <span class="font-mono text-xs text-zinc-100">{usage.group}</span>
+                <ChevronRight class="h-3 w-3 text-zinc-600" />
+              {/if}
+              {#if usage.name}
+                <Badge tone="info">Subcommand</Badge>
+                <span class="font-mono text-xs font-semibold text-zinc-100">{usage.name}</span>
+              {:else}
+                <Badge tone="neutral">Options</Badge>
+              {/if}
+            </div>
+            {#if usage.description}<p class="mt-1.5 text-xs text-zinc-400">{usage.description}</p>{/if}
+
+            {#if usage.params.length}
+              <div class="mt-3 grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-t border-zinc-800/60 pt-3 text-xs">
+                {#each usage.params as param (param.name)}
+                  <span class="font-mono font-medium {toneText[tone()]}">{param.name}</span>
+                  <span class="flex items-center gap-1.5">
+                    <span class="rounded-md bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-300">{param.type}</span>
+                    <span class="text-[11px] {param.required ? 'text-orange-400' : 'text-zinc-500'}">{param.required ? 'required' : 'optional'}</span>
+                  </span>
+                  <span class="text-zinc-400">
+                    {param.description}
+                    {#each param.choices as choice (choice)}<span class="ml-1 rounded-md bg-zinc-800/70 px-1.5 py-0.5 text-[11px] text-zinc-400">{choice}</span>{/each}
+                  </span>
+                {/each}
+              </div>
+            {:else if usage.name}
+              <p class="mt-2 text-xs text-zinc-600">No options.</p>
+            {/if}
+          </div>
+        {/each}
+      </div>
+      {#if !usages.length}<p class="{c.description ? 'mt-1.5' : ''} text-xs text-zinc-500">It takes no subcommands or options.</p>{/if}
+    {/if}
+  </div>
+{/snippet}
+
 {#if loaded && commands.length === 0}
   <EmptyState kind="commands" title="No commands yet" description="Install a module from the Dashboard to get slash commands." />
 {:else}
 <Card flush>
   {#if !loaded}
     <TableSkeleton
-            columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28']}
-            headings={['#', 'Command', 'Module', 'State', 'Live']}
-            kinds={['bar', 'bar', 'bar', 'pill', 'bar']}
+            columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28', 'w-12']}
+            headings={['#', 'Command', 'Module', 'State', 'Live', '']}
+            kinds={['bar', 'bar', 'bar', 'pill', 'bar', 'bar']}
             rows={3}
             rowHeight="h-11"
     />
@@ -161,14 +230,19 @@
           <th class="{th} w-40">Module</th>
           <th class="{th} w-36">State</th>
           <th class="{th} w-28 text-right">Live</th>
+          <th class="{th} w-12" aria-label="Details"></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-zinc-800/30">
         {#each visible as c, i (c.name)}
-          <tr class="hover:bg-zinc-800/30 transition-colors">
+          {@const hasDetails = c.kind !== 'user' && c.state !== 'stale'}
+          <tr
+            class="transition-colors hover:bg-zinc-800/30 {hasDetails ? 'cursor-pointer' : ''}"
+            onclick={e => hasDetails && !(e.target as HTMLElement).closest('button') && toggleOpen(c.name)}
+          >
             <td class="{td} text-zinc-600">{(page - 1) * limit + i + 1}</td>
             <td class="{td} font-mono text-zinc-100">
-              {#if c.kind === 'slash'}<span class={toneText[tone()]}>/</span>{c.name}{:else}<span class="flex items-center gap-2"><CornerDownRight class="w-3.5 h-3.5 {toneText[tone()]}" />{c.name}<Badge tone="neutral">Message menu</Badge></span>{/if}
+              {#if c.kind === 'slash'}<span class={toneText[tone()]}>/</span>{c.name}{:else}<span class="flex items-center gap-2"><MessageSquare class="w-3.5 h-3.5 {toneText[tone()]}" aria-label="Message menu command" />{c.name}</span>{/if}
             </td>
             <td class="{td} text-zinc-400">{c.module_id ? moduleName(c.module_id) : '-'}</td>
             <td class={td}><Badge tone={TONE[c.state]}>{LABEL[c.state]}</Badge></td>
@@ -184,14 +258,32 @@
                 />
               </div>
             </td>
+            <td class="{td} w-12 text-right">
+              {#if hasDetails}
+                <button
+                  type="button"
+                  onclick={() => toggleOpen(c.name)}
+                  aria-expanded={openName === c.name}
+                  aria-label="Details of /{c.name}"
+                  class="cursor-pointer rounded-md p-1 text-zinc-500 outline-none transition hover:text-zinc-200 focus-visible:ring-2 focus-visible:ring-orange-500/50"
+                >
+                  <ChevronDown class="h-4 w-4 transition {openName === c.name ? 'rotate-180' : ''}" />
+                </button>
+              {/if}
+            </td>
           </tr>
+          {#if openName === c.name && hasDetails}
+            <tr>
+              <td colspan="6" class="p-0">{@render details(c)}</td>
+            </tr>
+          {/if}
         {/each}
       </tbody>
     </table>
     {#if filtered.length === 0}
       <p class="px-5 py-8 text-center text-xs text-zinc-500">No command belongs to this module.</p>
     {/if}
-    <Pagination {page} {limit} total={filtered.length} onPage={p => (page = p)} onLimit={l => ((limit = l), (page = 1))} />
+    <Pagination {page} {limit} total={filtered.length} onPage={p => (pageParam.value = p)} onLimit={l => ((limit = l), (pageParam.value = 1))} />
   {/if}
 </Card>
 {/if}

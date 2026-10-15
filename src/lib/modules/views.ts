@@ -1,3 +1,4 @@
+import AnnouncementsPage from '$lib/modules/announcements/AnnouncementsPage.svelte';
 import AntiTamperPage from '$lib/modules/anti-tamper/AntiTamperPage.svelte';
 import AutoremoverPage from '$lib/modules/autoremover/AutoremoverPage.svelte';
 import BoosterPage from '$lib/modules/booster/BoosterPage.svelte';
@@ -16,5 +17,6 @@ export const MODULE_VIEWS: Record<string, Component<{ guildId: string; isAdmin: 
   autoremover: AutoremoverPage,
   'ocr-detection': OcrDetectionPage,
   'role-colors': RoleColorsPage,
+  announcements: AnnouncementsPage,
   'file-submissions': FileSubmissionsPage,
 };

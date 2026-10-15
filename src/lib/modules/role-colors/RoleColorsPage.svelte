@@ -3,6 +3,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ChatPreview from '$lib/components/ChatPreview.svelte';
   import ColorChips from '$lib/components/ColorChips.svelte';
@@ -22,9 +23,10 @@
   import { onlyCommandName, restrictTo } from '$lib/number-input';
   import { session } from '$lib/stores/session.svelte';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlParam } from '$lib/url-param';
   import { caps, label, td, th, toneText } from '$lib/ui';
-  import { Paintbrush, Pencil, Plus, ScrollText, Trash2, Undo2 } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { Check, Eraser, Paintbrush, Pencil, Plus, ScrollText, Trash2, Undo2 } from '@lucide/svelte';
+  import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
 
@@ -35,6 +37,13 @@
 
   // The form, for a new color or for the one being edited.
   let panel = $state(false);
+  // Which color is open and what for (`?open=<color>&mode=apply`) lives in the address, so a link opens it.
+  const openParam = urlParam('open');
+  const modeParam = urlParam('mode', 'edit');
+  const closePanel = () => {
+    panel = false;
+    openParam.value = '';
+  };
   // What the open accordion is for: the data of the color, or setting the colors of its role.
   let mode: 'edit' | 'apply' | 'history' = $state('edit');
   let hex: string[] = $state([]);
@@ -79,6 +88,8 @@
     extraColors = color && color.max_colors > 1 ? String(color.max_colors) : '';
     description = color?.description ?? '';
     panel = true;
+    openParam.value = color?.id ?? '';
+    modeParam.value = 'edit';
   }
 
   async function save() {
@@ -88,7 +99,7 @@
     try {
       data = editing ? await api.roleColors.update(guildId, editing.id, input) : await api.roleColors.create(guildId, input);
       toast('success', editing ? 'Color saved' : 'Color added', `Switch on /${commandName} from the Slash page so its holders can use it.`);
-      panel = false;
+      closePanel();
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -122,6 +133,8 @@
     colorPage = 1;
     colorLoaded = false;
     panel = true;
+    openParam.value = color.id;
+    modeParam.value = 'history';
     void loadColorChanges();
   }
 
@@ -130,7 +143,27 @@
     editing = color;
     hex = Array.from({ length: color.max_colors }, (_, i) => color.current[i] ?? '');
     panel = true;
+    openParam.value = color.id;
+    modeParam.value = 'apply';
   }
+
+  // The address decides what is open: a link, a reload or the browser's Back opens or closes it.
+  $effect(() => {
+    const id = openParam.value;
+    const wanted = modeParam.value;
+    const current: RoleColors | null = data;
+    untrack(() => {
+      if (!id) {
+        if (panel && editing) panel = false;
+        return;
+      }
+      const color = current?.colors.find(c => c.id === id);
+      if (!color || (panel && editing?.id === id && mode === wanted)) return;
+      if (wanted === 'history') openHistory(color);
+      else if (wanted === 'apply') openApply(color);
+      else openPanel(color);
+    });
+  });
 
   const FULL_HEX = /^#[0-9A-F]{6}$/;
   // What the Apply form would set: the filled boxes, in order. `valid` is false while one is half typed.
@@ -145,13 +178,16 @@
     return applyPlan.colors.length > 1 && !!current && !current.enhanced;
   });
 
+  // Clear only empties the preview; the role keeps its colors until Apply is pressed.
+  const clearPreview = () => (hex = hex.map(() => ''));
+
   async function apply(colors: string[]) {
     if (!editing || applying) return;
     applying = true;
     try {
       data = await api.roleColors.apply(guildId, editing.id, colors);
       toast('success', colors.length ? 'Colors applied' : 'Colors cleared', `The role now ${colors.length ? 'has the new colors' : 'has no color'}.`);
-      panel = false;
+      closePanel();
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -175,16 +211,16 @@
 
   // What the three-dot menu of a color offers: the history for everyone, the rest for admins.
   const colorActions = (color: RoleColorEntry): RowMenuItem[] => [
-    { label: 'History', icon: ScrollText, onclick: () => (panel && editing?.id === color.id && mode === 'history' ? (panel = false) : openHistory(color)) },
+    { label: 'History', icon: ScrollText, onclick: () => (panel && editing?.id === color.id && mode === 'history' ? (closePanel()) : openHistory(color)) },
     ...(isAdmin
       ? [
-          { label: 'Edit', icon: Pencil, onclick: () => (panel && editing?.id === color.id && mode === 'edit' ? (panel = false) : openPanel(color)) },
+          { label: 'Edit', icon: Pencil, onclick: () => (panel && editing?.id === color.id && mode === 'edit' ? (closePanel()) : openPanel(color)) },
           {
             label: 'Apply colors',
             icon: Paintbrush,
             disabled: !!color.problem,
             hint: color.problem ?? undefined,
-            onclick: () => (panel && editing?.id === color.id && mode === 'apply' ? (panel = false) : openApply(color)),
+            onclick: () => (panel && editing?.id === color.id && mode === 'apply' ? (closePanel()) : openApply(color)),
           },
           { label: 'Remove', icon: Trash2, danger: true, onclick: () => (removeTarget = color) },
         ]
@@ -290,8 +326,8 @@
             </div>
           </div>
           <div class="mt-5 flex justify-end gap-2">
-            <Button variant="ghost" onclick={() => (panel = false)}>Cancel</Button>
-            <Button variant="primary" onclick={save} disabled={saving || !name.trim() || !commandName || !roleId}>{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="ghost" onclick={() => (closePanel())}>Cancel</Button>
+            <SaveButton onclick={save} disabled={!name.trim() || !commandName || !roleId} {saving} />
           </div>
 {/snippet}
 
@@ -300,7 +336,7 @@
 <div class="space-y-5">
   {#if isAdmin}
     <div class="flex justify-end">
-      <Button variant="primary" onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add color</Button>
+      <Button variant="primary" onclick={() => (panel && !editing ? (closePanel()) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add color</Button>
     </div>
   {/if}
 
@@ -410,12 +446,27 @@
                             {/if}
                           </div>
                         </div>
-                        <div class="mt-4 flex items-center justify-between gap-2 border-t border-zinc-800/60 pt-4">
-                          <Button variant="ghost" disabled={applying || editing.current.length === 0} onclick={() => (clearAsk = true)}>Clear the colors</Button>
-                          <div class="flex gap-2">
-                            <Button variant="ghost" onclick={() => (panel = false)}>Cancel</Button>
-                            <Button variant="primary" onclick={() => apply(applyPlan.colors)} disabled={applying || !applyPlan.colors.length || !applyPlan.valid || needsEnhanced || sameAsNow}>
-                              {applying ? 'Applying…' : 'Apply'}
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800/60 pt-4">
+                          <div class="inline-flex items-center gap-1 rounded-xl bg-zinc-800/60 p-1 ring-1 ring-zinc-700/50">
+                            <Button variant="ghost" disabled={applying || hex.every(h => h === '')} onclick={clearPreview} title="Empty the preview. Nothing changes until you press Apply">
+                              <Eraser class="h-3.5 w-3.5" />Clear
+                            </Button>
+                            {#if !sameAsNow}
+                              <span transition:slide={{ axis: 'x', duration: 160 }}>
+                                <Button variant="ghost" disabled={applying} onclick={() => openApply(color)} title="Put back the colors the role has now">
+                                  <Undo2 class="h-3.5 w-3.5" />Revert changes
+                                </Button>
+                              </span>
+                            {/if}
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <Button variant="ghost" onclick={() => (closePanel())}>Cancel</Button>
+                            <Button
+                              variant="primary"
+                              onclick={() => (applyPlan.colors.length ? apply(applyPlan.colors) : (clearAsk = true))}
+                              disabled={applying || !applyPlan.valid || needsEnhanced || sameAsNow}
+                            >
+                              <Check class="h-3.5 w-3.5" />{applying ? 'Applying…' : applyPlan.colors.length ? 'Apply' : 'Apply no color'}
                             </Button>
                           </div>
                         </div>
@@ -480,13 +531,13 @@
 
 <ConfirmModal
   show={clearAsk}
-  title="Clear the colors of this role?"
-  confirmLabel="Clear the colors"
+  title="Apply no color to this role?"
+  confirmLabel="Apply no color"
   busyLabel="Clearing…"
   busy={applying}
   icon={Paintbrush}
   onConfirm={async () => { await apply([]); clearAsk = false; }}
   onClose={() => (clearAsk = false)}
 >
-  The role goes back to the default color, for everyone who holds it. It is listed in the history, so it can be reverted.
+  The role loses its colors and goes back to the default color, for everyone who holds it. It is listed in the history, so it can be reverted.
 </ConfirmModal>

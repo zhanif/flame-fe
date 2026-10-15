@@ -1,6 +1,8 @@
 <script lang="ts">
+  import BotProfileCard from '$lib/components/BotProfileCard.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
@@ -71,6 +73,8 @@
 <PageHeader page="settings" description="Server-wide settings" />
 
 <div class="space-y-5">
+  <BotProfileCard {guildId} {isAdmin} />
+
   <Card>
     <SectionTitle icon={Globe} title="General" class="mb-5" />
     {#if loading || !draft}
@@ -129,7 +133,7 @@
     <div class="flex justify-end"><ControlSkeleton class="w-36" h="h-8" /></div>
   {:else if isAdmin}
     <div class="flex justify-end">
-      <Button variant="primary" onclick={save} disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+      <SaveButton onclick={save} disabled={!dirty} {saving} />
     </div>
   {/if}
 </div>

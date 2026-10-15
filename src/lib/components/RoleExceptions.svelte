@@ -24,6 +24,7 @@
     hint,
     adding = $bindable(false),
     compact = false,
+    scoped = false,
     onAdd,
     onRemove,
   }: {
@@ -35,8 +36,10 @@
     adding?: boolean;
     /** For a list inside another panel: an empty list is one quiet line, not the full empty state. */
     compact?: boolean;
+    /** Anti Tamper's global list: each exception says whether it applies to protected roles, protected channels, or both. */
+    scoped?: boolean;
     /** Resolves true when the exception was added. */
-    onAdd: (target: Pick<RoleExemption, 'target_type' | 'target_id'>) => Promise<boolean>;
+    onAdd: (target: Pick<RoleExemption, 'target_type' | 'target_id' | 'scope'>) => Promise<boolean>;
     onRemove: (target: RoleExemption) => Promise<unknown>;
   } = $props();
 
@@ -44,6 +47,7 @@
   let kind = $state('');
   let pickedRole = $state('');
   let userId = $state('');
+  let scope = $state(''); // the Select's empty choice is "roles and channels"
   let busy = $state(false);
   let removeTarget: RoleExemption | null = $state(null);
   let removing = $state(false);
@@ -72,9 +76,10 @@
     if (!target || busy) return;
     busy = true;
     try {
-      if (await onAdd({ target_type: isUser ? 'user' : 'role', target_id: target })) {
+      if (await onAdd({ target_type: isUser ? 'user' : 'role', target_id: target, ...(scoped ? { scope: (scope || 'all') as 'all' | 'roles' | 'channels' } : {}) })) {
         pickedRole = '';
         userId = '';
+        scope = '';
         adding = false;
       }
     } finally {
@@ -107,6 +112,21 @@
           <RoleSelect {roles} exclude={takenRoles} bind:value={pickedRole} class="w-full" />
         {/if}
       </div>
+      {#if scoped}
+        <div class="w-full sm:w-52">
+          <span class={label}>Applies to</span>
+          <Select
+            bind:value={scope}
+            options={[
+              { value: 'roles', label: 'Protected roles only' },
+              { value: 'channels', label: 'Protected channels only' },
+            ]}
+            placeholder="Roles and channels"
+            label="Applies to"
+            class="w-full"
+          />
+        </div>
+      {/if}
       <Button variant="primary" onclick={add} disabled={!target || busy}><Plus class="w-3.5 h-3.5" />Add</Button>
       <Button variant="ghost" onclick={() => (adding = false)}>Cancel</Button>
     </div>
@@ -128,6 +148,7 @@
           <th class="{th} w-16">#</th>
           <th class={th}>Who</th>
           <th class="{th} w-36">Type</th>
+          {#if scoped}<th class="{th} w-52">Applies to</th>{/if}
           {#if canEdit}<th class="{th} w-16"><span class="sr-only">Actions</span></th>{/if}
         </tr>
       </thead>
@@ -144,6 +165,9 @@
               {/if}
             </td>
             <td class={cell}><Badge tone={exception.target_type === 'role' ? 'accent' : 'neutral'}>{exception.target_type === 'role' ? 'Role' : 'User'}</Badge></td>
+            {#if scoped}
+              <td class={cell}><Badge tone="info">{exception.scope === 'roles' ? 'Protected roles' : exception.scope === 'channels' ? 'Protected channels' : 'Roles and channels'}</Badge></td>
+            {/if}
             {#if canEdit}
               <td class="{cell} text-right">
                 <Button variant="ghost" size="icon" aria-label="Remove exception" onclick={() => (removeTarget = exception)}>

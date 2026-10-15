@@ -6,6 +6,7 @@
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
+  import WarningBanner from '$lib/components/WarningBanner.svelte';
   import Input from '$lib/components/Input.svelte';
   import Modal from '$lib/components/Modal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -15,9 +16,10 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type DiscordChannel, type QuoteEntry } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
   import { Info, Megaphone, Quote, ScrollText, Settings, Trash2 } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -41,11 +43,14 @@
       ],
     },
   };
-  let tab = $state('quotes');
+  // Where the person is lives in the address: the tab and the page.
+  const tabParam = urlParam('tab', 'quotes');
+  const tab = $derived(tabParam.value);
+  const pageParam = urlNumber('page');
+  const page = $derived(pageParam.value);
   const hint = $derived(HINTS[tab] ?? HINTS.quotes);
 
   let quotes: QuoteEntry[] = $state([]);
-  let page = $state(1);
   let limit = $state(10);
   let total = $state(0);
   let loading = $state(true);
@@ -60,6 +65,7 @@
   let publishChannel = $state('');
   let savedChannel = '';
   let settingsLoaded = $state(false);
+  let warnings: string[] = $state([]);
 
   const cell = td.replace('h-11', 'h-14');
 
@@ -111,6 +117,7 @@
     try {
       const saved = await api.updateQuoteSettings(guildId, publishChannel || null);
       savedChannel = publishChannel = saved.publish_channel_id ?? '';
+      warnings = saved.warnings;
       toast('success', savedChannel ? 'Publish channel saved' : 'Publishing stopped', savedChannel ? 'New quotes will be posted there.' : 'Quotes are no longer posted to a channel.');
     } catch (e: any) {
       publishChannel = savedChannel;
@@ -119,21 +126,24 @@
   }
 
   onMount(async () => {
-    loadQuotes();
     const [settings, list] = await Promise.allSettled([api.quoteSettings(guildId), api.channels(guildId)]);
     if (list.status === 'fulfilled') channels = list.value;
-    if (settings.status === 'fulfilled') savedChannel = publishChannel = settings.value.publish_channel_id ?? '';
+    if (settings.status === 'fulfilled') {
+      savedChannel = publishChannel = settings.value.publish_channel_id ?? '';
+      warnings = settings.value.warnings;
+    }
     settingsLoaded = true;
   });
 
-  function goTo(p: number) {
-    page = p;
-    loadQuotes();
-  }
+  // The quotes are read whenever the page (or the size of a page) changes, the browser's Back included.
+  $effect(() => {
+    void [page, limit];
+    untrack(() => void loadQuotes());
+  });
+  const goTo = (p: number) => (pageParam.value = p);
   function setLimit(l: number) {
     limit = l;
-    page = 1;
-    loadQuotes();
+    pageParam.value = 1;
   }
 </script>
 
@@ -142,7 +152,7 @@
 <div class="space-y-5">
   <div class="flex items-center justify-between gap-3 flex-wrap">
     <Tabs
-      bind:value={tab}
+      bind:value={tabParam.value}
       tabs={[
         { id: 'quotes', label: 'Quotes', icon: Quote, count: loaded ? total : null },
         { id: 'settings', label: 'Settings', icon: Settings },
@@ -152,6 +162,8 @@
   </div>
 
   <InfoPanel show={info} title={hint.title} tone="cyan" steps={hint.steps} />
+
+  <WarningBanner {warnings} />
 
   {#if tab === 'settings'}
     <Card>

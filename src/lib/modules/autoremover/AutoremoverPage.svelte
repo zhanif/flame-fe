@@ -3,8 +3,10 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+  import ChannelChip from '$lib/components/ChannelChip.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
   import ChipPicker from '$lib/components/ChipPicker.svelte';
   import SettingRow from '$lib/components/SettingRow.svelte';
@@ -23,9 +25,10 @@
   import { formatDuration } from '$lib/duration';
   import { onlyDigits, restrictTo } from '$lib/number-input';
   import { toast } from '$lib/stores/toast.svelte';
+  import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
   import { ExternalLink, Info, ListChecks, ScrollText, Settings, Timer, X } from '@lucide/svelte';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -50,7 +53,13 @@
       ],
     },
   };
-  let tab = $state('messages');
+  // Where the person is lives in the address: the tab, the page and the status filter.
+  const tabParam = urlParam('tab', 'messages');
+  const tab = $derived(tabParam.value);
+  const pageParam = urlNumber('page');
+  const page = $derived(pageParam.value);
+  const statusParam = urlParam('status');
+  const statusFilter = $derived(statusParam.value);
   const hint = $derived(HINTS[tab] ?? HINTS.messages);
   let config: AutoremoverConfig | null = $state(null);
   let channels: DiscordChannel[] = $state([]);
@@ -66,8 +75,6 @@
   let saving = $state(false);
 
   let items: AutoremoverItem[] = $state([]);
-  let statusFilter = $state('');
-  let page = $state(1);
   let limit = $state(10);
   let total = $state(0);
   let loaded = $state(false);
@@ -78,7 +85,7 @@
 
   const cell = td.replace('h-11', 'h-14');
   const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
-  const where = (id: string) => channels.find(c => c.id === id)?.name ?? id;
+  const channelOf = (id: string) => channels.find(c => c.id === id);
 
   // How long a waiting message has left, in words.
   const timeLeft = (item: AutoremoverItem) => {
@@ -182,22 +189,19 @@
     }
   }
 
-  const goTo = (p: number) => {
-    page = p;
-    void loadItems();
-  };
+  // The messages are read whenever the page, its size or the status filter changes, the browser's Back included.
+  $effect(() => {
+    void [page, limit, statusFilter];
+    untrack(() => void loadItems());
+  });
+  const goTo = (p: number) => (pageParam.value = p);
   const setLimit = (l: number) => {
     limit = l;
-    page = 1;
-    void loadItems();
+    pageParam.value = 1;
   };
-  const refilter = () => {
-    page = 1;
-    void loadItems();
-  };
+  const refilter = () => (pageParam.value = 1);
 
   onMount(async () => {
-    void loadItems();
     const [loadedConfig, channelList] = await Promise.allSettled([api.autoremover.config(guildId), api.channels(guildId)]);
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (loadedConfig.status === 'fulfilled') apply(loadedConfig.value);
@@ -230,7 +234,7 @@
 <div class="space-y-5">
   <div class="flex items-center justify-between gap-3 flex-wrap">
     <Tabs
-      bind:value={tab}
+      bind:value={tabParam.value}
       tabs={[
         { id: 'messages', label: 'Messages', icon: ListChecks, count: loaded && !statusFilter ? total : null },
         { id: 'settings', label: 'Settings', icon: Settings },
@@ -308,7 +312,7 @@
 
         {#if isAdmin}
           <div class="flex justify-end pt-5">
-            <Button variant="primary" onclick={save} disabled={!dirty || !!ttlError || kinds.length === 0 || saving}>{saving ? 'Saving…' : 'Save'}</Button>
+            <SaveButton onclick={save} disabled={!dirty || !!ttlError || kinds.length === 0} {saving} />
           </div>
         {/if}
       {/if}
@@ -317,7 +321,7 @@
     <EmptyState kind="log" title="No messages yet" description="Messages the autoremover picks up in the watched channel are listed here while they wait, and after they are deleted." />
   {:else}
     <Select
-      bind:value={statusFilter}
+      bind:value={statusParam.value}
       onchange={refilter}
       placeholder="All statuses"
       label="Status"
@@ -359,7 +363,7 @@
                 <td class="{cell} text-zinc-500">{(page - 1) * limit + i + 1}</td>
                 <td class={cell}>{#if item.author}<ActorCell actor={item.author} />{/if}</td>
                 <td class="{cell} text-zinc-200"><span class="line-clamp-2 break-all">{item.summary}</span></td>
-                <td class="{cell} text-zinc-400 whitespace-nowrap">#{where(item.channel_id)}</td>
+                <td class="{cell} whitespace-nowrap"><ChannelChip channel={channelOf(item.channel_id)} /></td>
                 <td class={cell}>
                   <Badge tone={statusTone[item.status]}>{statusLabel[item.status]}</Badge>
                 </td>
@@ -414,7 +418,7 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <span class={label}>Channel</span>
-          <p class="text-sm text-zinc-200 truncate">#{where(item.channel_id)}</p>
+          <ChannelChip channel={channelOf(item.channel_id)} />
         </div>
         <div>
           <span class={label}>Marked</span>
