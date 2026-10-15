@@ -2,6 +2,7 @@ import AnnouncementsPage from '$lib/modules/announcements/AnnouncementsPage.svel
 import AntiTamperPage from '$lib/modules/anti-tamper/AntiTamperPage.svelte';
 import AutoremoverPage from '$lib/modules/autoremover/AutoremoverPage.svelte';
 import BoosterPage from '$lib/modules/booster/BoosterPage.svelte';
+import ChatCompletionPage from '$lib/modules/chat-completion/ChatCompletionPage.svelte';
 import OcrDetectionPage from '$lib/modules/ocr-detection/OcrDetectionPage.svelte';
 import FileSubmissionsPage from '$lib/modules/file-submissions/FileSubmissionsPage.svelte';
 import RoleColorsPage from '$lib/modules/role-colors/RoleColorsPage.svelte';
@@ -19,4 +20,5 @@ export const MODULE_VIEWS: Record<string, Component<{ guildId: string; isAdmin: 
   'role-colors': RoleColorsPage,
   announcements: AnnouncementsPage,
   'file-submissions': FileSubmissionsPage,
+  'chat-completion': ChatCompletionPage,
 };

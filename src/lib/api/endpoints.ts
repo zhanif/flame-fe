@@ -444,6 +444,66 @@ export interface AnnouncementEntry extends AnnouncementFields {
   edited_at: string | null;
 }
 
+/** `flame`: answers come from the service Flame offers. `own`: from one the server brings. */
+export type ChatMode = 'flame' | 'own';
+
+export interface ChatCompletionLimits {
+  context_messages: [number, number];
+  context_minutes: [number, number];
+  max_input_chars: [number, number];
+  temperature: [number, number];
+  top_p: [number, number];
+  penalty: [number, number];
+  max_tokens: [number, number];
+  user_daily_limit: [number, number];
+  guild_daily_limit: [number, number];
+  max_channels: number;
+}
+
+export interface ChatPreset {
+  id: string;
+  label: string;
+  base_url: string;
+  model: string;
+}
+
+export interface ChatCompletionConfig {
+  enabled: boolean;
+  channel_ids: string[];
+  mode: ChatMode;
+  base_url: string | null;
+  model: string | null;
+  system_prompt: string | null;
+  temperature: number | null;
+  top_p: number | null;
+  presence_penalty: number | null;
+  frequency_penalty: number | null;
+  max_tokens: number | null;
+  context_messages: number;
+  context_minutes: number;
+  max_input_chars: number;
+  user_daily_limit: number;
+  guild_daily_limit: number;
+}
+
+/** The settings as the dashboard gets them: whether a key is stored (its last characters), never the key. */
+export interface ChatCompletionView extends ChatCompletionConfig {
+  has_api_key: boolean;
+  api_key_hint: string | null;
+  warnings: string[];
+  premium: boolean;
+  limits: Record<ChatMode, ChatCompletionLimits>;
+  presets: ChatPreset[];
+  flame: { configured: boolean; model: string; used_today: number; daily_limit: number; guild_used_today: number; guild_daily_limit: number };
+  default_prompt: string;
+}
+
+export interface ChatCompletionTest {
+  ok: true;
+  ms: number;
+  reply: string;
+}
+
 export interface AuditFilters {
   actions: string[];
   actors: UserProfile[];
@@ -565,6 +625,13 @@ export const api = {
         `/guilds/${guildId}/m/autoremover/items?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
       ),
     cancel: (guildId: string, id: string) => apiCall<{ success: boolean }>(`/guilds/${guildId}/m/autoremover/items/${id}`, 'DELETE'),
+  },
+  chatCompletion: {
+    config: (guildId: string) => apiCall<ChatCompletionView>(`/guilds/${guildId}/m/chat-completion/config`),
+    /** `api_key`: left out keeps the stored key, null removes it, text replaces it. */
+    updateConfig: (guildId: string, body: ChatCompletionConfig & { api_key?: string | null }) =>
+      apiCall<ChatCompletionView>(`/guilds/${guildId}/m/chat-completion/config`, 'PUT', body),
+    test: (guildId: string) => apiCall<ChatCompletionTest>(`/guilds/${guildId}/m/chat-completion/test`, 'POST'),
   },
   ocrDetection: {
     config: (guildId: string) => apiCall<OcrDetectionConfig>(`/guilds/${guildId}/m/ocr-detection/config`),

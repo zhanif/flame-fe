@@ -23,12 +23,11 @@
     label?: string;
   } = $props();
 
-  // 0 text, 5 announcement, 4 category, 15 forum, 16 media, 10 and 11 threads. A watched place
-  // covers what is under it, which is why a forum or a category is a fine choice.
+  // 0 text, 5 announcement, 15 forum, 16 media, 10 and 11 threads. A watched place covers what is under it, which is
+  // why a forum is a fine choice. A category is not offered: it would cover every channel in it.
   const KINDS: Record<number, (c: DiscordChannel) => Omit<ChipItem, 'id' | 'name'>> = {
     0: () => ({ icon: channelIcon(0) }),
     5: () => ({ icon: channelIcon(5), hint: 'announcements' }),
-    4: () => ({ icon: channelIcon(4), hint: 'category' }),
     15: () => ({ icon: channelIcon(15), hint: 'forum' }),
     16: () => ({ icon: channelIcon(16), hint: 'media' }),
     10: c => ({ icon: channelIcon(10), hint: c.parent_name ? `thread in #${c.parent_name}` : 'thread' }),

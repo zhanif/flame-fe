@@ -28,6 +28,7 @@
     lime: 'text-lime-400 bg-lime-500/10 ring-lime-500/20',
     teal: 'text-teal-400 bg-teal-500/10 ring-teal-500/20',
     red: 'text-red-400 bg-red-500/10 ring-red-500/20',
+    vermilion: 'text-vermilion-400 bg-vermilion-500/10 ring-vermilion-500/20',
   };
 </script>
 

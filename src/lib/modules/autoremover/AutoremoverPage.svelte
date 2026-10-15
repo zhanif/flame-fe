@@ -268,7 +268,7 @@
           </div>
         </SettingRow>
 
-        <SettingRow title="Watched channels" hint="Messages here can be deleted. A forum covers its threads and a category its channels. Up to {config.limits.max_targets} at the moment.">
+        <SettingRow title="Watched channels" hint="Messages here can be deleted. A forum covers its threads. Up to {config.limits.max_targets} at the moment.">
           <ChannelsPicker {channels} selected={targets} onchange={next => (targets = next)} max={config.limits.max_targets} disabled={!isAdmin} label="Watched channels" />
         </SettingRow>
 

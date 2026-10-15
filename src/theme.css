@@ -40,6 +40,9 @@
   --teal-400: 45 212 191;
   --red-300: 252 165 165;
   --red-400: 248 113 113;
+  --vermilion-300: 255 160 128;
+  --vermilion-400: 255 99 56;
+  --vermilion-500: 255 99 56;
 }
 
 :root[data-theme='light'] {
@@ -81,6 +84,9 @@
   --teal-400: 13 148 136;
   --red-300: 185 28 28;
   --red-400: 220 38 38;
+  --vermilion-300: 194 65 12;
+  --vermilion-400: 234 76 30;
+  --vermilion-500: 234 76 30;
 }
 
 /* Floating panels and their items (bits-ui Select, Popover, RangeCalendar). They are
