@@ -1,4 +1,6 @@
 import type { AnnouncementField, AnnouncementFields, AnnouncementVariableType } from '$lib/api/endpoints';
+import { Hash, Link2, MessagesSquare, Shield, Type, User } from '@lucide/svelte';
+import type { Component } from 'svelte';
 
 /** What the announcement form edits: every field is text ('' for "not set"), so inputs bind to it directly. */
 export interface Draft {
@@ -53,14 +55,17 @@ export const fieldsOf = (draft: Draft) => ({
 });
 
 /** The types a variable can have, with what each one asks for. The empty value is the default (text). */
-export const VARIABLE_TYPES: { value: AnnouncementVariableType; label: string }[] = [
-  { value: 'text', label: 'Text' },
-  { value: 'number', label: 'Number' },
-  { value: 'link', label: 'Link' },
-  { value: 'user', label: 'Member' },
-  { value: 'role', label: 'Role' },
-  { value: 'channel', label: 'Channel' },
+export const VARIABLE_TYPES: { value: AnnouncementVariableType; label: string; icon: Component<any> }[] = [
+  { value: 'text', label: 'Text', icon: Type },
+  { value: 'number', label: 'Number', icon: Hash },
+  { value: 'link', label: 'Link', icon: Link2 },
+  { value: 'user', label: 'Member', icon: User },
+  { value: 'role', label: 'Role', icon: Shield },
+  { value: 'channel', label: 'Channel', icon: MessagesSquare },
 ];
+
+/** A type by its value (text when it is missing or unknown). */
+export const variableTypeOf = (type: string | undefined) => VARIABLE_TYPES.find(t => t.value === type) ?? VARIABLE_TYPES[0];
 
 /** A variable's name as a person reads it: `chapter_number` is "Chapter Number". */
 export const labelOf = (name: string): string =>

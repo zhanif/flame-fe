@@ -93,18 +93,18 @@
 <Card>
   <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
     <SectionTitle icon={Bot} title="Bot in this server" />
-    {#if saved && !saved.premium}<Badge tone="brand">Premium</Badge>{/if}
+    {#if saved?.premium}<Badge tone="amber">Premium</Badge>{/if}
   </div>
   {#if saved && !saved.premium}
-    <p class="mb-5 flex items-start gap-2 rounded-xl bg-orange-500/10 px-4 py-3 text-xs text-orange-400 ring-1 ring-orange-500/25">
-      <Lock class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+    <p class="mb-5 flex items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-400 ring-1 ring-amber-500/25">
+      <Lock class="h-3.5 w-3.5 shrink-0" />
       Giving the bot its own nickname and avatar in a server is a premium feature.
     </p>
   {/if}
   {#if !profile}
     <FormSkeleton fields={2} grid hint />
   {:else}
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
       <div class="space-y-5">
         <div>
           <label for="bot-nickname" class={label}>Nickname</label>
@@ -132,19 +132,19 @@
 
       <div class="min-w-0 space-y-2">
         <span class={label}>Preview</span>
-        <div class="flex items-start gap-3 rounded-xl bg-[#313338] px-4 py-4 ring-1 ring-zinc-800" aria-label="Preview of a message from the bot">
+        <div class="flex items-start gap-2.5 rounded-xl bg-[#313338] px-3 py-3 ring-1 ring-zinc-800" aria-label="Preview of a message from the bot">
           {#if shownAvatar}
-            <img src={shownAvatar} alt="" class="h-10 w-10 shrink-0 rounded-full" />
+            <img src={shownAvatar} alt="" class="h-8 w-8 shrink-0 rounded-full" />
           {:else}
-            <span class="h-10 w-10 shrink-0 rounded-full bg-[#5865F2]" aria-hidden="true"></span>
+            <span class="h-8 w-8 shrink-0 rounded-full bg-[#5865F2]" aria-hidden="true"></span>
           {/if}
           <div class="min-w-0">
             <p class="flex items-baseline gap-2">
-              <span class="truncate text-sm font-semibold text-[#F2F3F5]">{shownName}</span>
-              <span class="shrink-0 rounded bg-[#5865F2] px-1 text-[10px] font-semibold uppercase text-white">Bot</span>
-              <span class="shrink-0 text-xs text-[#949BA4]">Today at 9:41 PM</span>
+              <span class="truncate text-xs font-semibold text-[#F2F3F5]">{shownName}</span>
+              <span class="shrink-0 rounded bg-[#5865F2] px-1 text-[9px] font-semibold uppercase text-white">Bot</span>
+              <span class="shrink-0 text-[11px] text-[#949BA4]">Today at 9:41 PM</span>
             </p>
-            <p class="mt-0.5 text-sm text-[#DBDEE1]">This is how I look in this server.</p>
+            <p class="mt-0.5 text-xs text-[#DBDEE1]">This is how I look in this server.</p>
           </div>
         </div>
       </div>

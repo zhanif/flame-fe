@@ -25,13 +25,13 @@
   import { api, type AnnouncementEntry, type AnnouncementTemplateEntry, type AnnouncementTemplates, type DiscordChannel, type DiscordRole } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
-  import { label, td, th, toneText } from '$lib/ui';
+  import { caps, label, td, th, toneText } from '$lib/ui';
   import { Check, ExternalLink, FileText, Info, Megaphone, Pencil, Plus, Send, Trash2, ScrollText } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
   import AnnouncementForm from './AnnouncementForm.svelte';
-  import { draftOf, emptyDraft, fieldsOf, fill, hasContent, labelOf, MAX_VARIABLES, variablesIn, type Draft } from './draft';
+  import { draftOf, emptyDraft, fieldsOf, fill, hasContent, labelOf, MAX_VARIABLES, variableTypeOf, variablesIn, type Draft } from './draft';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -114,10 +114,18 @@
     const target: AnnouncementTemplateEntry | null = useTarget;
     return target ? fill(draftOf(target), useShown(target)) : null;
   });
-  const LINK = /^https?:\/\/\S+$/i;
+  // What is wrong with a typed value for its type, or nothing: a link, a number and a member id are checked as typed.
+  const invalidOf = (type: string | undefined, value: string | undefined): string => {
+    const text = value?.trim();
+    if (!text) return '';
+    if (type === 'link' && !/^https?:\/\/\S+$/i.test(text)) return 'It must start with http:// or https://';
+    if (type === 'number' && !/^-?\d+([.,]\d+)?$/.test(text)) return 'It must be a number';
+    if (type === 'user' && !/^\d{5,32}$/.test(text)) return 'It must be a member ID: digits only';
+    return '';
+  };
   const useMissing = $derived.by((): string[] => {
     const target: AnnouncementTemplateEntry | null = useTarget;
-    return target ? target.variables.filter(name => !useValues[name]?.trim() || (target.variable_types?.[name] === 'link' && !LINK.test(useValues[name].trim()))) : [];
+    return target ? target.variables.filter(name => !useValues[name]?.trim() || !!invalidOf(target.variable_types?.[name], useValues[name])) : [];
   });
   const useMentions = $derived<Mention[]>(
     useDraft
@@ -502,25 +510,40 @@
       <div class="space-y-3">
         {#each templates.templates as template (template.id)}
           <Card>
-            <div class="flex items-center gap-4">
-              <div class="min-w-0 flex-1">
+            <div class="grid items-center gap-x-8 gap-y-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+              <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-zinc-100">{template.name}</p>
                 <p class="mt-1 truncate text-xs text-zinc-400">{template.title || template.body?.replace(/\s+/g, ' ') || template.content?.replace(/\s+/g, ' ') || '(image only)'}</p>
-                <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                  {#each template.variables as name (name)}
-                    <span class="rounded-md bg-zinc-800 px-1.5 py-0.5 font-mono text-xs {toneText.teal}">{'{'}{name}{'}'}</span>
-                  {/each}
-                  {#if template.channel_id}<ChannelChip channel={channelOf(template.channel_id)} />{/if}
-                </div>
               </div>
-              <div class="flex shrink-0 items-center gap-1">
-                <Button variant="soft" size="sm" onclick={() => openUse(template)}><Send class="h-3.5 w-3.5" />Use</Button>
-                {#if isAdmin}
-                  <Button variant="ghost" size="icon" aria-label="Edit {template.name}" title="Edit" onclick={() => openEditTemplate(template)}><Pencil class="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" aria-label="Remove {template.name}" title="Remove" onclick={() => (removeTemplateTarget = template)}>
-                    <Trash2 class="h-3.5 w-3.5 text-red-400" />
-                  </Button>
+
+              <div class="min-w-0">
+                <span class="{caps} mb-1.5 block text-zinc-500">Variables</span>
+                {#if template.variables.length}
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    {#each template.variables as name (name)}
+                      {@const kind = variableTypeOf(template.variable_types?.[name])}
+                      <span class="inline-flex items-center gap-1.5 rounded-md bg-zinc-800/70 py-1 pl-2 pr-1.5 ring-1 ring-zinc-700/60">
+                        <span class="font-mono text-xs {toneText.teal}">{'{'}{name}{'}'}</span>
+                        <span class="inline-flex items-center gap-1 rounded bg-zinc-900/60 px-1.5 py-0.5 text-[11px] text-zinc-400"><kind.icon class="h-3 w-3" />{kind.label}</span>
+                      </span>
+                    {/each}
+                  </div>
+                {:else}
+                  <span class="text-xs text-zinc-600">None: it is sent as it is</span>
                 {/if}
+              </div>
+
+              <div class="flex shrink-0 items-center gap-3">
+                {#if template.channel_id}<ChannelChip channel={channelOf(template.channel_id)} />{/if}
+                <div class="flex items-center gap-1">
+                  <Button variant="soft" size="sm" onclick={() => openUse(template)}><Send class="h-3.5 w-3.5" />Use</Button>
+                  {#if isAdmin}
+                    <Button variant="ghost" size="icon" aria-label="Edit {template.name}" title="Edit" onclick={() => openEditTemplate(template)}><Pencil class="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" aria-label="Remove {template.name}" title="Remove" onclick={() => (removeTemplateTarget = template)}>
+                      <Trash2 class="h-3.5 w-3.5 text-red-400" />
+                    </Button>
+                  {/if}
+                </div>
               </div>
             </div>
             {#if isAdmin && editTemplate?.id === template.id}
@@ -639,9 +662,13 @@
     {#if useTarget.variables.length}
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
         {#each useTarget.variables as name (name)}
+          {@const kind = variableTypeOf(useTarget.variable_types?.[name])}
           <div>
-            <span class={label}>{labelOf(name)}</span>
-            {#if useTarget.variable_descriptions?.[name]}<p class="-mt-0.5 mb-1.5 text-[11px] text-zinc-500">{useTarget.variable_descriptions?.[name]}</p>{/if}
+            <div class="mb-1.5 flex flex-wrap items-center gap-2">
+              <span class="{caps} text-zinc-400">{labelOf(name)}</span>
+              <Badge tone="teal"><kind.icon class="h-3 w-3" />{kind.label}</Badge>
+            </div>
+            {#if useTarget.variable_descriptions?.[name]}<p class="mb-2 text-xs text-zinc-500">{useTarget.variable_descriptions?.[name]}</p>{/if}
             {#if useTarget.variable_types?.[name] === 'role'}
               <RoleSelect {roles} bind:value={() => useValues[name] ?? '', next => (useValues[name] = next)} label={name} class="w-full" />
             {:else if useTarget.variable_types?.[name] === 'channel'}
@@ -650,12 +677,12 @@
               <Input
                 bind:value={() => useValues[name] ?? '', next => (useValues[name] = next)}
                 maxlength={200}
-                inputmode={useTarget.variable_types?.[name] === 'number' ? 'decimal' : undefined}
+                inputmode={useTarget.variable_types?.[name] === 'number' ? 'decimal' : useTarget.variable_types?.[name] === 'user' ? 'numeric' : useTarget.variable_types?.[name] === 'link' ? 'url' : undefined}
                 placeholder={useTarget.variable_placeholders?.[name] || (useTarget.variable_types?.[name] === 'user' ? 'Member ID' : useTarget.variable_types?.[name] === 'number' ? 'A number' : useTarget.variable_types?.[name] === 'link' ? 'https://example.com' : '')}
                 aria-label={name}
               />
-              {#if useTarget.variable_types?.[name] === 'link' && useValues[name]?.trim() && !LINK.test(useValues[name].trim())}
-                <p class="mt-1 text-[11px] text-red-400">It must start with http:// or https://</p>
+              {#if invalidOf(useTarget.variable_types?.[name], useValues[name])}
+                <p class="mt-1 text-[11px] text-red-400">{invalidOf(useTarget.variable_types?.[name], useValues[name])}</p>
               {/if}
             {/if}
           </div>
@@ -665,11 +692,13 @@
 
     <div class="mt-4">
       <span class={label}>Channel</span>
+      <p class="mb-2 text-xs text-zinc-500">{useTarget.channel_id ? "Where it is sent. It starts as the template's channel" : 'Where it is sent'}</p>
       <ChannelPicker {channels} bind:value={useChannel} none="Pick a channel" label="Channel" class="w-full" />
     </div>
 
-    <div class="mt-4 space-y-2">
+    <div class="mt-4">
       <span class={label}>Preview</span>
+      <p class="mb-2 text-xs text-zinc-500">How it looks in Discord with the values you filled in</p>
       <EmbedPreview
         content={useDraft.content}
         title={useDraft.title}

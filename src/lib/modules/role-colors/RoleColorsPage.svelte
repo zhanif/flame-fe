@@ -1,6 +1,5 @@
 <script lang="ts">
   import ActorCell from '$lib/components/ActorCell.svelte';
-  import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import SaveButton from '$lib/components/SaveButton.svelte';
@@ -25,7 +24,7 @@
   import { toast } from '$lib/stores/toast.svelte';
   import { urlParam } from '$lib/url-param';
   import { caps, label, td, th, toneText } from '$lib/ui';
-  import { Check, Eraser, Paintbrush, Pencil, Plus, ScrollText, Trash2, Undo2 } from '@lucide/svelte';
+  import { Check, Eraser, Paintbrush, Pencil, Plus, ScrollText, Trash2, TriangleAlert, Undo2 } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -227,16 +226,6 @@
       : []),
   ];
 
-  const changeActions = (change: RoleColorChange): RowMenuItem[] => [
-    {
-      label: 'Revert this change',
-      icon: Undo2,
-      disabled: !!reverting || !canRevert(change),
-      hint: canRevert(change) ? 'Put the previous colors back' : 'The role already has these colors',
-      onclick: () => (revertTarget = change),
-    },
-  ];
-
   // The colors a change started from (what Revert puts back), and whether the role already has them.
   const canRevert = (change: RoleColorChange) => {
     const current: RoleColors | null = data;
@@ -372,7 +361,7 @@
               <th class="{th} w-56">Name</th>
               <th class="{th} w-56">Command</th>
               <th class={th}>Role</th>
-              <th class="{th} w-32">Colors</th>
+              <th class="{th} w-80">Colors</th>
               <th class="{th} w-16"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
@@ -390,7 +379,7 @@
                   <RoleChip {role} />
                   {#if color.problem}<p class="mt-0.5 text-xs text-amber-400">{color.problem}</p>{/if}
                 </td>
-                <td class={cell}><Badge tone="neutral">{color.max_colors === 1 ? '1 color' : `Up to ${color.max_colors}`}</Badge></td>
+                <td class={cell}><ColorChips colors={color.current} /></td>
                 <td class="{cell} text-right"><RowMenu label="Actions for {color.name}" items={colorActions(color)} /></td>
               </tr>
               {#if panel && editing?.id === color.id && (isAdmin || mode === 'history')}
@@ -414,7 +403,11 @@
                                   <ColorChips colors={change.after} />
                                 </div>
                                 <span class="shrink-0 text-xs text-zinc-500">{when(change.created_at)}</span>
-                                {#if isAdmin}<RowMenu label="Actions for this change" items={changeActions(change)} />{/if}
+                                {#if isAdmin}
+                                  <Button variant="secondary" size="sm" disabled={!!reverting || !canRevert(change)} title={canRevert(change) ? 'Put the previous colors back' : 'The role already has these colors'} onclick={() => (revertTarget = change)}>
+                                    <Undo2 class="h-3.5 w-3.5" />Revert
+                                  </Button>
+                                {/if}
                               </li>
                             {/each}
                           </ul>
@@ -492,7 +485,16 @@
     <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
       <Undo2 class="w-4 h-4 shrink-0 {toneText.lime}" />Revert this change?
     </h3>
-    <p class="mt-3 text-xs leading-relaxed text-zinc-400">
+    {#if revertDeclined}
+      <div class="mt-4 flex items-center gap-3 rounded-xl bg-amber-500/10 px-4 py-3 ring-1 ring-amber-500/25">
+        <TriangleAlert class="h-4 w-4 shrink-0 text-amber-400" />
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-amber-400">Cannot revert</p>
+          <p class="mt-0.5 text-xs text-zinc-400">This server doesn't have the Enhanced Role Colors feature.</p>
+        </div>
+      </div>
+    {/if}
+    <p class="mt-4 text-xs leading-relaxed text-zinc-400">
       The role of <span class="text-zinc-200">{revertTarget.color_name}</span> goes back to the colors it had before this change. It is listed in the history and the audit log.
     </p>
     <div class="mt-4 space-y-3">
@@ -501,11 +503,6 @@
         <div class="flex items-center gap-3"><span class="{caps} w-24 shrink-0 text-zinc-500">Now</span><ColorChips colors={revertNow} /></div>
         <div class="flex items-center gap-3"><span class="{caps} w-24 shrink-0 text-zinc-500">After revert</span><ColorChips colors={revertTarget.before} /></div>
       </div>
-      {#if revertDeclined}
-        <p class="rounded-lg bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-400 ring-1 ring-red-500/20">
-          Declined: this server does not have Enhanced Role Colors, so a role cannot have more than one color.
-        </p>
-      {/if}
     </div>
     <div class="mt-5 flex justify-end gap-2">
       <Button variant="ghost" onclick={() => (revertTarget = null)} disabled={!!reverting}>Cancel</Button>
