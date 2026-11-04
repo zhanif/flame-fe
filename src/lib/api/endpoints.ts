@@ -10,7 +10,7 @@ export interface BotInfo {
 
 /** How the bot looks in one server: its nickname and avatar there, and the ones it has everywhere else. */
 export interface BotProfile {
-  /** Changing the nickname or the avatar is a premium feature. */
+  /** Setting the bot's own avatar in a server is a premium feature; the nickname is not. */
   premium: boolean;
   /** What members see: the server nickname when set, else the bot's own name. */
   name: string;

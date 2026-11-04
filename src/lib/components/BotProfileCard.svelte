@@ -30,8 +30,9 @@
 
   // Read through a typed copy: `profile` is only ever set in async code, so the compiler would narrow it to null here.
   const saved = $derived.by((): BotProfile | null => profile);
-  // Changing the bot's look here is a premium feature: without it the card shows what is there, read-only.
-  const canEdit = $derived(isAdmin && !!saved?.premium);
+  // Both are per server, never the bot's own name or avatar. The nickname is free; setting the avatar is premium.
+  const canEditName = $derived(isAdmin);
+  const canEditAvatar = $derived(isAdmin && !!saved?.premium);
   const nicknameChanged = $derived(!!saved && nickname.trim() !== (saved.nickname ?? ''));
   const dirty = $derived(nicknameChanged || avatar !== undefined);
   const shownName = $derived(nickname.trim() || saved?.global_name || bot.name);
@@ -98,7 +99,7 @@
   {#if saved && !saved.premium}
     <p class="mb-5 flex items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-400 ring-1 ring-amber-500/25">
       <Lock class="h-3.5 w-3.5 shrink-0" />
-      Giving the bot its own nickname and avatar in a server is a premium feature.
+      Setting the bot's avatar for this server is a premium feature. Its nickname is per server too, and free.
     </p>
   {/if}
   {#if !profile}
@@ -108,7 +109,7 @@
       <div class="space-y-5">
         <div>
           <label for="bot-nickname" class={label}>Nickname</label>
-          <Input id="bot-nickname" bind:value={nickname} maxlength={32} placeholder={profile.global_name} disabled={!canEdit} />
+          <Input id="bot-nickname" bind:value={nickname} maxlength={32} placeholder={profile.global_name} disabled={!canEditName} />
           <p class="mt-1.5 text-xs text-zinc-500">Only in this server. Empty uses the bot's own name, <span class="text-zinc-300">{profile.global_name}</span>. Needs the Change Nickname permission.</p>
         </div>
 
@@ -121,9 +122,9 @@
               <span class="h-14 w-14 rounded-full bg-[#5865F2]" aria-hidden="true"></span>
             {/if}
             <input bind:this={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange={pick} />
-            <Button variant="secondary" disabled={!canEdit || reading} onclick={() => picker?.click()}><Upload class="h-3.5 w-3.5" />Upload avatar</Button>
+            <Button variant="secondary" disabled={!canEditAvatar || reading} onclick={() => picker?.click()}><Upload class="h-3.5 w-3.5" />Upload avatar</Button>
             {#if canRemoveAvatar}
-              <Button variant="ghost" disabled={!canEdit} onclick={() => (avatar = avatar === undefined ? null : undefined)}><RotateCcw class="h-3.5 w-3.5" />{avatar === undefined ? 'Use the default avatar' : 'Undo'}</Button>
+              <Button variant="ghost" disabled={!canEditAvatar} onclick={() => (avatar = avatar === undefined ? null : undefined)}><RotateCcw class="h-3.5 w-3.5" />{avatar === undefined ? 'Use the default avatar' : 'Undo'}</Button>
             {/if}
           </div>
           <p class="mt-1.5 text-xs text-zinc-500">Only in this server. The image is cropped to a square. Discord limits how often an avatar can change.</p>
@@ -150,7 +151,7 @@
       </div>
     </div>
 
-    {#if canEdit}
+    {#if canEditName}
       <div class="mt-5 flex justify-end border-t border-zinc-800/60 pt-4">
         <SaveButton onclick={save} disabled={!dirty} {saving} />
       </div>
