@@ -70,7 +70,7 @@
 </script>
 
 <div class="min-h-screen flex">
-  <aside class="w-64 shrink-0 sticky top-0 h-screen bg-zinc-900 border-r border-zinc-800/60 flex flex-col">
+  <aside class="w-64 shrink-0 sticky top-0 h-screen bg-zinc-900 border-r border-zinc-800/60 flex flex-col overflow-hidden">
     <div class="px-5 h-[69px] shrink-0 border-b border-zinc-800/50 flex items-center gap-3">
       {#if bot.avatar}
         <img src={bot.avatar} alt="" class="w-9 h-9 rounded-full ring-2 ring-orange-500/40" />
@@ -78,7 +78,7 @@
       <p class="font-display text-base font-extrabold tracking-tight text-zinc-100">{bot.name}</p>
     </div>
 
-    <div class="px-3 pt-4 pb-2">
+    <div class="px-3 pt-4 pb-2 shrink-0">
       <button onclick={() => router.home()} class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/70 text-left cursor-pointer ring-1 ring-zinc-700/40 hover:ring-orange-500/30 transition">
         <ArrowLeft class="w-4 h-4 text-zinc-500 group-hover:text-orange-400 transition-colors" />
         {#if guild}
@@ -91,64 +91,66 @@
       </button>
     </div>
 
-    {#if available}
-      <nav class="px-3 pt-3 space-y-1">
-        <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Administration</p>
-        {#each visibleNav as id (id)}
-          {@const item = PAGES[id]}
-          {@const active = current === id}
-          <button
-            onclick={() => router.guild(guildId, id)}
-            class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {active
-              ? 'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-700'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'}"
-          >
-            <item.icon class="w-[18px] h-[18px] shrink-0 {toneText[item.tone]}" />
-            {item.label}
-          </button>
-        {/each}
-      </nav>
-
-      {#each sections as section (section.id)}
-        <nav class="px-3 pt-5 space-y-1">
-          <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">{section.label}</p>
-          {#each section.items as entry (entry.id)}
-            {@const item = MODULE_PAGES[entry.id]}
-            {@const active = activeModule === entry.id}
+    <div class="sidebar-scroll flex-1 min-h-0 overflow-y-auto pb-4">
+      {#if available}
+        <nav class="px-3 pt-3 space-y-1">
+          <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Administration</p>
+          {#each visibleNav as id (id)}
+            {@const item = PAGES[id]}
+            {@const active = current === id}
             <button
-              onclick={() => router.module(guildId, entry.id)}
-              title={entry.enabled ? undefined : 'Turned off'}
-              class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {entry.enabled ? '' : 'opacity-50'} {active
+              onclick={() => router.guild(guildId, id)}
+              class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {active
                 ? 'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-700'
                 : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'}"
             >
               <item.icon class="w-[18px] h-[18px] shrink-0 {toneText[item.tone]}" />
-              {entry.name}
+              {item.label}
             </button>
           {/each}
         </nav>
-      {:else}
-        {#if moduleCatalog.loading}
-          <div class="px-3 pt-5 space-y-1" aria-hidden="true">
-            <div class="mx-3 mb-2.5 h-3 w-16 rounded bg-zinc-700/40 animate-pulse"></div>
+
+        {#each sections as section (section.id)}
+          <nav class="px-3 pt-5 space-y-1">
+            <p class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">{section.label}</p>
+            {#each section.items as entry (entry.id)}
+              {@const item = MODULE_PAGES[entry.id]}
+              {@const active = activeModule === entry.id}
+              <button
+                onclick={() => router.module(guildId, entry.id)}
+                title={entry.enabled ? undefined : 'Turned off'}
+                class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {entry.enabled ? '' : 'opacity-50'} {active
+                  ? 'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-700'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'}"
+              >
+                <item.icon class="w-[18px] h-[18px] shrink-0 {toneText[item.tone]}" />
+                {entry.name}
+              </button>
+            {/each}
+          </nav>
+        {:else}
+          {#if moduleCatalog.loading}
+            <div class="px-3 pt-5 space-y-1" aria-hidden="true">
+              <div class="mx-3 mb-2.5 h-3 w-16 rounded bg-zinc-700/40 animate-pulse"></div>
+              <div class="h-10 px-3 flex items-center gap-3">
+                <div class="w-[18px] h-[18px] rounded bg-zinc-700/40 animate-pulse"></div>
+                <div class="h-3 w-20 rounded bg-zinc-700/40 animate-pulse"></div>
+              </div>
+            </div>
+          {/if}
+        {/each}
+      {:else if !guild && session.guildsLoading}
+        <div class="px-3 pt-3 space-y-1" aria-hidden="true">
+          <div class="mx-3 mb-2.5 h-3 w-12 rounded bg-zinc-700/40 animate-pulse"></div>
+          {#each Array(4) as _}
             <div class="h-10 px-3 flex items-center gap-3">
               <div class="w-[18px] h-[18px] rounded bg-zinc-700/40 animate-pulse"></div>
               <div class="h-3 w-20 rounded bg-zinc-700/40 animate-pulse"></div>
             </div>
-          </div>
-        {/if}
-      {/each}
-    {:else if !guild && session.guildsLoading}
-      <div class="px-3 pt-3 space-y-1" aria-hidden="true">
-        <div class="mx-3 mb-2.5 h-3 w-12 rounded bg-zinc-700/40 animate-pulse"></div>
-        {#each Array(4) as _}
-          <div class="h-10 px-3 flex items-center gap-3">
-            <div class="w-[18px] h-[18px] rounded bg-zinc-700/40 animate-pulse"></div>
-            <div class="h-3 w-20 rounded bg-zinc-700/40 animate-pulse"></div>
-          </div>
-        {/each}
-      </div>
-    {/if}
+          {/each}
+        </div>
+      {/if}
+    </div>
   </aside>
 
   <main class="flex-1 min-w-0 p-5">
