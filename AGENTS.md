@@ -1,6 +1,6 @@
 # flame-fe Agent Rules
 
-Dashboard for Flame (see `../AGENTS.md` for the product and `../flame-be/AGENTS.md` for the API). Svelte 5 (runes) · Vite · twind · bits-ui · `@lucide/svelte` · hash router · `$lib/*` alias (declared in **both** `tsconfig.json` and `vite.config.ts`).
+Dashboard for Flame (product context and the API rules: `../flame-be/AGENTS.md`). Svelte 5 (runes) · Vite · twind · bits-ui · `@lucide/svelte` · hash router · `$lib/*` alias (declared in **both** `tsconfig.json` and `vite.config.ts`).
 
 Check with `npx svelte-check`. TypeScript stays on `~6` here because `svelte-check` does not run on TS 7. Do not write tests or run a browser agent unless asked.
 
