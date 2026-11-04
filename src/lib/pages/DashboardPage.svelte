@@ -73,7 +73,7 @@
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-zinc-100 truncate">{guild.name}</p>
               <p class="text-xs text-zinc-500 mt-0.5">
-                {guild.member_count ? `${guild.member_count.toLocaleString()} members` : guild.access}
+                {guild.member_count ? `${guild.member_count.toLocaleString()} members` : guild.access === 'admin' ? 'Admin' : 'Moderator'}
               </p>
             </div>
             {#if guild.bot_present}
