@@ -9,7 +9,7 @@
   import BoardEditor from '$lib/modules/bingo/BoardEditor.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, td, th } from '$lib/ui';
-  import { Copy, Paintbrush, Plus, Trash2 } from '@lucide/svelte';
+  import { Copy, Paintbrush, Trash2 } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   // Boards stored for this server. A design lives on its own, whether or not a round exists, and can be assigned
@@ -148,12 +148,6 @@
   {/if}
 {:else}
   <div class="space-y-5">
-    {#if isAdmin}
-      <div class="flex justify-end">
-        <Button variant="primary" onclick={() => onOpen('new')}><Plus class="w-3.5 h-3.5" />New design</Button>
-      </div>
-    {/if}
-
     {#if loaded && designs.length === 0}
       <EmptyState
         kind="modules"

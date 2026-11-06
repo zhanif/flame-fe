@@ -565,9 +565,9 @@
       <Card flush>
         {#if !rowsLoaded}
           <TableSkeleton
-            columns={['w-16', 'w-44', 'w-48', 'w-64', 'w-32', 'flex-1', 'w-16']}
-            headings={['#', 'Preview', 'Submitted', 'Member', 'Status', 'Note', '']}
-            kinds={['bar', 'thumb', 'bar', 'actor', 'pill', 'bar', 'action']}
+            columns={['w-16', 'w-44', 'w-48', 'w-64', 'w-32', 'w-20', 'flex-1', 'w-16']}
+            headings={['#', 'Preview', 'Submitted', 'Member', 'Status', 'Upvotes', 'Note', '']}
+            kinds={['bar', 'thumb', 'bar', 'actor', 'pill', 'bar', 'bar', 'action']}
             rows={entryRows}
             rowHeight="h-20"
           />
@@ -580,6 +580,7 @@
                 <th class="{th} w-48">Submitted</th>
                 <th class="{th} w-64">Member</th>
                 <th class="{th} w-32">Status</th>
+                <th class="{th} w-20">Upvotes</th>
                 <th class={th}>Note</th>
                 <th class="{th} w-16"><span class="sr-only">Actions</span></th>
               </tr>
@@ -615,10 +616,10 @@
                     {#if row.submitted_by}<p class="mt-0.5 text-xs text-zinc-500">sent by {row.submitted_by.name ?? row.submitted_by.id}</p>{/if}
                   </td>
                   <td class={cell}><Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge></td>
+                  <td class="{cell} text-zinc-300">{row.upvotes === null ? '-' : row.upvotes}</td>
                   <td class="{cell} text-zinc-400">
                     {#if row.reason}<p class="line-clamp-2 text-xs leading-relaxed" title={row.reason}>{row.reason}</p>{/if}
-                    {#if row.upvotes !== null}<p class="text-xs text-zinc-500">{row.upvotes} upvotes</p>{/if}
-                    {#if !row.reason && row.upvotes === null}<span class="text-zinc-600">-</span>{/if}
+                    {#if !row.reason}<span class="text-zinc-600">-</span>{/if}
                   </td>
                   <td class="{cell} text-right"><RowMenu label="Actions for this entry" items={entryActions(row)} /></td>
                 </tr>

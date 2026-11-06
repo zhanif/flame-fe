@@ -13,7 +13,7 @@
   import ThreadsTab from '$lib/modules/bingo/ThreadsTab.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlParam } from '$lib/url-param';
-  import { Grid3x3, Info, Palette, Settings } from '@lucide/svelte';
+  import { Grid3x3, Info, Palette, Plus, Settings } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -121,7 +121,14 @@
           { id: 'settings', label: 'Settings', icon: Settings },
         ]}
       />
-      <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+      <div class="flex items-center gap-2">
+        {#if isAdmin && tab === 'designs'}
+          <Button variant="primary" onclick={() => openDesign('new')}><Plus class="w-3.5 h-3.5" />New design</Button>
+        {/if}
+        {#if tab !== 'designs'}
+          <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+        {/if}
+      </div>
     </div>
 
     <InfoPanel show={info} title={hint.title} tone="rose" steps={hint.steps} />

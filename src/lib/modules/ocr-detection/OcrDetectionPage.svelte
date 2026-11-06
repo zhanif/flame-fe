@@ -14,7 +14,7 @@
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import Modal from '$lib/components/Modal.svelte';
-  import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
+import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
 import Select from '$lib/components/Select.svelte';
   import Textarea from '$lib/components/Textarea.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
@@ -28,7 +28,7 @@ import Select from '$lib/components/Select.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
-  import { Info, ListX, RotateCcw, ScanText, Settings, Eye, Trash2, X } from '@lucide/svelte';
+  import { Info, ListX, RotateCcw, ScanText, ScrollText, Settings, Eye, Trash2, X, ExternalLink } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -208,12 +208,6 @@ import Select from '$lib/components/Select.svelte';
       working = false;
     }
   }
-
-  const rowActions = (item: OcrDetectionItem): RowMenuItem[] => [
-    { label: 'Preview', icon: Eye, onclick: () => (previewItem = item) },
-    { label: 'Delete Message', icon: Trash2, danger: true, disabled: working || item.status !== 'flagged', onclick: () => (deleting = item) },
-    { label: 'Ignore', icon: X, disabled: working || item.status !== 'flagged', onclick: () => { ignoring = item; reason = ''; } },
-  ];
 
   function showTerms(next: OcrTerms) {
     terms = next;
@@ -428,13 +422,23 @@ import Select from '$lib/components/Select.svelte';
                     </div>
                   </td>
                   <td class={cell}>
-                    <Badge tone={statusTone[item.status]}>{statusLabel[item.status]}</Badge>
+                    <Badge tone={item.status === 'handled' && item.handled_action === 'deleted' ? 'danger' : statusTone[item.status]}>{item.status === 'handled' && item.handled_action ? actionText[item.handled_action] : statusLabel[item.status]}</Badge>
                     {#if item.error}
                       <p class="mt-0.5 text-xs text-zinc-500 truncate" title={item.error}>{item.error}</p>
                     {/if}
                   </td>
                   <td class="{cell} text-zinc-500 whitespace-nowrap">{when(item.created_at)}</td>
-                  <td class="{cell} text-right"><RowMenu label="Actions for this detection" items={rowActions(item)} /></td>
+                  <td class="{cell} text-right">
+                    {#if item.status === 'flagged'}
+                      <RowMenu label="Actions for this detection" items={[
+                        { label: 'Preview', icon: Eye, onclick: () => (previewItem = item) },
+                        { label: 'Delete Message', icon: Trash2, danger: true, disabled: working, onclick: () => (deleting = item) },
+                        { label: 'Ignore', icon: X, disabled: working, onclick: () => { ignoring = item; reason = ''; } },
+                      ]} />
+                    {:else}
+                      <Button variant="ghost" size="icon" aria-label="View details" title="View details" onclick={() => (previewItem = item)}><ScrollText class="w-3.5 h-3.5" /></Button>
+                    {/if}
+                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -446,47 +450,88 @@ import Select from '$lib/components/Select.svelte';
   {/if}
 </div>
 
-<Modal show={!!previewItem} wide onClose={() => (previewItem = null)}>
-  {#if previewItem}
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <p class="{label} text-zinc-500 truncate">Detection</p>
-        <h3 class="mt-0.5 font-display text-lg font-bold text-zinc-100 truncate">Preview</h3>
-      </div>
-      <Badge tone={statusTone[previewItem.status]}>{statusLabel[previewItem.status]}</Badge>
-    </div>
-    <div class="mt-5 max-h-[60vh] overflow-auto rounded-xl bg-zinc-950/60 p-2 ring-1 ring-zinc-800">
-      {#if previewItem.attachment_url}
-        <img src={previewItem.attachment_url} alt={previewItem.attachment_name} class="mx-auto max-h-[56vh] w-auto rounded-lg object-contain" />
-      {:else if previewItem.status === 'handled'}
-        <div class="rounded-lg bg-zinc-900/60 px-4 py-3 ring-1 ring-zinc-800">
-          <Badge tone="neutral">{actionText[previewItem.handled_action ?? 'ignored']}</Badge>
-          {#if previewItem.handled_reason}
-            <span class="text-xs text-zinc-400 leading-relaxed">{previewItem.handled_reason}</span>
-          {:else}
-            <span class="text-xs text-zinc-500 leading-relaxed">No reason provided</span>
+<Modal show={!!previewItem} onClose={() => (previewItem = null)}>
+    {#if previewItem}
+      {@const item = previewItem}
+      <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+        <ScrollText class="w-4 h-4 shrink-0 text-blue-400" />Detection log
+      </h3>
+
+      <div class="mt-5 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <Badge tone={item.status === 'handled' && item.handled_action === 'deleted' ? 'danger' : statusTone[item.status]}>{item.status === 'handled' && item.handled_action ? actionText[item.handled_action] : statusLabel[item.status]}</Badge>
+          <a href={`https://discord.com/channels/${guildId}/${item.channel_id}/${item.message_id}`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors">
+            Jump to message<ExternalLink class="w-3 h-3" />
+          </a>
+        </div>
+
+        <div>
+          <span class={label}>Author</span>
+          {#if item.author}<ActorCell actor={item.author} />{/if}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class={label}>Channel</span>
+            <ChannelChip channel={channelOf(item.channel_id)} />
+          </div>
+          <div>
+            <span class={label}>Detected</span>
+            <p class="text-sm text-zinc-200">{when(item.created_at)}</p>
+          </div>
+          {#if item.matched_terms.length}
+            <div>
+              <span class={label}>Matched</span>
+              <div class="flex flex-wrap gap-1 mt-1">
+                {#each item.matched_terms as term (term)}<Badge tone="danger">{term}</Badge>{/each}
+              </div>
+            </div>
+          {/if}
+          {#if item.status === 'handled' && item.handled_action}
+            <div>
+              <span class={label}>Handled</span>
+              <Badge tone={item.handled_action === 'deleted' ? 'danger' : 'neutral'}>{actionText[item.handled_action]}</Badge>
+            </div>
           {/if}
         </div>
-      {:else}
-        <p class="px-3 py-6 text-center text-xs text-zinc-500">The image link is no longer kept.</p>
-      {/if}
-    </div>
-    <div class="mt-3 flex items-center justify-between gap-2">
-      {#if previewItem.author}
-        <ActorCell actor={previewItem.author} />
-      {/if}
-      <ChannelChip channel={channelOf(previewItem.channel_id)} />
-    </div>
-    <div class="mt-5 flex justify-end">
-      <Button variant="ghost" onclick={() => (previewItem = null)}>Close</Button>
-    </div>
-  {/if}
-</Modal>
+
+        {#if item.attachment_url}
+          <div>
+            <span class={label}>Image</span>
+            <div class="mt-1 max-h-[40vh] overflow-auto rounded-xl bg-zinc-950/60 p-2 ring-1 ring-zinc-800">
+              <img src={item.attachment_url} alt={item.attachment_name} class="mx-auto max-h-[36vh] w-auto rounded-lg object-contain" />
+            </div>
+          </div>
+        {:else if item.status === 'handled'}
+          <div>
+            <span class={label}>Reason</span>
+            <p class="text-sm leading-relaxed text-zinc-300">{item.handled_reason ?? 'No reason provided'}</p>
+          </div>
+        {:else}
+          <div>
+            <span class={label}>Image</span>
+            <p class="text-sm text-zinc-500">The image link is no longer kept.</p>
+          </div>
+        {/if}
+
+        {#if item.error}
+          <div>
+            <span class={label}>Error</span>
+            <p class="text-sm leading-relaxed text-zinc-300">{item.error}</p>
+          </div>
+        {/if}
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <Button variant="ghost" onclick={() => (previewItem = null)}>Close</Button>
+      </div>
+    {/if}
+  </Modal>
 
 <Modal show={!!deleting} onClose={() => !working && (deleting = null)}>
   {#if deleting}
     <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
-      <Trash2 class="w-4 h-4 shrink-0 text-red-400" />Delete this message?
+      <ScrollText class="w-4 h-4 shrink-0 text-red-400" />Delete this message?
     </h3>
     <p class="text-xs text-zinc-400 mt-3 leading-relaxed">The message by {deleting.author?.name ?? deleting.author_id} is removed from Discord. This cannot be undone.</p>
     <div class="flex justify-end gap-2 mt-5">
@@ -499,7 +544,7 @@ import Select from '$lib/components/Select.svelte';
 <Modal show={!!ignoring} onClose={() => !working && (ignoring = null)}>
   {#if ignoring}
     <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
-      <X class="w-4 h-4 shrink-0 text-zinc-400" />Ignore this report?
+      <ScrollText class="w-4 h-4 shrink-0 text-zinc-400" />Ignore this report?
     </h3>
     <p class="text-xs text-zinc-400 mt-3 leading-relaxed">The image is marked fine. Give a reason; it is kept with the report and in the audit log.</p>
     <div class="mt-3">
