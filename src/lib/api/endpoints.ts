@@ -291,10 +291,12 @@ export interface OcrDetectionItem {
   message_id: string;
   author?: UserProfile;
   attachment_name: string;
+  attachment_url: string;
   status: 'pending' | 'safe' | 'flagged' | 'handled' | 'failed';
   matched_terms: string[];
   handled_by?: UserProfile;
   handled_action: 'deleted' | 'ignored' | 'timeout' | null;
+  handled_reason: string | null;
   error: string | null;
   created_at: string;
 }
@@ -349,6 +351,8 @@ export interface FileCollectionEntry {
   approve_role_id: string | null;
   reject_role_id: string | null;
   publish_reaction: string | null;
+  /** The forum where `panel` opens a thread per round. */
+  submission_forum_id: string | null;
   /** Why the bot cannot grant its roles, if it cannot. */
   problems: string[];
 }
@@ -362,6 +366,8 @@ export interface FileCollections {
 export type FileCollectionInput = Omit<FileCollectionEntry, 'id' | 'problems'>;
 
 export interface FileSubmissionGroup {
+  collection_id: string;
+  collection_name: string;
   tag: string;
   total: number;
   pending: number;
@@ -504,8 +510,115 @@ export interface ChatCompletionTest {
   reply: string;
 }
 
-export interface AuditFilters {
-  actions: string[];
+/** A band of the board and the ink written on it. */
+export interface BingoBand {
+  color: string;
+  text: string;
+}
+
+/** Bingo: the 12 questions of one round, their points and how the board looks. */
+export interface BingoBoardStyle {
+  background: string;
+  /** The cell body under the band. */
+  tile: string;
+  /** The question text on that body. */
+  text: string;
+  title_color: string;
+  subtitle_color: string;
+  /** The band of the nine main cells, and of the bonus cells 10, 11 and 12. */
+  box: BingoBand;
+  bonus_1: BingoBand;
+  bonus_2: BingoBand;
+  bonus_3: BingoBand;
+  radius: number;
+  show_numbers: boolean;
+  show_points: boolean;
+}
+
+export interface BingoBoard {
+  title: string;
+  subtitle: string;
+  footer: string;
+  /** 12 questions, index 0 is question 1. */
+  questions: string[];
+  /** 12 point values, a wrong answer costs the same. */
+  points: number[];
+  style: BingoBoardStyle;
+}
+
+/** A board: saved on its own, and one can be assigned to a round. `updated_at` is null until it is saved
+ *  for the first time, and `id` is empty for the empty board a round starts from. */
+export interface BingoDesign {
+  id: string;
+  round_id: string | null;
+  round_tag: string | null;
+  board: BingoBoard;
+  updated_at: string | null;
+}
+
+export type BingoRoundStatus = 'open' | 'closed' | 'ignored';
+export type BingoTogetherMode = 'off' | 'positive' | 'negative';
+
+export interface BingoRound {
+  id: string;
+  tag: string;
+  thread_id: string;
+  thread_name: string;
+  status: BingoRoundStatus;
+  together_mode: BingoTogetherMode;
+  design_id: string | null;
+  has_design: boolean;
+  board_ready: boolean;
+  has_answers: boolean;
+  /** The 12 correct answers, once they are set. */
+  correct_answers: string | null;
+  entries: number;
+  ranked_entries: number;
+  top_score: number | null;
+  created_at: string;
+}
+
+export interface BingoLimits {
+  question: number;
+  title: number;
+  subtitle: number;
+  footer: number;
+  points: number;
+  regex: number;
+}
+
+export interface BingoConfig {
+  channel_id: string | null;
+  tag_regex: string | null;
+  participant_role_id: string | null;
+  newcomer_role_id: string | null;
+  positive_role_id: string | null;
+  negative_role_id: string | null;
+  announce_board: boolean;
+  warnings: string[];
+  defaults: { board: BingoBoard };
+  limits: BingoLimits;
+}
+
+export interface BingoEntry {
+  id: string;
+  user_id: string;
+  user_name: string;
+  answers: string;
+  score: number;
+  final_score: number;
+  is_ranked: boolean;
+  position: number | null;
+  created_at: string;
+}
+
+export interface BingoEntries {
+  entries: BingoEntry[];
+  correct_answers: string | null;
+  pagination: Pagination;
+}
+
+export interface AuditFilters {  actions: string[];
   actors: UserProfile[];
 }
 
@@ -640,7 +753,8 @@ export const api = {
     terms: (guildId: string) => apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`),
     saveTerms: (guildId: string, terms: { term: string; is_regex: boolean }[]) =>
       apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'PUT', { terms }),
-    restoreDefaults: (guildId: string) => apiCall<OcrTerms & { restored: number }>(`/guilds/${guildId}/m/ocr-detection/terms/defaults`, 'POST'),
+    deleteMessage: (guildId: string, id: string) => apiCall<{ ok: boolean }>(`/guilds/${guildId}/m/ocr-detection/detections/${id}/delete`, 'POST'),
+    ignore: (guildId: string, id: string, reason: string) => apiCall<{ ok: boolean }>(`/guilds/${guildId}/m/ocr-detection/detections/${id}/ignore`, 'POST', { reason }),
     detections: (guildId: string, query: { page: number; limit: number; status?: string }) =>
       apiCall<{ items: OcrDetectionItem[]; pending: number; pagination: Pagination }>(
         `/guilds/${guildId}/m/ocr-detection/detections?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
@@ -651,9 +765,9 @@ export const api = {
     create: (guildId: string, input: FileCollectionInput) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections`, 'POST', input),
     update: (guildId: string, id: string, input: FileCollectionInput) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'PUT', input),
     remove: (guildId: string, id: string) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'DELETE'),
-    groups: (guildId: string, query: { page: number; limit: number; collectionId: string }) =>
+    groups: (guildId: string, query: { page: number; limit: number; collectionId?: string }) =>
       apiCall<{ groups: FileSubmissionGroup[]; pagination: Pagination }>(
-        `/guilds/${guildId}/m/file-submissions/submissions/groups?page=${query.page}&limit=${query.limit}&collection_id=${query.collectionId}`,
+        `/guilds/${guildId}/m/file-submissions/submissions/groups?page=${query.page}&limit=${query.limit}${query.collectionId ? `&collection_id=${query.collectionId}` : ''}`,
       ),
     submissions: (guildId: string, query: { page: number; limit: number; status: string; collectionId: string; tag: string }) =>
       apiCall<{ submissions: FileSubmissionRow[]; pagination: Pagination }>(
@@ -685,6 +799,36 @@ export const api = {
       apiCall<{ changes: RoleColorChange[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/role-colors/changes?page=${query.page}&limit=${query.limit}${query.colorId ? `&color_id=${query.colorId}` : ''}`,
       ),
+  },
+  bingo: {
+    config: (guildId: string) => apiCall<BingoConfig>(`/guilds/${guildId}/m/bingo/config`),
+    saveConfig: (guildId: string, patch: Record<string, unknown>) => apiCall<BingoConfig>(`/guilds/${guildId}/m/bingo/config`, 'PUT', patch),
+    testRegex: (guildId: string, pattern: string, text: string) =>
+      apiCall<{ match: string | null; index: number | null }>(`/guilds/${guildId}/m/bingo/config/test-regex`, 'POST', { pattern, text }),
+    rescan: (guildId: string) => apiCall<{ found: number; created: number }>(`/guilds/${guildId}/m/bingo/channel/rescan`, 'POST'),
+    rounds: (guildId: string, query: { page: number; limit: number; status?: string }) =>
+      apiCall<{ rounds: BingoRound[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/bingo/threads?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
+      ),
+    round: (guildId: string, id: string) => apiCall<{ round: BingoRound; design: BingoDesign }>(`/guilds/${guildId}/m/bingo/threads/${id}`),
+    designs: (guildId: string) => apiCall<{ designs: BingoDesign[] }>(`/guilds/${guildId}/m/bingo/designs`),
+    design: (guildId: string, id: string) => apiCall<BingoDesign>(`/guilds/${guildId}/m/bingo/designs/${id}`),
+    createDesign: (guildId: string, body: { board: BingoBoard; round_id: string | null }) =>
+      apiCall<BingoDesign & { rescored: number }>(`/guilds/${guildId}/m/bingo/designs`, 'POST', body),
+    updateDesign: (guildId: string, id: string, body: { board: BingoBoard; round_id: string | null }) =>
+      apiCall<BingoDesign & { rescored: number }>(`/guilds/${guildId}/m/bingo/designs/${id}`, 'PUT', body),
+    removeDesign: (guildId: string, id: string) => apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/bingo/designs/${id}`, 'DELETE'),
+    saveDesign: (guildId: string, id: string, board: BingoBoard) =>
+      apiCall<BingoDesign & { rescored: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/design`, 'PUT', { board }),
+    postBoard: (guildId: string, id: string) => apiCall<BingoRound>(`/guilds/${guildId}/m/bingo/threads/${id}/board`, 'POST'),
+    answers: (guildId: string, id: string, answers: string) =>
+      apiCall<{ rescored: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/answers`, 'POST', { answers }),
+    together: (guildId: string, id: string, mode: BingoTogetherMode) =>
+      apiCall<{ granted: number; removed: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/together`, 'POST', { mode }),
+    setStatus: (guildId: string, id: string, status: BingoRoundStatus) => apiCall<BingoRound>(`/guilds/${guildId}/m/bingo/threads/${id}`, 'PUT', { status }),
+    remove: (guildId: string, id: string) => apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/bingo/threads/${id}`, 'DELETE'),
+    entries: (guildId: string, id: string, query: { page: number; limit: number }) =>
+      apiCall<BingoEntries>(`/guilds/${guildId}/m/bingo/threads/${id}/entries?page=${query.page}&limit=${query.limit}`),
   },
   auditFilters: (guildId: string) => apiCall<AuditFilters>(`/guilds/${guildId}/audit-logs/filters`),
 };

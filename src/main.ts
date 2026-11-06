@@ -35,6 +35,8 @@ install(
           red: accent('red'),
           // A red that leans orange: the color of Chat Completion.
           vermilion: scale('vermilion', [300, 400, 500]),
+          // A soft pink red: the color of Bingo.
+          rose: scale('rose', [300, 400, 500]),
         },
         fontFamily: { display: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
       },

@@ -1,6 +1,7 @@
 import AnnouncementsPage from '$lib/modules/announcements/AnnouncementsPage.svelte';
 import AntiTamperPage from '$lib/modules/anti-tamper/AntiTamperPage.svelte';
 import AutoremoverPage from '$lib/modules/autoremover/AutoremoverPage.svelte';
+import BingoPage from '$lib/modules/bingo/BingoPage.svelte';
 import BoosterPage from '$lib/modules/booster/BoosterPage.svelte';
 import ChatCompletionPage from '$lib/modules/chat-completion/ChatCompletionPage.svelte';
 import OcrDetectionPage from '$lib/modules/ocr-detection/OcrDetectionPage.svelte';
@@ -21,4 +22,5 @@ export const MODULE_VIEWS: Record<string, Component<{ guildId: string; isAdmin: 
   announcements: AnnouncementsPage,
   'file-submissions': FileSubmissionsPage,
   'chat-completion': ChatCompletionPage,
+  bingo: BingoPage,
 };

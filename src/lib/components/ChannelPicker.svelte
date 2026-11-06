@@ -13,6 +13,7 @@
     label,
     disabled = false,
     all = false,
+    types,
     manageable = false,
     onchange,
     class: className = '',
@@ -25,6 +26,8 @@
     disabled?: boolean;
     /** Offer every channel (voice, categories, forums) and not just the ones the bot can post in; threads are left out. */
     all?: boolean;
+    /** Only these channel types, e.g. `[15]` for a forum. Overrides `all`. */
+    types?: number[];
     /** For a channel the bot will keep the permissions of: one it cannot manage is listed with the reason, but cannot be picked. */
     manageable?: boolean;
     onchange?: () => void;
@@ -35,7 +38,11 @@
   // places the bot can post in (private threads are left out, the bot is rarely a member).
   const THREAD_TYPES = [10, 11];
   // Each kind of channel has its own icon, and a category reads as a heading, so a long list can be scanned.
-  const postable = $derived(channels.filter(c => (all ? !THREAD_TYPES.includes(c.type) && c.type !== 12 : c.type === 0 || c.type === 5 || THREAD_TYPES.includes(c.type))));
+  const postable = $derived(
+    channels.filter(c =>
+      types?.length ? types.includes(c.type) : all ? !THREAD_TYPES.includes(c.type) && c.type !== 12 : c.type === 0 || c.type === 5 || THREAD_TYPES.includes(c.type),
+    ),
+  );
   const options = $derived([
     { value: '', label: none },
     ...postable.map(c =>

@@ -43,6 +43,9 @@
   --vermilion-300: 255 160 128;
   --vermilion-400: 255 99 56;
   --vermilion-500: 255 99 56;
+  --rose-300: 253 164 175;
+  --rose-400: 251 113 133;
+  --rose-500: 244 63 94;
 }
 
 :root[data-theme='light'] {
@@ -87,6 +90,9 @@
   --vermilion-300: 194 65 12;
   --vermilion-400: 234 76 30;
   --vermilion-500: 234 76 30;
+  --rose-300: 190 18 60;
+  --rose-400: 225 29 72;
+  --rose-500: 225 29 72;
 }
 
 /* A slim, theme-following scrollbar for the sidebar and other panes that overflow (Discord-like),

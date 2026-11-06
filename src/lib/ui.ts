@@ -18,7 +18,7 @@ export const td = 'h-11 px-5 align-middle text-xs';
 
 
 /** The accent palette: orange is the brand, the rest give each area its own color. */
-export type Tone = 'orange' | 'sky' | 'cyan' | 'violet' | 'emerald' | 'amber' | 'fuchsia' | 'green' | 'blue' | 'lime' | 'teal' | 'red' | 'vermilion';
+export type Tone = 'orange' | 'sky' | 'cyan' | 'violet' | 'emerald' | 'amber' | 'fuchsia' | 'green' | 'blue' | 'lime' | 'teal' | 'red' | 'vermilion' | 'rose';
 
 /** A stable "random" tone for an id (a server, a module): same id, same color, everywhere. */
 const RANDOM_TONES: Tone[] = ['sky', 'violet', 'amber', 'emerald', 'orange'];
@@ -39,6 +39,7 @@ export const tile: Record<Tone, string> = {
   teal: 'bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/30',
   red: 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30',
   vermilion: 'bg-vermilion-500/20 text-vermilion-400 ring-1 ring-vermilion-500/30',
+  rose: 'bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/30',
 };
 
 /** Plain icon color per tone (sidebar icons, inline accents). */
@@ -56,4 +57,5 @@ export const toneText: Record<Tone, string> = {
   teal: 'text-teal-400',
   red: 'text-red-400',
   vermilion: 'text-vermilion-400',
+  rose: 'text-rose-400',
 };

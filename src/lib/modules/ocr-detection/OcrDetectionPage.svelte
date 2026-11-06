@@ -13,7 +13,9 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
-  import Select from '$lib/components/Select.svelte';
+  import Modal from '$lib/components/Modal.svelte';
+  import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
+import Select from '$lib/components/Select.svelte';
   import Textarea from '$lib/components/Textarea.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
@@ -26,7 +28,7 @@
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
-  import { Info, ListX, RotateCcw, ScanText, Settings } from '@lucide/svelte';
+  import { Info, ListX, RotateCcw, ScanText, Settings, Eye, Trash2, X } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -39,7 +41,7 @@
       steps: [
         { text: 'An image posted in the watched channel goes on the watchlist as a pending detection. Each row here is one image.' },
         { text: 'A background reader takes the pending images one at a time, shrinks each and sends it to a text recognition service (OCR.space), which returns the text it sees. If the service says it is busy, reading pauses for an hour and the images wait.' },
-        { text: 'The text is compared with the blocklist. No match: the image is marked safe and its stored link is dropped. A match is flagged and reported in the report channel, where a moderator can delete the message, ignore it or time the author out.' },
+        { text: 'The text is compared with the blocklist. No match: the image is marked safe and its stored link is dropped. A match is flagged and reported in the report channel, where a moderator can delete the message or ignore it with a reason.' },
         { text: 'An image that cannot be read is tried again later, a little longer each time, and fails with its reason if it never works. A message can also be read by hand with the Scan Text command.' },
       ],
     },
@@ -55,7 +57,7 @@
       title: 'How these settings apply',
       steps: [
         { text: 'The watched channel decides which images are read: only the ones posted there from now on. Images posted before it was set, or elsewhere, are never read.' },
-        { text: 'The report channel is where a flagged image is posted, with the buttons to delete the message, ignore it or time the author out.' },
+        { text: 'The report channel is where a flagged image is posted, with buttons to view it, delete the message or ignore it.' },
         { text: 'The similarity decides how close a line of text must be to a term to count as a match: lower catches more, but flags more harmless images too.' },
       ],
     },
@@ -84,6 +86,12 @@
   let total = $state(0);
   let loaded = $state(false);
   let loading = $state(false);
+
+  let previewItem: OcrDetectionItem | null = $state(null);
+  let deleting: OcrDetectionItem | null = $state(null);
+  let ignoring: OcrDetectionItem | null = $state(null);
+  let reason = $state('');
+  let working = $state(false);
 
   let terms: OcrTerms | null = $state(null);
   // The blocklist as a text box, one term per line, until Save.
@@ -164,6 +172,48 @@
       loading = false;
     }
   }
+
+  async function deleteMessage(item: OcrDetectionItem) {
+    if (working) return;
+    working = true;
+    try {
+      await api.ocrDetection.deleteMessage(guildId, item.id);
+      toast('success', 'Message deleted');
+      deleting = null;
+      await loadDetections();
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      working = false;
+    }
+  }
+
+  async function submitIgnore() {
+    if (!ignoring || working) return;
+    const r = reason.trim();
+    if (!r) {
+      toast('error', 'Give a reason for ignoring this report');
+      return;
+    }
+    working = true;
+    try {
+      await api.ocrDetection.ignore(guildId, ignoring.id, r);
+      toast('success', 'Report ignored');
+      ignoring = null;
+      reason = '';
+      await loadDetections();
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      working = false;
+    }
+  }
+
+  const rowActions = (item: OcrDetectionItem): RowMenuItem[] => [
+    { label: 'Preview', icon: Eye, onclick: () => (previewItem = item) },
+    { label: 'Delete Message', icon: Trash2, danger: true, disabled: working || item.status !== 'flagged', onclick: () => (deleting = item) },
+    { label: 'Ignore', icon: X, disabled: working || item.status !== 'flagged', onclick: () => { ignoring = item; reason = ''; } },
+  ];
 
   function showTerms(next: OcrTerms) {
     terms = next;
@@ -319,8 +369,6 @@
         </div>
       {/if}
     </Card>
-  {:else if loaded && total === 0 && !statusFilter}
-    <EmptyState kind="log" title="No detections yet" description="Images in the watched channel are listed here while they wait to be read, and when they match the blocklist." />
   {:else}
     <div class="flex flex-wrap items-center justify-between gap-3">
       <Select
@@ -341,58 +389,126 @@
         <p class="text-xs text-zinc-500">{pending} image{pending === 1 ? ' is' : 's are'} waiting to be read. Images are read one at a time.</p>
       {/if}
     </div>
-    <Card flush>
-      {#if !loaded}
-        <TableSkeleton
-            columns={['w-16', 'w-64', 'flex-1', 'w-56', 'w-36', 'w-44']}
-            headings={['#', 'User', 'Image', 'Matched', 'Status', 'Detected']}
-            kinds={['bar', 'actor', 'bar', 'bar', 'pill', 'bar']}
+    {#if loaded && total === 0 && !statusFilter}
+      <EmptyState kind="log" title="No detections yet" description="Images in the watched channel are listed here while they wait to be read, and when they match the blocklist." />
+    {:else}
+      <Card flush>
+        {#if !loaded}
+          <TableSkeleton
+            columns={['w-16', 'w-64', 'flex-1', 'w-56', 'w-36', 'w-44', 'w-12']}
+            headings={['#', 'User', 'Channel', 'Matched', 'Status', 'Detected', '']}
+            kinds={['bar', 'actor', 'bar', 'bar', 'pill', 'bar', 'action']}
             rows={5}
             rowHeight="h-14"
           />
-      {:else if items.length === 0}
-        <p class="px-5 py-8 text-center text-xs text-zinc-500">No detection has this status.</p>
-      {:else}
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
-              <th class="{th} w-16">#</th>
-              <th class="{th} w-64">User</th>
-              <th class={th}>Image</th>
-              <th class="{th} w-56">Matched</th>
-              <th class="{th} w-36">Status</th>
-              <th class="{th} w-44">Detected</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-800/30">
-            {#each items as item, i (item.id)}
-              <tr class="hover:bg-zinc-800/30 transition-colors">
-                <td class="{cell} text-zinc-500">{(page - 1) * limit + i + 1}</td>
-                <td class={cell}>{#if item.author}<ActorCell actor={item.author} />{/if}</td>
-                <td class="{cell} text-zinc-200">
-                  <p class="truncate">{item.attachment_name}</p>
-                  <div class="mt-1"><ChannelChip channel={channelOf(item.channel_id)} /></div>
-                </td>
-                <td class={cell}>
-                  <div class="flex flex-wrap gap-1">
-                    {#each item.matched_terms as term (term)}<Badge tone="danger">{term}</Badge>{/each}
-                  </div>
-                </td>
-                <td class={cell}>
-                  <Badge tone={statusTone[item.status]}>{statusLabel[item.status]}</Badge>
-                  {#if item.status === 'handled' && item.handled_action}
-                    <p class="mt-0.5 text-xs text-zinc-500 truncate">{actionText[item.handled_action]}{item.handled_by?.name ? ` by ${item.handled_by.name}` : ''}</p>
-                  {:else if item.error}
-                    <p class="mt-0.5 text-xs text-zinc-500 truncate" title={item.error}>{item.error}</p>
-                  {/if}
-                </td>
-                <td class="{cell} text-zinc-500 whitespace-nowrap">{when(item.created_at)}</td>
+        {:else if items.length === 0}
+          <p class="px-5 py-8 text-center text-xs text-zinc-500">No detection has this status.</p>
+        {:else}
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+                <th class="{th} w-16">#</th>
+                <th class="{th} w-64">User</th>
+                <th class={th}>Channel</th>
+                <th class="{th} w-56">Matched</th>
+                <th class="{th} w-36">Status</th>
+                <th class="{th} w-44">Detected</th>
+                <th class="{th} w-12"></th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
-        <Pagination {page} {limit} {total} onPage={goTo} onLimit={setLimit} disabled={loading} />
-      {/if}
-    </Card>
+            </thead>
+            <tbody class="divide-y divide-zinc-800/30">
+              {#each items as item, i (item.id)}
+                <tr class="hover:bg-zinc-800/30 transition-colors">
+                  <td class="{cell} text-zinc-500">{(page - 1) * limit + i + 1}</td>
+                  <td class={cell}>{#if item.author}<ActorCell actor={item.author} />{/if}</td>
+                  <td class={cell}><ChannelChip channel={channelOf(item.channel_id)} /></td>
+                  <td class={cell}>
+                    <div class="flex flex-wrap gap-1">
+                      {#each item.matched_terms as term (term)}<Badge tone="danger">{term}</Badge>{/each}
+                    </div>
+                  </td>
+                  <td class={cell}>
+                    <Badge tone={statusTone[item.status]}>{statusLabel[item.status]}</Badge>
+                    {#if item.error}
+                      <p class="mt-0.5 text-xs text-zinc-500 truncate" title={item.error}>{item.error}</p>
+                    {/if}
+                  </td>
+                  <td class="{cell} text-zinc-500 whitespace-nowrap">{when(item.created_at)}</td>
+                  <td class="{cell} text-right"><RowMenu label="Actions for this detection" items={rowActions(item)} /></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+          <Pagination {page} {limit} {total} onPage={goTo} onLimit={setLimit} disabled={loading} />
+        {/if}
+      </Card>
+    {/if}
   {/if}
 </div>
+
+<Modal show={!!previewItem} wide onClose={() => (previewItem = null)}>
+  {#if previewItem}
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <p class="{label} text-zinc-500 truncate">Detection</p>
+        <h3 class="mt-0.5 font-display text-lg font-bold text-zinc-100 truncate">Preview</h3>
+      </div>
+      <Badge tone={statusTone[previewItem.status]}>{statusLabel[previewItem.status]}</Badge>
+    </div>
+    <div class="mt-5 max-h-[60vh] overflow-auto rounded-xl bg-zinc-950/60 p-2 ring-1 ring-zinc-800">
+      {#if previewItem.attachment_url}
+        <img src={previewItem.attachment_url} alt={previewItem.attachment_name} class="mx-auto max-h-[56vh] w-auto rounded-lg object-contain" />
+      {:else if previewItem.status === 'handled'}
+        <div class="rounded-lg bg-zinc-900/60 px-4 py-3 ring-1 ring-zinc-800">
+          <Badge tone="neutral">{actionText[previewItem.handled_action ?? 'ignored']}</Badge>
+          {#if previewItem.handled_reason}
+            <span class="text-xs text-zinc-400 leading-relaxed">{previewItem.handled_reason}</span>
+          {:else}
+            <span class="text-xs text-zinc-500 leading-relaxed">No reason provided</span>
+          {/if}
+        </div>
+      {:else}
+        <p class="px-3 py-6 text-center text-xs text-zinc-500">The image link is no longer kept.</p>
+      {/if}
+    </div>
+    <div class="mt-3 flex items-center justify-between gap-2">
+      {#if previewItem.author}
+        <ActorCell actor={previewItem.author} />
+      {/if}
+      <ChannelChip channel={channelOf(previewItem.channel_id)} />
+    </div>
+    <div class="mt-5 flex justify-end">
+      <Button variant="ghost" onclick={() => (previewItem = null)}>Close</Button>
+    </div>
+  {/if}
+</Modal>
+
+<Modal show={!!deleting} onClose={() => !working && (deleting = null)}>
+  {#if deleting}
+    <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+      <Trash2 class="w-4 h-4 shrink-0 text-red-400" />Delete this message?
+    </h3>
+    <p class="text-xs text-zinc-400 mt-3 leading-relaxed">The message by {deleting.author?.name ?? deleting.author_id} is removed from Discord. This cannot be undone.</p>
+    <div class="flex justify-end gap-2 mt-5">
+      <Button variant="ghost" onclick={() => (deleting = null)} disabled={working}>Cancel</Button>
+      <Button variant="danger" onclick={() => deleteMessage(deleting!)} disabled={working}>{working ? 'Deleting…' : 'Delete'}</Button>
+    </div>
+  {/if}
+</Modal>
+
+<Modal show={!!ignoring} onClose={() => !working && (ignoring = null)}>
+  {#if ignoring}
+    <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+      <X class="w-4 h-4 shrink-0 text-zinc-400" />Ignore this report?
+    </h3>
+    <p class="text-xs text-zinc-400 mt-3 leading-relaxed">The image is marked fine. Give a reason; it is kept with the report and in the audit log.</p>
+    <div class="mt-3">
+      <span class={label}>Reason</span>
+      <Textarea bind:value={reason} maxlength={300} rows={3} aria-label="Reason" />
+    </div>
+    <div class="flex justify-end gap-2 mt-5">
+      <Button variant="ghost" onclick={() => (ignoring = null)} disabled={working}>Cancel</Button>
+      <Button variant="primary" onclick={submitIgnore} disabled={working || !reason.trim()}>{working ? 'Ignoring…' : 'Ignore'}</Button>
+    </div>
+  {/if}
+</Modal>

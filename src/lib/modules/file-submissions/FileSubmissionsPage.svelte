@@ -4,6 +4,7 @@
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import SaveButton from '$lib/components/SaveButton.svelte';
+  import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import ChipPicker from '$lib/components/ChipPicker.svelte';
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -18,12 +19,14 @@
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import Select from '$lib/components/Select.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
+  import Tabs from '$lib/components/Tabs.svelte';
   import Textarea from '$lib/components/Textarea.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import {
     api,
     type DiscordRole,
+    type DiscordChannel,
     type FileCollectionEntry,
     type FileCollections,
     type FileKind,
@@ -34,7 +37,8 @@
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, label, td, th, toneText } from '$lib/ui';
-  import { Check, ChevronRight, Eye, Infinity as InfinityIcon, Info, Pencil, Plus, Trash2, X } from '@lucide/svelte';
+  import { urlParam } from '$lib/url-param';
+  import { Check, ChevronRight, Eye, Grid3x3, Infinity as InfinityIcon, Info, Pencil, Plus, Settings, Trash2, X } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -52,12 +56,15 @@
   let data: FileCollections | null = $state(null);
   let info = $state(false);
   let roles: DiscordRole[] = $state([]);
+  let channels: DiscordChannel[] = $state([]);
 
   // Where the person is: the collections, one collection's rounds, or one round's entries.
   // All of it lives in the URL (`?c=<collection>&tag=<round>&status=&page=&gp=&e=<entry>`), so a link or a reload
   // opens the same place.
+  const tabParam = urlParam('tab', 'rounds');
   const openId = $derived(router.query.get('c'));
   const openTag = $derived(router.query.get('tag'));
+  const tab = $derived(tabParam.value === 'settings' ? 'settings' : 'rounds');
   const urlStatus = $derived(router.query.get('status') ?? '');
   const page = $derived(Number(router.query.get('page')) || 1);
   const groupPage = $derived(Number(router.query.get('gp')) || 1);
@@ -101,6 +108,7 @@
   let approveRole = $state('');
   let rejectRole = $state('');
   let reaction = $state('');
+  let submissionForum = $state('');
   let saving = $state(false);
   let removeTarget: FileCollectionEntry | null = $state(null);
   let removing = $state(false);
@@ -139,11 +147,11 @@
   // What the skeletons expect: the rounds list already says how many entries a round has (and per status), a
   // direct link falls back to what the last visit showed.
   const entryRows = $derived.by(() => {
-    const known = groups.find(g => g.tag === openTag);
+    const known = groups.find(g => g.tag === openTag && (!openId || g.collection_id === openId));
     if (known) return Math.max(1, Math.min(limit, urlStatus ? known[urlStatus as 'pending' | 'approved' | 'rejected'] : known.total));
     return Math.min(limit, recall(`rows:${openId}|${openTag}|${urlStatus}`, 3));
   });
-  const groupRows = $derived(Math.min(groupLimit, recall(`groups:${openId}`, 3)));
+  const groupRows = $derived(Math.min(groupLimit, recall(`groups:${openId ?? 'all'}`, 3)));
   const collectionRows = $derived(recall('collections', 2));
   const full = $derived.by(() => {
     const current: FileCollections | null = data;
@@ -173,6 +181,7 @@
     approveRole = collection?.approve_role_id ?? '';
     rejectRole = collection?.reject_role_id ?? '';
     reaction = collection?.publish_reaction ?? '';
+    submissionForum = collection?.submission_forum_id ?? '';
     panel = true;
   }
 
@@ -194,6 +203,7 @@
       approve_role_id: approveRole || null,
       reject_role_id: rejectRole || null,
       publish_reaction: reaction.trim() || null,
+      submission_forum_id: submissionForum || null,
     };
     try {
       data = editing ? await api.fileSubmissions.update(guildId, editing.id, input) : await api.fileSubmissions.create(guildId, input);
@@ -222,33 +232,31 @@
     }
   }
 
-  const openCollection = (collection: FileCollectionEntry) => {
-    panel = false;
-    go({ c: collection.id, tag: null, status: null, page: null, gp: null, e: null });
-  };
+
   // Each level has its own hint, so it starts closed when the person moves between them.
   $effect(() => {
     void [openId, openTag];
     untrack(() => (info = false));
   });
-  const openRound = (tag: string) => go({ tag, status: null, page: null, e: null });
-  const closeRound = () => go({ tag: null, status: null, page: null, e: null });
-  const closeCollection = () => go({ c: null, tag: null, status: null, page: null, gp: null, e: null });
+  const openRound = (collectionId: string, tag: string) => go({ c: collectionId, tag, status: null, page: null, e: null });
+  const closeCollection = () => go({ c: null, tag: null, status: null, page: null, gp: null, e: null, tab: null });
   const closePreview = () => go({ e: null });
   const toPage = (key: 'page' | 'gp', value: number) => go({ [key]: value > 1 ? String(value) : null });
 
   // Loading follows the URL: a different collection or round starts from the skeleton, a different page does not.
   let groupsFor: string | null = null;
   $effect(() => {
-    const collectionId = openId;
+    const collectionId = openId ?? '';
+    const wantedTab = tab;
     const wanted = groupPage;
     const size = groupLimit;
     // Back from a round reloads the rounds, since its entries may have been reviewed meanwhile.
-    if (!collectionId || openTag !== null) return void (groupsFor = collectionId ? groupsFor : null);
+    if (wantedTab !== 'rounds' || openTag !== null) return void (groupsFor = null);
     untrack(() => {
-      if (groupsFor !== collectionId) groupsLoaded = false;
-      groupsFor = collectionId;
-      void loadGroups(collectionId, wanted, size);
+      const key = collectionId || 'all';
+      if (groupsFor !== key) groupsLoaded = false;
+      groupsFor = key;
+      void loadGroups(collectionId || undefined, wanted, size);
     });
   });
 
@@ -269,13 +277,13 @@
     });
   });
 
-  async function loadGroups(collectionId: string, wanted: number, size: number) {
+  async function loadGroups(collectionId: string | undefined, wanted: number, size: number) {
     loading = true;
     try {
       const res = await api.fileSubmissions.groups(guildId, { page: wanted, limit: size, collectionId });
       groups = res.groups;
       groupTotal = res.pagination.total;
-      remember(`groups:${collectionId}`, res.groups.length);
+      remember(`groups:${collectionId ?? 'all'}`, res.groups.length);
       groupsLoaded = true;
     } catch (e: any) {
       toast('error', e.message);
@@ -361,20 +369,23 @@
   };
 
   onMount(async () => {
-    const [collections, roleList] = await Promise.allSettled([api.fileSubmissions.collections(guildId), api.roles(guildId)]);
+    const [collections, roleList, channelList] = await Promise.allSettled([
+      api.fileSubmissions.collections(guildId),
+      api.roles(guildId),
+      api.channels(guildId),
+    ]);
     if (roleList.status === 'fulfilled') roles = roleList.value;
+    if (channelList.status === 'fulfilled') channels = channelList.value;
     if (collections.status === 'fulfilled') {
       data = collections.value;
       remember('collections', collections.value.collections.length);
-      remember('collections', collections.value.collections.length);
-    }
-    else toast('error', collections.reason?.message ?? 'Could not load the collections');
+    } else toast('error', collections.reason?.message ?? 'Could not load the collections');
   });
 </script>
 
 {#snippet hint()}
           <p class="mb-5 text-xs text-zinc-500">
-            Staff post a panel with <span class="font-mono {toneText.amber}">/{commandName || 'command'} panel</span>, naming the round (tag) and the box where entries are reviewed.
+            Staff open a round with <span class="font-mono {toneText.amber}">/{commandName || 'command'} panel tag:&lt;round&gt; name:&lt;thread&gt;</span> in this collection's submission forum. The thread is named after <span class="font-mono">name</span>, or the tag when it is left out, and it holds the Submit panel and the entries.
           </p>
 {/snippet}
 
@@ -399,9 +410,14 @@
               <span class={label}>Description</span>
               <Input bind:value={description} maxlength={100} placeholder="Shown in Discord next to the command (optional)" aria-label="Description" />
             </div>
-            <div class="sm:col-span-2">
+            <div>
               <span class={label}>Accepted files</span>
               <ChipPicker items={KIND_ITEMS} selected={kinds} onchange={next => (kinds = next)} placeholder="Add a kind..." label="Accepted files" />
+            </div>
+            <div>
+              <span class={label}>Submission thread</span>
+              <ChannelPicker {channels} types={[15]} bind:value={submissionForum} none="No forum" label="Submission thread" />
+              <p class="mt-1.5 text-xs text-zinc-500">Every round opens its own thread in this forum.</p>
             </div>
             <div>
               <span class={label}>Files per upload</span>
@@ -461,61 +477,67 @@
 
 <div class="space-y-5">
   <div class="flex items-center justify-between gap-3 flex-wrap">
-    <nav class="flex items-center gap-1.5 text-sm" aria-label="Where you are">
-      <button type="button" class="cursor-pointer font-semibold {openId ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-100'}" onclick={closeCollection}>Collections</button>
-      {#if openId}
+    {#if openId}
+      <nav class="flex items-center gap-1.5 text-sm" aria-label="Where you are">
+        <button type="button" class="cursor-pointer font-semibold text-zinc-400 hover:text-zinc-200" onclick={closeCollection}>Rounds</button>
         <ChevronRight class="w-3.5 h-3.5 text-zinc-600" />
-        <button type="button" class="cursor-pointer font-semibold {openTag !== null ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-100'}" onclick={closeRound}>
+        <span class="font-semibold text-zinc-100">
           {#if opened}{opened.name}{:else}<span class="inline-block h-4 w-28 rounded bg-zinc-700/40 animate-pulse align-middle" aria-hidden="true"></span>{/if}
-        </button>
-      {/if}
-      {#if openId && openTag !== null}
-        <ChevronRight class="w-3.5 h-3.5 text-zinc-600" />
-        <span class="font-semibold text-zinc-100">{openTag}</span>
-      {/if}
-    </nav>
-    {#if !openId}
+        </span>
+        {#if openTag !== null}
+          <ChevronRight class="w-3.5 h-3.5 text-zinc-600" />
+          <span class="font-semibold text-zinc-100">{openTag}</span>
+        {/if}
+      </nav>
+    {:else}
+      <Tabs
+        bind:value={tabParam.value}
+        tabs={[
+          { id: 'rounds', label: 'Rounds', icon: Grid3x3, count: groupsLoaded ? groupTotal : undefined },
+          { id: 'settings', label: 'Settings', icon: Settings, count: data ? data.collections.length : null },
+        ]}
+      />
+    {/if}
+    {#if openId || tab === 'rounds'}
+      <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    {:else if isAdmin}
       <div class="flex items-center gap-3">
-        {#if isAdmin}
-          {#if data}
-            <span class="text-xs text-zinc-500">{data.collections.length} of {data.max_collections} collections</span>
-            <Button variant="primary" disabled={full && !panel} onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add collection</Button>
-          {:else}
-            <ControlSkeleton class="w-36" h="h-8" />
-            <ControlSkeleton class="w-36" h="h-8" />
-          {/if}
+        {#if data}
+          <span class="text-xs text-zinc-500">{data.collections.length} of {data.max_collections} collections</span>
+          <Button variant="primary" disabled={full && !panel} onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add collection</Button>
+        {:else}
+          <ControlSkeleton class="w-36" h="h-8" />
+          <ControlSkeleton class="w-36" h="h-8" />
         {/if}
       </div>
-    {:else}
-      <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
     {/if}
   </div>
 
   {#if data}<WarningBanner warnings={data.warnings} />{/if}
 
-  {#if openId && openTag === null}
-    <!-- The rounds of a collection: how a round, and the entries in it, come to be. What happens to an entry is on the entries level. -->
+  {#if openTag === null && tab === 'rounds'}
+    <!-- How a round, and the entries in it, come to be. What happens to an entry is on the entries level. -->
     <InfoPanel
       show={info}
       title="How rounds work"
       tone="amber"
       steps={[
-        { text: 'A round starts when staff post a Submit panel with this collection\'s command: a message with buttons that remembers the round name (tag) and the box, the channel or thread where entries go for review. Each tag shows up here as a round.', command: `/${opened?.command_name ?? 'command'} panel tag:<round> box:<channel or thread>` },
+        { text: 'Staff open a round with a collection\'s command: the bot creates a thread in that collection\'s submission forum, named after the name or the tag, and posts the Submit panel there. Each tag shows up here as a round.', command: `/${opened?.command_name ?? 'command'} panel tag:<round> name:<thread>` },
         { text: 'A member presses Submit and attaches files. They are checked against the collection\'s rules: file kinds, how many in one upload, and how many entries that person already has in the round.' },
-        { text: 'Each valid entry is posted in the box as its own message (one per file, or one per upload, as the collection says) and counted in the round. Staff can submit for someone else.' },
+        { text: 'Each valid entry is posted in the round\'s thread as its own message (one per file, or one per upload, as the collection says) and counted in the round. Staff can submit for someone else.' },
       ]}
     />
-  {:else if openId && openTag !== null}
-    <!-- The entries of a round: what happens to an entry once it is in the box. -->
+  {:else if openTag !== null}
+    <!-- The entries of a round: what happens to an entry once it is in the thread. -->
     <InfoPanel
       show={info}
       title="How entries are handled"
       tone="amber"
       steps={[
-        { text: 'A new entry waits as pending. Its message in the box has Approve and Reject buttons (and Set Upvotes when the collection uses them).' },
-        { text: 'A reviewer approves or rejects, with a reason when the collection asks for one. The message in the box is updated and the approval or rejection role is given, if the collection has one. The same review can be done here: preview an entry, then use its menu.' },
+        { text: 'A new entry waits as pending. Its message in the thread has Approve and Reject buttons (and Set Upvotes when the collection uses them).' },
+        { text: 'A reviewer approves or rejects, with a reason when the collection asks for one. The message in the thread is updated and the approval or rejection role is given, if the collection has one. The same review can be done here: preview an entry, then use its menu.' },
         { text: 'The member sees the outcome under Check Status: their counts, and the approved or rejected files (with the reason, when the collection shows it).' },
-        { text: 'Publishing posts the approved entries of this round in a channel, with the collection\'s reaction. The files are read from the box messages again, since Discord links expire, and kept for a month so this page stays fast.', command: `/${opened?.command_name ?? 'command'} publish tag:<round>` },
+        { text: 'Publishing posts the approved entries of this round in a channel, with the collection\'s reaction. The files are read from the thread messages again, since Discord links expire, and kept for a month so this page stays fast.', command: `/${opened?.command_name ?? 'command'} publish tag:<round>` },
       ]}
     />
   {/if}
@@ -607,65 +629,8 @@
         {/if}
       </Card>
     {/if}
-  {:else if openId}
-    <!-- The rounds of one collection -->
-    {#if groupsLoaded && groupTotal === 0}
-      <EmptyState kind="search" title="No rounds yet" description={`Post a panel with /${opened?.command_name ?? 'command'} panel and entries will be grouped by its tag.`} />
-    {:else}
-      <Card flush>
-        {#if !groupsLoaded}
-          <TableSkeleton
-            columns={['w-16', 'flex-1', 'w-28', 'w-28', 'w-28', 'w-28', 'w-48']}
-            headings={['#', 'Round', 'Entries', 'Pending', 'Approved', 'Rejected', 'Last entry']}
-            rows={groupRows}
-            rowHeight="h-14"
-          />
-        {:else}
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
-                <th class="{th} w-16">#</th>
-                <th class={th}>Round</th>
-                <th class="{th} w-28">Entries</th>
-                <th class="{th} w-28">Pending</th>
-                <th class="{th} w-28">Approved</th>
-                <th class="{th} w-28">Rejected</th>
-                <th class="{th} w-48">Last entry</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-800/30">
-              {#each groups as group, i (group.tag)}
-                <tr
-                  class="cursor-pointer hover:bg-zinc-800/30 transition-colors"
-                  role="button"
-                  tabindex="0"
-                  onclick={() => openRound(group.tag)}
-                  onkeydown={e => (e.key === 'Enter' || e.key === ' ') && openRound(group.tag)}
-                >
-                  <td class="{rowCell} text-zinc-500">{(groupPage - 1) * groupLimit + i + 1}</td>
-                  <td class="{rowCell} text-zinc-200">{group.tag}</td>
-                  <td class="{rowCell} text-zinc-300">{group.total}</td>
-                  <td class="{rowCell} text-amber-400">{group.pending}</td>
-                  <td class="{rowCell} text-emerald-400">{group.approved}</td>
-                  <td class="{rowCell} text-red-400">{group.rejected}</td>
-                  <td class="{rowCell} text-zinc-500 whitespace-nowrap">{when(group.last_at)}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-          <Pagination
-            page={groupPage}
-            limit={groupLimit}
-            total={groupTotal}
-            onPage={p => toPage('gp', p)}
-            onLimit={l => ((groupLimit = l), toPage('gp', 1))}
-            disabled={loading}
-          />
-        {/if}
-      </Card>
-    {/if}
-  {:else}
-    <!-- The collections: a few, so long panels -->
+  {:else if tab === 'settings'}
+    <!-- The collections: a few, so long panels. What a collection accepts, how it is reviewed, and where its rounds open. -->
     {#if isAdmin && panel && !editing}
       <div transition:slide={{ duration: 220, easing: cubicOut }}>
         <Card>
@@ -715,12 +680,7 @@
         {#each data.collections as collection (collection.id)}
           <Card>
             <div class="flex items-center gap-4">
-              <button
-                type="button"
-                class="grid min-w-0 flex-1 cursor-pointer items-center gap-x-6 gap-y-3 text-left lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(0,1fr)]"
-                onclick={() => openCollection(collection)}
-                aria-label="Open {collection.name}"
-              >
+              <div class="grid min-w-0 flex-1 items-center gap-x-6 gap-y-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(0,1fr)]">
                 <div class="min-w-0" title="/{collection.command_name}">
                   <p class="truncate text-sm font-semibold text-zinc-100">{collection.name}</p>
                   <p class="mt-1 truncate text-xs text-zinc-400">Accepted: {collection.file_types.map(kindName).join(', ')}</p>
@@ -754,7 +714,7 @@
                   {/each}
                   {#each collection.problems as problem}<p class="col-span-2 truncate text-amber-400" title={problem}>{problem}</p>{/each}
                 </dl>
-              </button>
+              </div>
               <div class="flex shrink-0 items-center gap-1">
                 {#if isAdmin}
                   <Button variant="ghost" size="icon" aria-label="Edit {collection.name}" title="Edit" onclick={() => (panel && editing?.id === collection.id ? (panel = false) : openPanel(collection))}><Pencil class="w-3.5 h-3.5" /></Button>
@@ -762,7 +722,6 @@
                     <Trash2 class="w-3.5 h-3.5 text-red-400" />
                   </Button>
                 {/if}
-                <ChevronRight class="w-4 h-4 text-zinc-600" />
               </div>
             </div>
             {#if isAdmin && panel && editing?.id === collection.id}
@@ -775,6 +734,65 @@
           </Card>
         {/each}
       </div>
+    {/if}
+  {:else}
+    <!-- Every round of every collection, newest first. -->
+    {#if groupsLoaded && groupTotal === 0}
+      <EmptyState kind="search" title="No rounds yet" description="Open a round with a collection's command and its entries will be grouped by its tag." />
+    {:else}
+      <Card flush>
+        {#if !groupsLoaded}
+          <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-40', 'w-24', 'w-24', 'w-24', 'w-24', 'w-48']}
+            headings={['#', 'Round', 'Collection', 'Entries', 'Pending', 'Approved', 'Rejected', 'Last entry']}
+            rows={groupRows}
+            rowHeight="h-14"
+          />
+        {:else}
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+                <th class="{th} w-16">#</th>
+                <th class={th}>Round</th>
+                <th class="{th} w-40">Collection</th>
+                <th class="{th} w-24">Entries</th>
+                <th class="{th} w-24">Pending</th>
+                <th class="{th} w-24">Approved</th>
+                <th class="{th} w-24">Rejected</th>
+                <th class="{th} w-48">Last entry</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800/30">
+              {#each groups as group, i (`${group.collection_id}:${group.tag}`)}
+                <tr
+                  class="cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => openRound(group.collection_id, group.tag)}
+                  onkeydown={e => (e.key === 'Enter' || e.key === ' ') && openRound(group.collection_id, group.tag)}
+                >
+                  <td class="{rowCell} text-zinc-500">{(groupPage - 1) * groupLimit + i + 1}</td>
+                  <td class="{rowCell} text-zinc-200">{group.tag}</td>
+                  <td class="{rowCell} text-zinc-400">{group.collection_name}</td>
+                  <td class="{rowCell} text-zinc-300">{group.total}</td>
+                  <td class="{rowCell} text-amber-400">{group.pending}</td>
+                  <td class="{rowCell} text-emerald-400">{group.approved}</td>
+                  <td class="{rowCell} text-red-400">{group.rejected}</td>
+                  <td class="{rowCell} text-zinc-500 whitespace-nowrap">{when(group.last_at)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+          <Pagination
+            page={groupPage}
+            limit={groupLimit}
+            total={groupTotal}
+            onPage={p => toPage('gp', p)}
+            onLimit={l => ((groupLimit = l), toPage('gp', 1))}
+            disabled={loading}
+          />
+        {/if}
+      </Card>
     {/if}
   {/if}
 </div>
