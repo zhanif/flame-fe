@@ -34,7 +34,7 @@
             aria-pressed={current === choice}
             aria-label="Question {position}: {choice}"
             onclick={() => pick(position, choice)}
-            class="{choicesFor(position).length === 2 ? 'aspect-square min-h-[4.5rem]' : 'h-[4.5rem]'} flex-1 cursor-pointer rounded-lg text-sm font-bold transition disabled:cursor-not-allowed {current === choice
+            class="{choicesFor(position).length === 2 ? 'aspect-square' : 'h-[4.3rem]'} flex-1 cursor-pointer rounded-lg text-sm font-bold transition disabled:cursor-not-allowed {current === choice
               ? choice === 'Y'
                 ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
                 : choice === 'N'

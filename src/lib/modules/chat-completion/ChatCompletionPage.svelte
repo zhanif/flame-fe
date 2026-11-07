@@ -1,5 +1,6 @@
 <script lang="ts">
   import Badge from '$lib/components/Badge.svelte';
+  import ActorCell from '$lib/components/ActorCell.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
@@ -16,16 +17,18 @@
   import Textarea from '$lib/components/Textarea.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
-  import { api, type ChatCompletionConfig, type ChatCompletionLimits, type ChatCompletionTest, type ChatCompletionView, type DiscordChannel } from '$lib/api/endpoints';
+  import { api, type ChatCompletionConfig, type ChatCompletionLimits, type ChatCompletionStats, type ChatCompletionTest, type ChatCompletionView, type DiscordChannel } from '$lib/api/endpoints';
+  import LineChart from '$lib/modules/chat-completion/LineChart.svelte';
   import { onlyDecimal, onlyDigits, restrictTo } from '$lib/number-input';
   import { toast } from '$lib/stores/toast.svelte';
+  import { td, th } from '$lib/ui';
   import { urlParam } from '$lib/url-param';
-  import { Brain, Gauge, Info, KeyRound, MessageCircle, RotateCcw, Server, ShieldCheck, Sparkles, Trash2, Zap } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+  import { BarChart3, Brain, Gauge, Info, KeyRound, MessageCircle, RotateCcw, Server, ShieldCheck, Sparkles, Trash2, Users, Zap } from '@lucide/svelte';
+  import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
-  const tabParam = urlParam('tab', 'chat');
+  const tabParam = urlParam('tab', 'statistics');
   const tab = $derived(tabParam.value);
   let info = $state(false);
 
@@ -60,6 +63,11 @@
   let saving = $state(false);
   let testing = $state(false);
   let tested: ChatCompletionTest | null = $state(null);
+  let stats: ChatCompletionStats | null = $state(null);
+  let statsLoading = $state(false);
+  let statsRange = $state('day');
+  let todayStats: ChatCompletionStats | null = $state(null);
+  let memberQuery = $state('');
 
   // What each parameter starts as, and what Revert puts back. A parameter the server never set shows its default as a number.
   type Numeric = 'temperature' | 'top_p' | 'presence_penalty' | 'frequency_penalty' | 'max_tokens' | 'context_messages' | 'context_minutes' | 'max_input_chars' | 'user_daily_limit' | 'guild_daily_limit';
@@ -117,6 +125,28 @@
     } catch (e: any) {
       toast('error', e.message);
     }
+  });
+
+  // The counters change all day, so they are read whenever the tab is opened rather than once with the settings.
+  async function loadStats(range = statsRange) {
+    if (statsLoading) return;
+    statsLoading = true;
+    try {
+      const [today, ranged] = await Promise.all([
+        todayStats ? Promise.resolve(todayStats) : api.chatCompletion.stats(guildId, 'day'),
+        api.chatCompletion.stats(guildId, range),
+      ]);
+      todayStats = today;
+      stats = ranged;
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      statsLoading = false;
+    }
+  }
+  $effect(() => {
+    const r = statsRange;
+    if (tab === 'statistics') untrack(() => void loadStats(r));
   });
 
   const limits = $derived.by((): ChatCompletionLimits | null => {
@@ -277,8 +307,41 @@
     return current?.has_api_key && !removeKey ? `A key ending in ${current.api_key_hint ?? '…'} is saved. Type a new one to replace it.` : 'Pasted once and kept sealed: it is never shown again.';
   });
   const meter = (used: number, max: number) => Math.min(100, Math.round((used / Math.max(max, 1)) * 100));
+  const limitText = (limit: number) => (limit > 0 ? String(limit) : 'No limit');
+  // A bar is empty when a limit is off, instead of looking used up.
+  const share = (used: number, max: number) => (max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0);
+  const memberTop = $derived(stats?.members[0]?.count ?? 0);
+  // Each member's bar is against their own daily limit, or against the busiest member while the key of the server's own has no limit.
+  const memberBar = (count: number) => share(count, stats && stats.member_daily_limit > 0 ? stats.member_daily_limit : memberTop || 1);
+  const todayMemberTop = $derived(todayStats?.members[0]?.count ?? 0);
+  const todayMemberBar = (count: number) => share(count, todayStats && todayStats.member_daily_limit > 0 ? todayStats.member_daily_limit : todayMemberTop || 1);
+  const seriesPoints = $derived.by(() => {
+    const s = stats?.series ?? [];
+    if (s.length === 0) return '';
+    const max = Math.max(1, ...s.map(p => p.count));
+    const n = s.length;
+    return s.map((p, i) => {
+      const x = n === 1 ? 50 : (i / (n - 1)) * 100;
+      const y = 36 - (p.count / max) * 32;
+      return `${x},${y}`;
+    }).join(' ');
+  });
+  const filteredMembers = $derived.by(() => {
+    const list = stats?.members ?? [];
+    const q = memberQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(m => (m.user.name ?? '').toLowerCase().includes(q) || m.user.id.includes(q));
+  });
 
   const HINTS: Record<string, { title: string; steps: InfoStep[] }> = {
+    statistics: {
+      title: "Today's answers",
+      steps: [
+        { text: 'These counts are for today (UTC) and start again at midnight UTC. A request that failed is given back, so it never shows here.' },
+        { text: 'Answers today is this server against its daily limit. Shared Server Limit is Flame\'s own service against what it gives every server together, and only shows while Flame answers.' },
+        { text: 'The table lists each member who was answered today, most first. A member is bound by their own daily limit, and the server by its own.' },
+      ],
+    },
     chat: {
       title: 'How the bot answers',
       steps: [
@@ -314,9 +377,10 @@
     <Tabs
       bind:value={tabParam.value}
       tabs={[
+        { id: 'statistics', label: 'Statistic', icon: BarChart3 },
         { id: 'chat', label: 'Chat', icon: MessageCircle },
-        { id: 'service', label: 'AI service', icon: Server },
         { id: 'behavior', label: 'Behavior', icon: Brain },
+        { id: 'service', label: 'Service', icon: Server },
       ]}
     />
     <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
@@ -330,7 +394,108 @@
       <FormSkeleton fields={4} hint />
     </Card>
   {:else}
-    {#if tab === 'chat'}
+    {#if tab === 'statistics'}
+      {#if !todayStats}
+        <Card>
+          <FormSkeleton fields={3} hint />
+        </Card>
+      {:else}
+        <Card>
+          <SectionTitle icon={BarChart3} title="Today" class="mb-5" />
+          <div class="grid gap-4 sm:grid-cols-2 {todayStats.shared ? 'lg:grid-cols-3' : ''}">
+            <div class="rounded-xl bg-zinc-800/30 p-4 ring-1 ring-zinc-800/60">
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Answers today</span>
+                <MessageCircle class="h-4 w-4 shrink-0 text-zinc-500" />
+              </div>
+              <p class="mb-2 text-2xl font-bold text-zinc-100">{todayStats.used_today}<span class="ml-1 text-sm font-normal text-zinc-500">{todayStats.daily_limit > 0 ? `of ${todayStats.daily_limit}` : 'no limit'}</span></p>
+              <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800"><div class="h-full rounded-full bg-vermilion-400" style="width:{share(todayStats.used_today, todayStats.daily_limit)}%"></div></div>
+              <p class="mt-2 text-xs text-zinc-500">This server, for everyone together. It starts again at midnight UTC.</p>
+            </div>
+
+            <div class="rounded-xl bg-zinc-800/30 p-4 ring-1 ring-zinc-800/60">
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Members answered</span>
+                <Users class="h-4 w-4 shrink-0 text-zinc-500" />
+              </div>
+              <p class="mb-2 text-2xl font-bold text-zinc-100">{todayStats.members_today}<span class="ml-1 text-sm font-normal text-zinc-500">today</span></p>
+              <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800"><div class="h-full rounded-full bg-vermilion-400" style="width:{todayMemberBar(todayMemberTop)}%"></div></div>
+              <p class="mt-2 text-xs text-zinc-500">
+                {#if todayStats.members_today > 0}
+                  The busiest member has {todayMemberTop} of {todayStats.member_daily_limit > 0 ? todayStats.member_daily_limit : 'their own'} answers.
+                {:else}
+                  Nobody has been answered today.
+                {/if}
+              </p>
+            </div>
+
+            {#if todayStats.shared}
+              <div class="rounded-xl bg-zinc-800/30 p-4 ring-1 ring-zinc-800/60">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                  <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Shared Server Limit</span>
+                  <Zap class="h-4 w-4 shrink-0 text-zinc-500" />
+                </div>
+                <p class="mb-2 text-2xl font-bold text-zinc-100">{todayStats.shared.used_today}<span class="ml-1 text-sm font-normal text-zinc-500">of {todayStats.shared.daily_limit}</span></p>
+                <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800"><div class="h-full rounded-full bg-vermilion-400" style="width:{meter(todayStats.shared.used_today, todayStats.shared.daily_limit)}%"></div></div>
+                <p class="mt-2 text-xs text-zinc-500">Flame's own service, across every server. It starts again at midnight UTC.</p>
+              </div>
+            {/if}
+          </div>
+        </Card>
+
+        <Card>
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <SectionTitle icon={Users} title="Member usage" class="mb-0" />
+            <div class="flex items-center gap-2 flex-nowrap">
+              <Input bind:value={memberQuery} placeholder="Find a member" aria-label="Find a member" class="w-36" />
+              <Select bind:value={statsRange} empty={false} options={[{ value: 'day', label: 'Today' }, { value: 'week', label: '1 Week' }, { value: 'month', label: '1 Month' }, { value: 'year', label: '1 Year' }, { value: 'all', label: 'All time' }]} label="Range" class="w-28" />
+            </div>
+          </div>
+          {#if !stats}
+            <FormSkeleton fields={3} hint />
+          {:else if filteredMembers.length === 0}
+            <div class="flex flex-col items-center justify-center px-5 py-10 text-center">
+              <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800/60 ring-1 ring-zinc-700/60">
+                <Users class="h-5 w-5 text-zinc-500" />
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-300">{stats.members.length === 0 ? 'No answers in this range' : 'No member matches'}</h3>
+              <p class="mt-1.5 max-w-md text-xs leading-relaxed text-zinc-500">{stats.members.length === 0 ? 'A member shows up here as soon as the bot answers them, with how many answers they got.' : 'Try a different name or id.'}</p>
+            </div>
+          {:else}
+            {#if stats.series.length > 0}
+              <div class="mb-4 rounded-xl bg-zinc-800/30 p-3 ring-1 ring-zinc-800/60">
+                <LineChart labels={stats.series.map(s => s.label)} data={stats.series.map(s => s.count)} />
+              </div>
+            {/if}
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+                    <th class={th}>Member</th>
+                    <th class="{th} w-24 text-right">Answers</th>
+                    <th class={th}>Usage</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800/30">
+                  {#each filteredMembers as entry (entry.user.id)}
+                    <tr class="hover:bg-zinc-800/30 transition-colors">
+                      <td class={td}><ActorCell actor={entry.user} /></td>
+                      <td class="{td} text-right font-semibold text-zinc-200">{entry.count}</td>
+                      <td class={td}>
+                        <div class="flex items-center gap-3">
+                          <div class="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-zinc-800"><div class="h-full rounded-full bg-vermilion-400" style="width:{memberBar(entry.count)}%"></div></div>
+                          <span class="w-24 shrink-0 text-right text-xs text-zinc-500">{stats.member_daily_limit > 0 ? `of ${stats.member_daily_limit}` : 'no limit'}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        </Card>
+      {/if}
+    {:else if tab === 'chat'}
       <Card>
         <SectionTitle icon={MessageCircle} title="Chat" class="mb-5" />
         <SettingRow title="Answer messages" hint="The bot answers a message that mentions it or replies to it.">
@@ -339,7 +504,7 @@
             <Toggle on={form.enabled} disabled={!isAdmin} label="Chat Completion on" onclick={() => (form!.enabled = !form!.enabled)} />
           </div>
         </SettingRow>
-        <SettingRow title="Where" hint={`A channel, thread or forum where the bot answers; a forum covers its threads. ${view.limits[form.mode].max_channels === 1 ? 'Only one for now.' : `Up to ${view.limits[form.mode].max_channels}.`} None means everywhere it can see.`}>
+        <SettingRow title="Where" hint={`A channel, thread or forum where the bot answers; a forum covers its threads. ${view.limits[form.mode].max_channels === 1 ? 'Only one for now.' : `Up to ${view.limits[form.mode].max_channels}.`} None means it does not answer yet.`}>
           <ChannelsPicker {channels} selected={form.channel_ids} onchange={next => (form!.channel_ids = next)} max={view.limits[form.mode].max_channels} disabled={!isAdmin} label="Channels" />
         </SettingRow>
       </Card>
@@ -387,7 +552,7 @@
                 <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800"><div class="h-full rounded-full bg-vermilion-400" style="width:{meter(view.flame.guild_used_today, view.flame.guild_daily_limit)}%"></div></div>
               </div>
               <div>
-                <div class="mb-1 flex justify-between text-zinc-400"><span>Every server together</span><span>{view.flame.used_today} of {view.flame.daily_limit}</span></div>
+                <div class="mb-1 flex justify-between text-zinc-400"><span>Shared Server Limit</span><span>{view.flame.used_today} of {view.flame.daily_limit}</span></div>
                 <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800"><div class="h-full rounded-full bg-vermilion-400" style="width:{meter(view.flame.used_today, view.flame.daily_limit)}%"></div></div>
               </div>
             </div>
@@ -479,7 +644,7 @@
       </Card>
     {/if}
 
-    {#if isAdmin}
+    {#if isAdmin && (tab !== 'statistics' || dirty)}
       <div class="flex justify-end">
         <SaveButton onclick={save} disabled={!dirty || invalid} {saving} />
       </div>

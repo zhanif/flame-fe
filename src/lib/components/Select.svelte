@@ -15,6 +15,7 @@
     disabled = false,
     onchange,
     defaulted = false,
+    empty = true,
     class: className = '',
   }: {
     value?: string;
@@ -28,7 +29,7 @@
     class?: string;
   } = $props();
 
-  const items = $derived([{ value: ALL, label: placeholder }, ...options]);
+  const items = $derived(empty ? [{ value: ALL, label: placeholder }, ...options] : options);
   const shown = $derived(options.find(o => o.value === value)?.label ?? placeholder);
 </script>
 

@@ -421,6 +421,7 @@ export type AnnouncementVariableType = 'text' | 'number' | 'link' | 'user' | 'ro
 export interface AnnouncementTemplateEntry extends AnnouncementFields {
   id: string;
   name: string;
+  sub_command_name: string;
   channel_id: string | null;
   /** The `{names}` asked for when it is sent. */
   variables: string[];
@@ -508,6 +509,28 @@ export interface ChatCompletionTest {
   ok: true;
   ms: number;
   reply: string;
+}
+
+/** How many answers one member got today, with the name and avatar to show. */
+export interface ChatCompletionMemberUsage {
+  user: UserProfile;
+  count: number;
+}
+
+/** The Statistic tab: today's answers for this server, and per member. */
+export interface ChatCompletionStats {
+  used_today: number;
+  /** The answers the server gets a day; 0 means no limit. */
+  daily_limit: number;
+  /** The answers each member gets a day; 0 means no limit. */
+  member_daily_limit: number;
+  members_today: number;
+  /** Flame's own service across every server, or null while the server brings its own key. */
+  shared: { used_today: number; daily_limit: number } | null;
+  /** Most answers first. */
+  members: ChatCompletionMemberUsage[];
+  /** Answers per period, in chronological order, for the line chart. */
+  series: { label: string; count: number }[];
 }
 
 /** A band of the board and the ink written on it. */
@@ -671,7 +694,7 @@ export const api = {
   slash: (guildId: string) => apiCall<{ commands: SlashCommand[] }>(`/guilds/${guildId}/slash`),
   slashRegister: (guildId: string, name: string) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/slash/commands/${encodeURIComponent(name)}`, 'PUT'),
-  slashPrune: (guildId: string) => apiCall<{ removed: string[] }>(`/guilds/${guildId}/slash/prune`, 'POST'),
+  slashPurge: (guildId: string, all: boolean) => apiCall<{ removed: string[] }>(`/guilds/${guildId}/slash/purge`, 'POST', { all }),
   slashUnregister: (guildId: string, name: string) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/slash/commands/${encodeURIComponent(name)}`, 'DELETE'),
 
@@ -745,6 +768,7 @@ export const api = {
     updateConfig: (guildId: string, body: ChatCompletionConfig & { api_key?: string | null }) =>
       apiCall<ChatCompletionView>(`/guilds/${guildId}/m/chat-completion/config`, 'PUT', body),
     test: (guildId: string) => apiCall<ChatCompletionTest>(`/guilds/${guildId}/m/chat-completion/test`, 'POST'),
+    stats: (guildId: string, range?: string) => apiCall<ChatCompletionStats>(`/guilds/${guildId}/m/chat-completion/stats${range ? `?range=${range}` : ''}`),
   },
   ocrDetection: {
     config: (guildId: string) => apiCall<OcrDetectionConfig>(`/guilds/${guildId}/m/ocr-detection/config`),

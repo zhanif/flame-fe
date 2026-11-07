@@ -1,23 +1,22 @@
 <script lang="ts">
   import Badge from '$lib/components/Badge.svelte';
   import BoltSwitch from '$lib/components/BoltSwitch.svelte';
-  import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
+  import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
   import Select from '$lib/components/Select.svelte';
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type SlashCommand, type SlashOption } from '$lib/api/endpoints';
-  import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { pageTone } from '$lib/nav';
   import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { td, th, toneText } from '$lib/ui';
-  import { ChevronDown, ChevronRight, MessageSquare, RefreshCw, Trash2 } from '@lucide/svelte';
+  import { ChevronDown, ChevronRight, Eraser, MessageSquare, Trash2 } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
@@ -30,10 +29,11 @@
   let loading = $state(true);
   let loaded = $state(false);
   let pending = $state<string | null>(null);
-  // A removal that cannot be undone from here asks first: a command no module owns, or the leftovers a Refresh would prune.
+  // A removal that cannot be undone from here asks first: a command no module owns.
   let removeAsk = $state<SlashCommand | null>(null);
-  let pruneAsk = $state<SlashCommand[]>([]);
-  let pruning = $state(false);
+  // Purging is one call either way: 'unused' keeps what an installed module owns, 'all' removes every registered command.
+  let purgeAsk = $state<'unused' | 'all' | null>(null);
+  let purging = $state(false);
   let limit = $state(10);
   // Which module's commands to show, and the page, live in the address, so a link from the Modules cards opens it.
   const moduleParam = urlParam('module');
@@ -72,6 +72,7 @@
   ]);
   const filtered = $derived(commands.filter(c => !moduleFilter || (moduleFilter === NO_MODULE ? c.module_id === null : c.module_id === moduleFilter)));
   const visible = $derived(filtered.slice((page - 1) * limit, page * limit));
+  const unused = $derived(commands.filter(c => c.module_id === null));
 
   const label = (c: SlashCommand) => (c.kind === 'slash' ? `/${c.name}` : `"${c.name}"`);
   const TONE = { live: 'success', missing: 'warning', stale: 'danger' } as const;
@@ -91,26 +92,32 @@
   }
   onMount(load);
 
-  // Refresh brings the table in line with Discord: commands that are on stay on, nothing
-  // new is registered, and registered commands no installed module owns are removed.
-  async function refresh() {
-    await load();
-    pruneAsk = commands.filter(c => c.module_id === null);
+  // Purge reads Discord once from the table and then makes a single bulk request, so even a big purge cannot
+  // hit the rate limit.
+  function openPurge(mode: 'unused' | 'all') {
+    if (mode === 'unused' && unused.length === 0) return void toast('info', 'Nothing to purge', 'Every registered command belongs to an installed module.');
+    purgeAsk = mode;
   }
 
-  async function prune() {
-    pruning = true;
+  async function purge() {
+    if (!purgeAsk) return;
+    purging = true;
     try {
-      const { removed } = await api.slashPrune(guildId);
-      if (removed.length) toast('success', `Removed ${removed.length} unlisted ${removed.length === 1 ? 'command' : 'commands'}`, removed.join(', '));
-      pruneAsk = [];
+      const { removed } = await api.slashPurge(guildId, purgeAsk === 'all');
+      toast('success', `Removed ${removed.length} ${removed.length === 1 ? 'command' : 'commands'}`, removed.join(', '));
+      purgeAsk = null;
       await load();
     } catch (e: any) {
       toast('error', e.message);
     } finally {
-      pruning = false;
+      purging = false;
     }
   }
+
+  const purgeItems: RowMenuItem[] = [
+    { label: 'Purge unused', icon: Eraser, onclick: () => openPurge('unused'), hint: 'Remove the commands no installed module owns' },
+    { label: 'Purge all', icon: Trash2, danger: true, onclick: () => openPurge('all'), hint: 'Remove every registered command' },
+  ];
 
   // One command at a time, on an explicit click. The row is updated in place so the
   // table does not flash back to its skeleton.
@@ -153,9 +160,9 @@
   {:else}
     <ControlSkeleton class="w-56" />
   {/if}
-  <Button onclick={refresh} disabled={loading || !!pending} title="Reload from Discord and remove commands that no installed module owns">
-    <RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''}" /> Refresh
-  </Button>
+  {#if loaded}
+    <RowMenu label="Purge commands" text="Purge" icon={Trash2} items={purgeItems} />
+  {/if}
 </div>
 
 <!-- What a command does and how to type it: one block per way of calling it (a subcommand, or the command itself), with its parameters. -->
@@ -302,17 +309,22 @@
 </ConfirmModal>
 
 <ConfirmModal
-  show={pruneAsk.length > 0}
-  title="Remove {pruneAsk.length} unlisted {pruneAsk.length === 1 ? 'command' : 'commands'}?"
-  confirmLabel="Remove"
-  busyLabel="Removing…"
-  busy={pruning}
+  show={purgeAsk !== null}
+  title={purgeAsk === 'all' ? 'Purge all registered commands?' : `Purge ${unused.length} unused ${unused.length === 1 ? 'command' : 'commands'}?`}
+  confirmLabel="Purge"
+  busyLabel="Purging…"
+  busy={purging}
+  tone="danger"
   icon={Trash2}
-  onConfirm={prune}
-  onClose={() => (pruneAsk = [])}
+  onConfirm={purge}
+  onClose={() => (purgeAsk = null)}
 >
-  <p>These are registered on Discord but no installed module owns them, so they are removed for good:</p>
-  <p class="mt-2 flex flex-wrap gap-1.5">
-    {#each pruneAsk as c (c.name)}<span class="rounded-md bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-200">{label(c)}</span>{/each}
-  </p>
+  {#if purgeAsk === 'all'}
+    <p>Every command registered on Discord for this server is removed in one request. The commands of installed modules stay listed here as Not registered, and a switch turns one back on.</p>
+  {:else}
+    <p>These are registered on Discord but no installed module owns them, so they are removed for good:</p>
+    <p class="mt-2 flex flex-wrap gap-1.5">
+      {#each unused as c (c.name)}<span class="rounded-md bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-200">{label(c)}</span>{/each}
+    </p>
+  {/if}
 </ConfirmModal>

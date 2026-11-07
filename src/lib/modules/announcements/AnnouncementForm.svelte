@@ -23,6 +23,7 @@
     channels,
     channelId = $bindable(''),
     name = $bindable(''),
+    subCommandName = $bindable(''),
     types = $bindable({}),
     descriptions = $bindable({}),
     placeholders = $bindable({}),
@@ -38,6 +39,8 @@
     channels: DiscordChannel[];
     channelId?: string;
     name?: string;
+    /** The slash subcommand that sends this template. */
+    subCommandName?: string;
     /** The type of each `{variable}` (a template only); text unless set. */
     types?: Record<string, string>;
     /** A line of help under each `{variable}`'s box when it is asked for. */
@@ -71,7 +74,12 @@
       <div class="sm:col-span-2">
         <span class={label}>Name</span>
         <Input bind:value={name} maxlength={50} placeholder="Weekly update" aria-label="Template name" {disabled} />
-        <p class="mt-1.5 text-xs text-zinc-500">What you pick in <span class="font-mono">/announce</span>.</p>
+        <p class="mt-1.5 text-xs text-zinc-500">A label for this template in the dashboard and in the sent announcement.</p>
+      </div>
+      <div class="sm:col-span-2">
+        <span class={label}>Subcommand name</span>
+        <Input bind:value={subCommandName} maxlength={32} placeholder="weekly-update" aria-label="Subcommand name" {disabled} />
+        <p class="mt-1.5 text-xs text-zinc-500">Typed as <span class="font-mono {toneText.teal}">/announce {subCommandName || 'name'}</span>. Lowercase letters, digits, - and _ only.</p>
       </div>
     {/if}
     <div class="sm:col-span-2">

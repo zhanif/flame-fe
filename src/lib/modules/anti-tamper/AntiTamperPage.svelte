@@ -10,6 +10,7 @@
   import ControlSkeleton from '$lib/components/ControlSkeleton.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
+  import Modal from '$lib/components/Modal.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import RoleChip from '$lib/components/RoleChip.svelte';
@@ -28,7 +29,7 @@
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
-  import { Check, Eye, Hash, Info, ListChecks, Lock, Megaphone, Plus, Radar, RefreshCw, ScrollText, Settings, Shield, ShieldAlert, ShieldCheck, Trash2, TriangleAlert, UserCheck, X } from '@lucide/svelte';
+  import { Check, ExternalLink, Eye, Hash, Info, ListChecks, Lock, Megaphone, Plus, Radar, RefreshCw, ScrollText, Settings, Shield, ShieldAlert, ShieldCheck, Trash2, TriangleAlert, UserCheck, X } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -275,6 +276,20 @@
     }
   });
   const RESULT = { reverted: ['success', 'Put back'], failed: ['danger', 'Failed'], unverified: ['warning', 'Unverified'] } as const;
+  const OUTCOME = {
+    role: {
+      reverted: 'The role was taken back from the member.',
+      failed: 'The role could not be taken back. The reason below says why.',
+      unverified: 'Nothing was changed, because the bot could not tell who granted the role.',
+    },
+    channel: {
+      reverted: 'The protected permissions were put back.',
+      failed: 'The change could not be undone. The reason below says why.',
+      unverified: 'Nothing was changed, because the audit log did not say who changed the channel.',
+    },
+  } as const;
+  const fullWhen = (ts: string) => new Date(ts).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  let logTarget: AntiTamperLog | null = $state(null);
 
   onMount(async () => {
     const [loaded, roleList, channelList] = await Promise.allSettled([api.antiTamper.rules(guildId), api.roles(guildId), api.channels(guildId)]);
@@ -515,9 +530,9 @@
       <Card flush>
         {#if !logsLoaded}
           <TableSkeleton
-            columns={['w-16', 'w-44', 'w-28', 'w-56', 'w-64', 'w-32', 'flex-1']}
-            headings={['#', 'When', 'Type', 'Target', 'Who', 'Result', 'Reason']}
-            kinds={['bar', 'bar', 'pill', 'bar', 'actor', 'pill', 'bar']}
+            columns={['w-16', 'w-44', 'w-28', 'w-56', 'w-64', 'w-32', 'w-16']}
+            headings={['#', 'When', 'Type', 'Target', 'Who', 'Result', '']}
+            kinds={['bar', 'bar', 'pill', 'bar', 'actor', 'pill', 'action']}
             rows={5}
             rowHeight="h-16"
           />
@@ -531,7 +546,7 @@
                 <th class="{th} w-56">Target</th>
                 <th class="{th} w-64">Who</th>
                 <th class="{th} w-32">Result</th>
-                <th class={th}>Reason</th>
+                <th class="{th} w-16"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-zinc-800/30">
@@ -551,9 +566,10 @@
                     {#if log.kind === 'role' ? log.member : log.by}<ActorCell actor={(log.kind === 'role' ? log.member : log.by)!} />{:else}<span class="text-zinc-600">-</span>{/if}
                   </td>
                   <td class="{cell} h-16"><Badge tone={RESULT[log.result][0]}>{RESULT[log.result][1]}</Badge></td>
-                  <td class="{cell} h-16 text-zinc-400">
-                    <p class="line-clamp-2 leading-relaxed" title={log.reason ?? undefined}>{log.reason ?? ''}</p>
-                    {#if log.kind === 'role' && log.by}<p class="truncate text-zinc-500">Given by {log.by.name ?? log.by.id}</p>{/if}
+                  <td class="{cell} h-16 text-right">
+                    <Button variant="ghost" size="icon" aria-label="Log of this detection" title="Log" onclick={() => (logTarget = log)}>
+                      <ScrollText class="w-3.5 h-3.5" />
+                    </Button>
                   </td>
                 </tr>
               {/each}
@@ -781,6 +797,80 @@
     {/if}
   {/if}
 </div>
+
+<Modal show={!!logTarget} onClose={() => (logTarget = null)}>
+  {#if logTarget}
+    {@const entry = logTarget}
+    <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+      <ScrollText class="w-4 h-4 shrink-0 text-red-400" />Detection log
+    </h3>
+
+    <div class="mt-5 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <Badge tone={RESULT[entry.result][0]}>{RESULT[entry.result][1]}</Badge>
+        {#if entry.kind === 'channel' && entry.channel_id}
+          <a href="https://discord.com/channels/{guildId}/{entry.channel_id}" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors">
+            Jump to channel<ExternalLink class="w-3 h-3" />
+          </a>
+        {/if}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <span class={label}>When</span>
+          <p class="text-sm text-zinc-200">{fullWhen(entry.created_at)}</p>
+        </div>
+        <div>
+          <span class={label}>Type</span>
+          <Badge tone={entry.kind === 'role' ? 'accent' : 'info'}>{entry.kind === 'role' ? 'Role' : 'Channel'}</Badge>
+        </div>
+      </div>
+
+      <div>
+        <span class={label}>Target</span>
+        {#if entry.kind === 'channel' && entry.channel_id}
+          <ChannelChip channel={channelOf(entry.channel_id)} />
+        {:else}
+          <div class="flex flex-wrap gap-1">{#each entry.role_ids as id (id)}<RoleChip role={roleOf(id)} missing="Deleted role" />{/each}</div>
+        {/if}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        {#if entry.kind === 'role'}
+          <div>
+            <span class={label}>Held by</span>
+            {#if entry.member}<ActorCell actor={entry.member} />{:else}<span class="text-sm text-zinc-500">Unknown</span>{/if}
+          </div>
+          <div>
+            <span class={label}>Given by</span>
+            {#if entry.by}<ActorCell actor={entry.by} />{:else}<span class="text-sm text-zinc-500">Unknown</span>{/if}
+          </div>
+        {:else}
+          <div class="col-span-2">
+            <span class={label}>Changed by</span>
+            {#if entry.by}<ActorCell actor={entry.by} />{:else}<span class="text-sm text-zinc-500">Unknown</span>{/if}
+          </div>
+        {/if}
+      </div>
+
+      <div>
+        <span class={label}>Result</span>
+        <p class="text-sm leading-relaxed text-zinc-300">{OUTCOME[entry.kind][entry.result]}</p>
+      </div>
+
+      {#if entry.reason}
+        <div>
+          <span class={label}>Reason</span>
+          <p class="text-sm leading-relaxed text-zinc-300 break-all">{entry.reason}</p>
+        </div>
+      {/if}
+    </div>
+
+    <div class="flex justify-end gap-2 mt-6">
+      <Button variant="secondary" onclick={() => (logTarget = null)}>Close</Button>
+    </div>
+  {/if}
+</Modal>
 
 <ConfirmModal
   show={!!removeTarget}

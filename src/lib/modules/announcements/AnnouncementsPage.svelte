@@ -36,7 +36,7 @@
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
   // Where the person is lives in the address: the tab and the page of the history.
-  const tabParam = urlParam('tab', 'compose');
+  const tabParam = urlParam('tab', 'templates');
   const tab = $derived(tabParam.value);
   const historyPageParam = urlNumber('page');
   const historyPage = $derived(historyPageParam.value);
@@ -59,6 +59,7 @@
   let sending = $state(false);
   let saveAs = $state(false);
   let saveAsName = $state('');
+  let saveAsSubCommandName = $state('');
   let savingAs = $state(false);
 
   const vars = $derived(variablesIn(draft));
@@ -96,7 +97,7 @@
       await api.announcements.send(guildId, { ...fieldsOf(filled), channel_id: channelId, template_name: usedTemplate });
       toast('success', 'Announcement sent', `It is in ${channelOf(channelId) ? `#${channelOf(channelId)!.name}` : 'the channel'} and listed in History.`);
       sendAsk = false;
-      historyLoaded = false;
+      if (historyLoaded) void loadHistory();
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -174,7 +175,7 @@
       await api.announcements.send(guildId, { ...fieldsOf(fill(draftOf(target), useSent(target))), channel_id: useChannel, template_name: target.name });
       toast('success', 'Announcement sent', `It is in ${channelOf(useChannel) ? `#${channelOf(useChannel)!.name}` : 'the channel'} and listed in History.`);
       useTarget = null;
-      historyLoaded = false;
+      if (historyLoaded) void loadHistory();
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -186,11 +187,12 @@
     if (savingAs) return;
     savingAs = true;
     try {
-      templates = await api.announcements.createTemplate(guildId, { ...fieldsOf(draft), name: saveAsName, channel_id: channelId || null });
+      templates = await api.announcements.createTemplate(guildId, { ...fieldsOf(draft), name: saveAsName, sub_command_name: saveAsSubCommandName, channel_id: channelId || null });
       toast('success', 'Template saved', 'Switch on /announce from the Slash page to send it from Discord.');
       usedTemplate = saveAsName.trim();
       saveAs = false;
       saveAsName = '';
+      saveAsSubCommandName = '';
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -202,6 +204,7 @@
   let addingTemplate = $state(false);
   let newDraft: Draft = $state(emptyDraft());
   let newName = $state('');
+  let newSubCommandName = $state('');
   let newTypes: Record<string, string> = $state({});
   let newDescriptions: Record<string, string> = $state({});
   let newPlaceholders: Record<string, string> = $state({});
@@ -209,6 +212,7 @@
   let editTemplate: AnnouncementTemplateEntry | null = $state(null);
   let editDraft: Draft = $state(emptyDraft());
   let editName = $state('');
+  let editSubCommandName = $state('');
   let editTypes: Record<string, string> = $state({});
   let editDescriptions: Record<string, string> = $state({});
   let editPlaceholders: Record<string, string> = $state({});
@@ -226,6 +230,7 @@
     editTemplate = template;
     editDraft = draftOf(template);
     editName = template.name;
+    editSubCommandName = template.sub_command_name;
     editTypes = { ...(template.variable_types ?? {}) };
     editDescriptions = { ...(template.variable_descriptions ?? {}) };
     editPlaceholders = { ...(template.variable_placeholders ?? {}) };
@@ -235,7 +240,7 @@
   async function saveTemplate(existing: AnnouncementTemplateEntry | null) {
     if (savingTemplate) return;
     savingTemplate = true;
-    const body = existing ? { ...fieldsOf(editDraft), name: editName, channel_id: editChannel || null, variable_types: editTypes, variable_descriptions: editDescriptions, variable_placeholders: editPlaceholders } : { ...fieldsOf(newDraft), name: newName, channel_id: newChannel || null, variable_types: newTypes, variable_descriptions: newDescriptions, variable_placeholders: newPlaceholders };
+    const body = existing ? { ...fieldsOf(editDraft), name: editName, sub_command_name: editSubCommandName, channel_id: editChannel || null, variable_types: editTypes, variable_descriptions: editDescriptions, variable_placeholders: editPlaceholders } : { ...fieldsOf(newDraft), name: newName, sub_command_name: newSubCommandName, channel_id: newChannel || null, variable_types: newTypes, variable_descriptions: newDescriptions, variable_placeholders: newPlaceholders };
     try {
       templates = existing ? await api.announcements.updateTemplate(guildId, existing.id, body) : await api.announcements.createTemplate(guildId, body);
       toast('success', existing ? 'Template saved' : 'Template added', existing ? undefined : 'Switch on /announce from the Slash page to send it from Discord.');
@@ -244,6 +249,7 @@
         addingTemplate = false;
         newDraft = emptyDraft();
         newName = '';
+        newSubCommandName = '';
         newTypes = {};
         newDescriptions = {};
         newPlaceholders = {};
@@ -283,6 +289,7 @@
   let deleting = $state(false);
 
   async function loadHistory() {
+    if (historyLoading) return;
     historyLoading = true;
     try {
       const res = await api.announcements.list(guildId, { page: historyPage, limit: historyLimit });
@@ -363,7 +370,7 @@
       title: 'How templates work',
       steps: [
         { text: 'A template is a saved announcement. The {names} in its text are its variables (up to 3), asked for each time it is sent.' },
-        { text: 'Admins manage templates; moderators and admins send them. Switch on the command from the Slash page first.', command: '/announce template:<name> [channel:<where>]' },
+        { text: 'Each template is its own subcommand of /announce: type its name directly, there is no picker. Admins manage templates; moderators and admins send them. Switch on the command from the Slash page first.', command: '/announce <sub_command_name>' },
         { text: 'A template with no variables is sent at once. With variables, the bot answers with a Fill in button that opens a form. It goes to the template\'s channel, or the one you give.' },
       ],
     },
@@ -386,6 +393,8 @@
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (templateList.status === 'fulfilled') templates = templateList.value;
     else toast('error', templateList.reason?.message ?? 'Could not load the templates');
+    // The History tab's count is shown before it is opened, so the first page is read once here.
+    void loadHistory();
   });
 </script>
 
@@ -396,8 +405,8 @@
     <Tabs
       bind:value={tabParam.value}
       tabs={[
-        { id: 'compose', label: 'Compose', icon: Megaphone },
         { id: 'templates', label: 'Templates', icon: FileText, count: templates ? templates.templates.length : null },
+        { id: 'compose', label: 'Compose', icon: Megaphone },
         { id: 'history', label: 'History', icon: ScrollText, count: historyLoaded ? historyTotal : null },
       ]}
     />
@@ -481,10 +490,10 @@
       <div transition:slide={{ duration: 220, easing: cubicOut }}>
         <Card>
           <SectionTitle icon={Plus} title="Add a template" class="mb-4" />
-          <AnnouncementForm bind:draft={newDraft} bind:channelId={newChannel} bind:name={newName} bind:types={newTypes} bind:descriptions={newDescriptions} bind:placeholders={newPlaceholders} showName {roles} {channels} canEveryone={isAdmin} templateHint />
+          <AnnouncementForm bind:draft={newDraft} bind:channelId={newChannel} bind:name={newName} bind:subCommandName={newSubCommandName} bind:types={newTypes} bind:descriptions={newDescriptions} bind:placeholders={newPlaceholders} showName {roles} {channels} canEveryone={isAdmin} templateHint />
           <div class="mt-5 flex justify-end gap-2">
             <Button variant="ghost" onclick={() => (addingTemplate = false)}>Cancel</Button>
-            <SaveButton onclick={() => saveTemplate(null)} disabled={!newName.trim() || !hasContent(newDraft) || tooManyVars(newDraft)} saving={savingTemplate} />
+            <SaveButton onclick={() => saveTemplate(null)} disabled={!newName.trim() || !/^[a-z0-9_-]{1,32}$/.test(newSubCommandName.trim()) || !hasContent(newDraft) || tooManyVars(newDraft)} saving={savingTemplate} />
           </div>
         </Card>
       </div>
@@ -510,10 +519,15 @@
       <div class="space-y-3">
         {#each templates.templates as template (template.id)}
           <Card>
-            <div class="grid items-center gap-x-8 gap-y-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+            <div class="grid items-center gap-x-8 gap-y-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto]">
               <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-zinc-100">{template.name}</p>
                 <p class="mt-1 truncate text-xs text-zinc-400">{template.title || template.body?.replace(/\s+/g, ' ') || template.content?.replace(/\s+/g, ' ') || '(image only)'}</p>
+              </div>
+
+              <div class="min-w-0">
+                <span class="{caps} mb-1.5 block text-zinc-500">Sub Command Name</span>
+                <span class="font-mono text-xs text-zinc-300">{template.sub_command_name}</span>
               </div>
 
               <div class="min-w-0">
@@ -549,10 +563,10 @@
             {#if isAdmin && editTemplate?.id === template.id}
               <div class="mt-5 border-t border-zinc-800/60 pt-5" transition:slide={{ duration: 220, easing: cubicOut }}>
                 <SectionTitle icon={Pencil} title="Edit {template.name}" class="mb-4" />
-                <AnnouncementForm bind:draft={editDraft} bind:channelId={editChannel} bind:name={editName} bind:types={editTypes} bind:descriptions={editDescriptions} bind:placeholders={editPlaceholders} showName {roles} {channels} canEveryone={isAdmin} templateHint />
+                <AnnouncementForm bind:draft={editDraft} bind:channelId={editChannel} bind:name={editName} bind:subCommandName={editSubCommandName} bind:types={editTypes} bind:descriptions={editDescriptions} bind:placeholders={editPlaceholders} showName {roles} {channels} canEveryone={isAdmin} templateHint />
                 <div class="mt-5 flex justify-end gap-2">
                   <Button variant="ghost" onclick={() => (editTemplate = null)}>Cancel</Button>
-                  <SaveButton onclick={() => saveTemplate(template)} disabled={!editName.trim() || !hasContent(editDraft) || tooManyVars(editDraft)} saving={savingTemplate} />
+                  <SaveButton onclick={() => saveTemplate(template)} disabled={!editName.trim() || !/^[a-z0-9_-]{1,32}$/.test(editSubCommandName.trim()) || !hasContent(editDraft) || tooManyVars(editDraft)} saving={savingTemplate} />
                 </div>
               </div>
             {/if}
@@ -727,9 +741,14 @@
     <span class={label}>Name</span>
     <Input bind:value={saveAsName} maxlength={50} placeholder="Weekly update" aria-label="Template name" />
   </div>
+  <div class="mt-3">
+    <span class={label}>Subcommand name</span>
+    <Input bind:value={saveAsSubCommandName} maxlength={32} placeholder="weekly-update" aria-label="Subcommand name" />
+    <p class="mt-1.5 text-xs text-zinc-500">Typed as <span class="font-mono {toneText.teal}">/announce {saveAsSubCommandName || 'name'}</span>.</p>
+  </div>
   <div class="mt-5 flex justify-end gap-2">
     <Button variant="ghost" onclick={() => (saveAs = false)} disabled={savingAs}>Cancel</Button>
-    <SaveButton onclick={saveAsTemplate} disabled={!saveAsName.trim() || tooManyVars(draft)} saving={savingAs} />
+    <SaveButton onclick={saveAsTemplate} disabled={!saveAsName.trim() || !/^[a-z0-9_-]{1,32}$/.test(saveAsSubCommandName.trim()) || tooManyVars(draft)} saving={savingAs} />
   </div>
 </Modal>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { EllipsisVertical } from '@lucide/svelte';
+  import { ChevronDown, EllipsisVertical } from '@lucide/svelte';
   import { DropdownMenu } from 'bits-ui';
   import type { Component } from 'svelte';
 
@@ -16,16 +16,32 @@
 
   // The actions of one table row or card behind a vertical three-dot button, when there are three or more.
   // One or two actions stay as plain icon buttons.
-  let { items, label = 'Actions' }: { items: RowMenuItem[]; label?: string } = $props();
+  let {
+    items,
+    label = 'Actions',
+    text = '',
+    icon,
+  }: {
+    items: RowMenuItem[];
+    label?: string;
+    /** A label for the trigger, for a menu that belongs to the page rather than a row. */
+    text?: string;
+    icon?: Component<any>;
+  } = $props();
+
+  const ICON_TRIGGER = 'inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 outline-none transition duration-150 cursor-pointer hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-100';
+  const TEXT_TRIGGER = 'inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-800/60 px-3 text-xs font-semibold whitespace-nowrap text-zinc-300 ring-1 ring-zinc-700/60 outline-none transition duration-150 hover:bg-zinc-700/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-700/60 data-[state=open]:text-zinc-100';
 </script>
 
 <DropdownMenu.Root>
-  <DropdownMenu.Trigger
-    aria-label={label}
-    title={label}
-    class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 outline-none transition duration-150 cursor-pointer hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-100"
-  >
-    <EllipsisVertical class="h-4 w-4" />
+  <DropdownMenu.Trigger aria-label={label} title={label} class={text ? TEXT_TRIGGER : ICON_TRIGGER}>
+    {#if text}
+      {#if icon}<icon class="h-3.5 w-3.5 shrink-0" />{/if}
+      {text}
+      <ChevronDown class="h-3 w-3 shrink-0 text-zinc-500" />
+    {:else}
+      <EllipsisVertical class="h-4 w-4" />
+    {/if}
   </DropdownMenu.Trigger>
 
   <DropdownMenu.Portal>
