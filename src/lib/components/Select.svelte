@@ -20,12 +20,13 @@
   }: {
     value?: string;
     options: { value: string; label: string }[];
-    placeholder: string;
+    placeholder?: string;
     label: string;
     disabled?: boolean;
     onchange?: () => void;
     /** The empty choice is a real default ("Text"), not an absent one: it is shown like any chosen value. */
     defaulted?: boolean;
+    empty?: boolean;
     class?: string;
   } = $props();
 

@@ -310,10 +310,10 @@
   const limitText = (limit: number) => (limit > 0 ? String(limit) : 'No limit');
   // A bar is empty when a limit is off, instead of looking used up.
   const share = (used: number, max: number) => (max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0);
-  const memberTop = $derived(stats?.members[0]?.count ?? 0);
+  const memberTop = $derived((stats as ChatCompletionStats | null)?.members?.[0]?.count ?? 0);
   // Each member's bar is against their own daily limit, or against the busiest member while the key of the server's own has no limit.
   const memberBar = (count: number) => share(count, stats && stats.member_daily_limit > 0 ? stats.member_daily_limit : memberTop || 1);
-  const todayMemberTop = $derived(todayStats?.members[0]?.count ?? 0);
+  const todayMemberTop = $derived((todayStats as ChatCompletionStats | null)?.members?.[0]?.count ?? 0);
   const todayMemberBar = (count: number) => share(count, todayStats && todayStats.member_daily_limit > 0 ? todayStats.member_daily_limit : todayMemberTop || 1);
   const seriesPoints = $derived.by(() => {
     const s = stats?.series ?? [];
@@ -327,7 +327,7 @@
     }).join(' ');
   });
   const filteredMembers = $derived.by(() => {
-    const list = stats?.members ?? [];
+    const list = (stats as ChatCompletionStats | null)?.members ?? [];
     const q = memberQuery.trim().toLowerCase();
     if (!q) return list;
     return list.filter(m => (m.user.name ?? '').toLowerCase().includes(q) || m.user.id.includes(q));
