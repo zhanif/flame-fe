@@ -6,7 +6,7 @@
   import { api, type BingoEntry } from '$lib/api/endpoints';
   import { answersOf, MAIN_COUNT } from '$lib/modules/bingo/board';
   import { td, th } from '$lib/ui';
-  import { toast } from '$lib/stores/toast.svelte';
+  import { Check, X } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
   // The submissions of a round, best score first. A wrong answer sits on a red box; a skipped bonus is dashed.
@@ -57,9 +57,9 @@
 {#if !loaded}
   <Card flush>
     <TableSkeleton
-      columns={['w-16', 'flex-1', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', '>w-20', '>w-16', '>w-24']}
+      columns={['w-16', 'flex-1', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', 'w-8', '>w-20', '>w-24']}
       rows={limit}
-      headings={['#', 'Member', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'Score', 'Pos', 'Ranked']}
+      headings={['Pos', 'Member', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'Score', 'Ranked']}
     />
   </Card>
 {:else if total === 0}
@@ -74,20 +74,19 @@
       <table class="w-full">
         <thead>
           <tr class="border-b border-zinc-800/60">
-            <th class="{th} w-16">#</th>
+            <th class="{th} w-16 text-right">Pos</th>
             <th class="{th}">Member</th>
             {#each Array(12) as _, index}
               <th class="{th} w-9 text-center {index >= MAIN_COUNT ? 'text-rose-400' : ''}">{index + 1}</th>
             {/each}
             <th class="{th} w-24 text-right">Score</th>
-            <th class="{th} w-16 text-right">Pos</th>
             <th class="{th} w-24">Ranked</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-zinc-800/30">
           {#each entries as entry, index (entry.id)}
             <tr>
-              <td class="{td} w-16 text-zinc-500">{(page - 1) * limit + index + 1}</td>
+              <td class="{td} w-16 text-center text-zinc-400">{entry.position ?? '-'}</td>
               <td class="{td}">
                 <p class="truncate text-xs font-semibold text-zinc-100">{entry.user_name || 'Unknown member'}</p>
                 <p class="truncate font-mono text-[11px] text-zinc-500" title={entry.user_id}>{entry.user_id}</p>
@@ -98,9 +97,14 @@
                 >
               {/each}
               <td class="{td} w-24 text-right font-semibold text-zinc-100">{entry.final_score.toLocaleString('en-US')}</td>
-              <td class="{td} w-16 text-right text-zinc-400">{entry.position ?? '-'}</td>
-              <td class="{td} w-24">
-                <span class="text-xs {entry.is_ranked ? 'text-zinc-300' : 'text-zinc-500'}">{entry.is_ranked ? 'Ranked' : 'Unranked'}</span>
+              <td class="{td} w-24 text-center">
+                <div class="flex justify-center">
+                  {#if entry.is_ranked}
+                    <Check class="h-4 w-4 text-emerald-400" />
+                  {:else}
+                    <X class="h-4 w-4 text-zinc-500" />
+                  {/if}
+                </div>
               </td>
             </tr>
           {/each}

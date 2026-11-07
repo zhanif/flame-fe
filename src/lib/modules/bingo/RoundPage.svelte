@@ -2,6 +2,7 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import Select from '$lib/components/Select.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
@@ -15,6 +16,7 @@
   import EntriesTab from '$lib/modules/bingo/EntriesTab.svelte';
   import { boardExporter } from '$lib/modules/bingo/board-export';
   import { missingQuestions, QUESTION_COUNT } from '$lib/modules/bingo/board';
+  import { urlParam } from '$lib/url-param';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps } from '$lib/ui';
   import { ArrowLeft, Check, Download, Eye, EyeOff, ListOrdered, Palette, PencilRuler, RotateCcw, Save, Trash2, Users, X } from '@lucide/svelte';
@@ -38,7 +40,8 @@
   let design: BingoDesign | null = $state(null);
   let designs = $state<BingoDesign[]>([]);
   let selectedDesignId = $state('');
-  let segment = $state<'board' | 'entries'>('board');
+  const segmentParam = urlParam('segment', 'board');
+  const segment = $derived(segmentParam.value as 'board' | 'entries');
   let answers = $state('');
   let mode = $state<BingoTogetherMode>('off');
   let savingAnswers = $state(false);
@@ -96,17 +99,47 @@
     }
   }
 
-  async function exportPng() {
-    if (!board || exporting) return;
+  let exportChoice = $state('');
+
+  async function exportAnsweredBoard() {
+    if (!board || !current?.correct_answers || exporting) return;
     exporting = true;
     try {
-      await boardExporter.download($state.snapshot(board.board));
-      toast('success', 'Board exported', 'The PNG is in your downloads.');
+      await boardExporter.download($state.snapshot(board.board), current.correct_answers);
+      toast('success', 'Answered board exported', 'The PNG is in your downloads.');
     } catch (e: any) {
       toast('error', e.message);
     } finally {
       exporting = false;
     }
+  }
+
+  async function exportAnswers() {
+    if (!current || exporting) return;
+    exporting = true;
+    try {
+      const { files } = await api.bingo.exportAnswers(guildId, current.id);
+      files.forEach(file => {
+        const link = document.createElement('a');
+        link.href = `data:image/png;base64,${file.data}`;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+      toast('success', 'Answers exported', `${files.length} PNG ${files.length === 1 ? 'file' : 'files'} in your downloads.`);
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      exporting = false;
+    }
+  }
+
+  async function onExportChoice(value: string) {
+    if (!value) return;
+    if (value === 'board' || value === 'board-answered') await exportBoard();
+    else if (value === 'answers') await exportAnswers();
+    exportChoice = '';
   }
 
   async function setMode(next: BingoTogetherMode) {
@@ -221,7 +254,11 @@
       <div class="flex flex-wrap items-center gap-2">
         <Badge tone={statusTone[current.status]}>{statusLabel[current.status]}</Badge>
         {#if isAdmin}
-          <Button variant="secondary" onclick={exportPng} disabled={exporting}><Download class="h-3.5 w-3.5" />{exporting ? 'Exporting…' : 'Export PNG'}</Button>
+          <RowMenu text="Export PNG" icon={Download} label="Export" items={[
+            { label: 'Board', onclick: () => void exportBoard() },
+            { label: 'Board (Answered)', onclick: () => void exportAnsweredBoard() },
+            { label: 'Participant Answers', onclick: () => void exportAnswers() },
+          ]} />
           <RowMenu
             items={[
               current.status === 'closed'
@@ -236,7 +273,7 @@
     </div>
 
     <SegmentedControl
-      bind:value={segment}
+      bind:value={segmentParam.value}
       label="Round view"
       options={[
         { id: 'board', label: 'Board' },
@@ -362,10 +399,10 @@
                     <Eye class="h-3.5 w-3.5" />Preview answered board
                   {/if}
                 </Button>
-                <Button variant="secondary" class="w-full" onclick={() => onOpenDesign(current.design_id ?? '', current.id)}>
+                <Button variant="secondary" class="w-full" disabled={busy || (current?.entries ?? 0) > 0} onclick={() => onOpenDesign(current.design_id ?? '', current.id)}>
                   <PencilRuler class="h-3.5 w-3.5" />{current.design_id ? 'Restyle design' : 'Create design'}
                 </Button>
-                <Button variant="secondary" class="w-full" disabled={busy} onclick={unlinkDesign}>
+                <Button variant="secondary" class="w-full" disabled={busy || (current?.entries ?? 0) > 0} onclick={unlinkDesign}>
                   <X class="h-3.5 w-3.5" />Unlink design
                 </Button>
               </div>

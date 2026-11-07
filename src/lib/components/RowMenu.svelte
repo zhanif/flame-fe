@@ -36,7 +36,7 @@
 <DropdownMenu.Root>
   <DropdownMenu.Trigger aria-label={label} title={label} class={text ? TEXT_TRIGGER : ICON_TRIGGER}>
     {#if text}
-      {#if icon}<icon class="h-3.5 w-3.5 shrink-0" />{/if}
+      {#if icon}{@const Icon = icon}<Icon class="h-3.5 w-3.5 shrink-0" />{/if}
       {text}
       <ChevronDown class="h-3 w-3 shrink-0 text-zinc-500" />
     {:else}

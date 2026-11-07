@@ -6,21 +6,22 @@ const FONT = '"Poppins", "Segoe UI", "Noto Sans", "DejaVu Sans", sans-serif';
 
 /** Draws the board exactly as the Discord card and the dashboard preview show it, then downloads it as a PNG. */
 class BoardExporter {
-  async download(board: BingoBoard): Promise<void> {
+  async download(board: BingoBoard, answers?: string): Promise<void> {
     await this.loadFont();
-    const canvas = this.draw(board);
+    const canvas = this.draw(board, answers);
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('The image could not be made');
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${(board.title.trim() || 'bingo').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'bingo'}-board.png`;
+    const suffix = answers ? 'answered-board' : 'board';
+    link.download = `${(board.title.trim() || 'bingo').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'bingo'}-${suffix}.png`;
     link.click();
     URL.revokeObjectURL(url);
   }
 
-  private draw(board: BingoBoard): HTMLCanvasElement {
+  private draw(board: BingoBoard, answers?: string): HTMLCanvasElement {
     const height = CARD.header + CARD.rowHeight * 3 + CARD.gap * 2 + CARD.footer;
     const canvas = document.createElement('canvas');
     canvas.width = CARD.width;
@@ -43,7 +44,7 @@ class BoardExporter {
       const x = column === 3 ? CARD.padding + mainWidth + CARD.gap : CARD.padding + column * (cellWidth + CARD.gap);
       const width = column === 3 ? CARD.bonusWidth : cellWidth;
       const y = CARD.header + row * (CARD.rowHeight + CARD.gap);
-      this.drawCell(ctx, board, position, x, y, width);
+      this.drawCell(ctx, board, position, x, y, width, answers);
     });
 
     if (board.footer) {
@@ -72,20 +73,25 @@ class BoardExporter {
     }
   }
 
-  private drawCell(ctx: CanvasRenderingContext2D, board: BingoBoard, position: number, x: number, y: number, width: number): void {
+  private drawCell(ctx: CanvasRenderingContext2D, board: BingoBoard, position: number, x: number, y: number, width: number, answers?: string): void {
     const figure = cellFigure(board, position);
     const band = cellBand(board.style, position);
     const hasStrip = Boolean(figure.position || figure.points);
+    const answer = answers?.[position - 1];
+    const tone = answer && answer !== ' ' ? ({ Y: { tile: '#5ee6ad', band: { color: '#52525b', text: '#fafafa' } }, N: { tile: '#fa7d90', band: { color: '#52525b', text: '#fafafa' } }, '-': { tile: '#8b8b92', band: { color: '#52525b', text: '#fafafa' } } }[answer] ?? null) : null;
+    const tileColor = tone ? tone.tile : board.style.tile;
+    const bandColor = tone ? tone.band.color : band.color;
+    const bandText = tone ? tone.band.text : band.text;
 
     this.roundedRect(ctx, x, y, width, CARD.rowHeight, board.style.radius);
-    ctx.fillStyle = board.style.tile;
+    ctx.fillStyle = tileColor;
     ctx.fill();
 
     if (hasStrip) {
       ctx.save();
       this.roundedRect(ctx, x, y, width, CARD.rowHeight, board.style.radius);
       ctx.clip();
-      ctx.fillStyle = band.color;
+      ctx.fillStyle = bandColor;
       ctx.fillRect(x, y + CARD.rowHeight - CARD.strip, width, CARD.strip);
       ctx.restore();
     }
@@ -102,7 +108,7 @@ class BoardExporter {
     lines.forEach((line, index) => ctx.fillText(line, x + width / 2, start + index * CARD.lineHeight));
 
     if (!hasStrip) return;
-    ctx.fillStyle = band.text;
+    ctx.fillStyle = bandText;
     ctx.textBaseline = 'middle';
     const baseline = y + CARD.rowHeight - CARD.strip / 2;
     if (figure.position) {
@@ -113,13 +119,13 @@ class BoardExporter {
       this.roundedRect(ctx, chipX, chipY, CARD.chip, CARD.chip, 10);
       ctx.fill();
       ctx.restore();
-      ctx.fillStyle = band.text;
+      ctx.fillStyle = bandText;
       ctx.font = `600 17px ${FONT}`;
       ctx.textAlign = 'center';
       ctx.fillText(figure.position, chipX + CARD.chip / 2, baseline);
     }
     if (figure.points) {
-      ctx.fillStyle = band.text;
+      ctx.fillStyle = bandText;
       ctx.font = `600 ${CARD.figure}px ${FONT}`;
       ctx.textAlign = 'right';
       ctx.fillText(figure.points, x + width - 18, baseline);

@@ -853,6 +853,8 @@ export const api = {
     remove: (guildId: string, id: string) => apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/bingo/threads/${id}`, 'DELETE'),
     entries: (guildId: string, id: string, query: { page: number; limit: number }) =>
       apiCall<BingoEntries>(`/guilds/${guildId}/m/bingo/threads/${id}/entries?page=${query.page}&limit=${query.limit}`),
+    exportAnswers: (guildId: string, id: string) =>
+      apiCall<{ files: { name: string; data: string }[] }>(`/guilds/${guildId}/m/bingo/threads/${id}/export`, 'POST'),
   },
   auditFilters: (guildId: string) => apiCall<AuditFilters>(`/guilds/${guildId}/audit-logs/filters`),
 };
