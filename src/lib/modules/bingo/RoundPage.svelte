@@ -8,7 +8,7 @@
   import RowMenu from '$lib/components/RowMenu.svelte';
   import SegmentedControl from '$lib/components/SegmentedControl.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
-  import SettingRow from '$lib/components/SettingRow.svelte';
+
   import { api, type BingoDesign, type BingoEntry, type BingoRound, type BingoTogetherMode } from '$lib/api/endpoints';
   import BingoAnswersGrid from '$lib/modules/bingo/BingoAnswersGrid.svelte';
   import BingoBoard from '$lib/modules/bingo/BingoBoard.svelte';
@@ -98,6 +98,14 @@
       mode = result.round.together_mode;
       designs = designList.designs;
       entries = entriesResult.entries ?? [];
+      try {
+        const saved = localStorage.getItem(`bingo-thresholds:${roundId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          upperThreshold = parsed.upper ?? 0;
+          lowerThreshold = parsed.lower ?? 0;
+        }
+      } catch {}
     } catch (e: any) {
       toast('error', e.message);
       onBack();
@@ -355,35 +363,24 @@
                   Link a design to this round first. Together mode can only be applied once the board is assigned.
                 </p>
               {/if}
-              <SettingRow
-                title="Apply to the ranked participants"
-                hint="The chosen role is given to every ranked participant and the other one is taken back. Members can join the same role with /bingo together."
-              >
-                <div class="flex flex-wrap items-center justify-end gap-2">
-                  <SegmentedControl
-                    bind:value={mode}
-                    label="Together mode"
-                    options={[
-                      { id: 'off', label: 'Off' },
-                      { id: 'positive', label: 'Positive' },
-                      { id: 'negative', label: 'Negative' },
-                    ]}
-                  />
-                  <Button variant="secondary" onclick={() => setMode(mode)} disabled={applying || blank || mode === current.together_mode}>
-                    {applying ? 'Applying…' : 'Apply'}
+              <div class="flex flex-wrap items-center gap-2">
+                {#each ['off', 'positive', 'negative'] as m (m)}
+                  <Button variant={mode === m ? 'primary' : 'secondary'} onclick={() => (mode = m as BingoTogetherMode)} disabled={blank}>
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
                   </Button>
-                </div>
-              </SettingRow>
-              <div class="mt-3 overflow-hidden rounded-lg border border-zinc-800">
-                <div class="flex items-center justify-between px-3 py-2 text-sm">
-                  <span class="text-zinc-400">Total score (all)</span>
-                  <span class="font-semibold tabular-nums text-zinc-100">{totalScoreAll.toLocaleString('en-US')}</span>
-                </div>
-                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
-                  <span class="text-zinc-400">Total score (ranked)</span>
-                  <span class="font-semibold tabular-nums text-zinc-100">{totalScoreRanked.toLocaleString('en-US')}</span>
-                </div>
-                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
+                {/each}
+                <Button variant="secondary" onclick={() => setMode(mode)} disabled={applying || blank || mode === current.together_mode}>
+                  {applying ? 'Applying…' : 'Apply'}
+                </Button>
+              </div>
+              <p class="mt-2 text-xs text-zinc-500">
+                {current.together_mode === 'off'
+                  ? 'Nothing is applied while the mode is off.'
+                  : `The ${current.together_mode} role is applied to the ranked participants.`}
+              </p>
+
+              <div class="mt-4 overflow-hidden rounded-lg border border-zinc-800">
+                <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
                   <label class="text-zinc-400">Upper threshold</label>
                   <input
                     type="number"
@@ -391,7 +388,7 @@
                     class="w-24 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm tabular-nums text-zinc-100"
                   />
                 </div>
-                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
+                <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
                   <label class="text-zinc-400">Lower threshold</label>
                   <input
                     type="number"
@@ -399,16 +396,34 @@
                     class="w-24 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm tabular-nums text-zinc-100"
                   />
                 </div>
-                <div class="flex items-center justify-between border-t border-zinc-800 bg-zinc-900/40 px-3 py-2 text-sm">
+                <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
+                  <span class="text-zinc-400">Total score (all)</span>
+                  <span class="font-semibold tabular-nums text-zinc-100">{totalScoreAll.toLocaleString('en-US')}</span>
+                </div>
+                <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
+                  <span class="text-zinc-400">Total score (ranked)</span>
+                  <span class="font-semibold tabular-nums text-zinc-100">{totalScoreRanked.toLocaleString('en-US')}</span>
+                </div>
+                <div class="flex items-center justify-between bg-zinc-900/40 px-3 py-2 text-sm">
                   <span class="text-zinc-400">Suggestion</span>
-                  <span class="font-medium text-zinc-200">{togetherSuggestion}</span>
+                  <span class="font-medium text-zinc-200">{togetherSuggestion.replace('Suggestion: ', '')}</span>
                 </div>
               </div>
-              <p class="text-xs text-zinc-500">
-                {current.together_mode === 'off'
-                  ? 'Nothing is applied while the mode is off.'
-                  : `The ${current.together_mode} role is applied to the ranked participants.`}
-              </p>
+              <div class="mt-3 flex justify-end">
+                <Button
+                  variant="secondary"
+                  onclick={() => {
+                    try {
+                      localStorage.setItem(`bingo-thresholds:${roundId}`, JSON.stringify({ upper: upperThreshold, lower: lowerThreshold }));
+                      toast('success', 'Thresholds saved');
+                    } catch (e: any) {
+                      toast('error', e?.message ?? 'Could not save');
+                    }
+                  }}
+                >
+                  Save thresholds
+                </Button>
+              </div>
             </Card>
           {/if}
         </div>
