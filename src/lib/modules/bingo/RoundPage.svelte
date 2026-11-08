@@ -374,34 +374,35 @@
                   </Button>
                 </div>
               </SettingRow>
-              <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                <div class="flex items-baseline gap-2">
-                  <span class="text-zinc-500">Total score (all):</span>
-                  <span class="font-semibold text-zinc-100">{totalScoreAll.toLocaleString('en-US')}</span>
+              <div class="mt-3 overflow-hidden rounded-lg border border-zinc-800">
+                <div class="flex items-center justify-between px-3 py-2 text-sm">
+                  <span class="text-zinc-400">Total score (all)</span>
+                  <span class="font-semibold tabular-nums text-zinc-100">{totalScoreAll.toLocaleString('en-US')}</span>
                 </div>
-                <div class="flex items-baseline gap-2">
-                  <span class="text-zinc-500">Total score (ranked):</span>
-                  <span class="font-semibold text-zinc-100">{totalScoreRanked.toLocaleString('en-US')}</span>
+                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
+                  <span class="text-zinc-400">Total score (ranked)</span>
+                  <span class="font-semibold tabular-nums text-zinc-100">{totalScoreRanked.toLocaleString('en-US')}</span>
                 </div>
-              </div>
-              <div class="mt-3 flex flex-wrap items-end gap-3">
-                <label class="flex flex-col gap-1 text-xs text-zinc-400">
-                  Upper threshold
+                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
+                  <label class="text-zinc-400">Upper threshold</label>
                   <input
                     type="number"
                     bind:value={upperThreshold}
-                    class="w-28 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100"
+                    class="w-24 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm tabular-nums text-zinc-100"
                   />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-zinc-400">
-                  Lower threshold
+                </div>
+                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
+                  <label class="text-zinc-400">Lower threshold</label>
                   <input
                     type="number"
                     bind:value={lowerThreshold}
-                    class="w-28 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100"
+                    class="w-24 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm tabular-nums text-zinc-100"
                   />
-                </label>
-                <span class="pb-1 text-sm font-medium text-zinc-300">{togetherSuggestion}</span>
+                </div>
+                <div class="flex items-center justify-between border-t border-zinc-800 bg-zinc-900/40 px-3 py-2 text-sm">
+                  <span class="text-zinc-400">Suggestion</span>
+                  <span class="font-medium text-zinc-200">{togetherSuggestion}</span>
+                </div>
               </div>
               <p class="text-xs text-zinc-500">
                 {current.together_mode === 'off'
