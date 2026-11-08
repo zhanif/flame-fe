@@ -9,7 +9,7 @@
   import SegmentedControl from '$lib/components/SegmentedControl.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import SettingRow from '$lib/components/SettingRow.svelte';
-  import { api, type BingoDesign, type BingoRound, type BingoTogetherMode } from '$lib/api/endpoints';
+  import { api, type BingoDesign, type BingoEntry, type BingoRound, type BingoTogetherMode } from '$lib/api/endpoints';
   import BingoAnswersGrid from '$lib/modules/bingo/BingoAnswersGrid.svelte';
   import BingoBoard from '$lib/modules/bingo/BingoBoard.svelte';
   import EntriesTab from '$lib/modules/bingo/EntriesTab.svelte';
@@ -57,8 +57,7 @@
   const segment = $derived(segmentParam.value as 'board' | 'entries');
   let answers = $state('');
   let mode = $state<BingoTogetherMode>('off');
-  let totalScoreAll = $state(0);
-  let totalScoreRanked = $state(0);
+  let entries = $state<BingoEntry[]>([]);
   let upperThreshold = $state(0);
   let lowerThreshold = $state(0);
   let savingAnswers = $state(false);
@@ -78,6 +77,8 @@
   const statusLabel = { open: 'Open', closed: 'Closed', ignored: 'Ignored' } as const;
   const statusTone = { open: 'success', closed: 'neutral', ignored: 'warning' } as const;
   const modeLabel: Record<BingoTogetherMode, string> = { off: 'Off', positive: 'Positive', negative: 'Negative' };
+  const totalScoreAll = $derived(entries.reduce((sum, e) => sum + (e.final_score ?? 0), 0));
+  const totalScoreRanked = $derived(entries.filter(e => e.is_ranked).reduce((sum, e) => sum + (e.final_score ?? 0), 0));
   const togetherSuggestion = $derived.by((): string => {
     if (totalScoreRanked > upperThreshold) return 'Suggestion: Positive';
     if (totalScoreRanked < lowerThreshold) return 'Suggestion: Negative';
@@ -86,12 +87,17 @@
 
   async function load() {
     try {
-      const [result, designList] = await Promise.all([api.bingo.round(guildId, roundId), api.bingo.designs(guildId)]);
+      const [result, designList, entriesResult] = await Promise.all([
+        api.bingo.round(guildId, roundId),
+        api.bingo.designs(guildId),
+        api.bingo.entries(guildId, roundId, { page: 1, limit: 1000 }),
+      ]);
       round = result.round;
       design = result.design;
       answers = result.round.correct_answers ?? '';
       mode = result.round.together_mode;
       designs = designList.designs;
+      entries = entriesResult.entries ?? [];
     } catch (e: any) {
       toast('error', e.message);
       onBack();
@@ -369,22 +375,18 @@
                 </div>
               </SettingRow>
               <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                <label class="flex flex-col gap-1 text-xs text-zinc-400">
+                <div class="flex flex-col gap-1 text-xs text-zinc-400">
                   Total Participant Score (All)
-                  <input
-                    type="number"
-                    bind:value={totalScoreAll}
-                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
-                  />
-                </label>
-                <label class="flex flex-col gap-1 text-xs text-zinc-400">
+                  <span class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100">
+                    {totalScoreAll.toLocaleString('en-US')}
+                  </span>
+                </div>
+                <div class="flex flex-col gap-1 text-xs text-zinc-400">
                   Total Participant Score (Ranked)
-                  <input
-                    type="number"
-                    bind:value={totalScoreRanked}
-                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
-                  />
-                </label>
+                  <span class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100">
+                    {totalScoreRanked.toLocaleString('en-US')}
+                  </span>
+                </div>
                 <label class="flex flex-col gap-1 text-xs text-zinc-400">
                   Upper threshold
                   <input
