@@ -57,6 +57,10 @@
   const segment = $derived(segmentParam.value as 'board' | 'entries');
   let answers = $state('');
   let mode = $state<BingoTogetherMode>('off');
+  let totalScoreAll = $state(0);
+  let totalScoreRanked = $state(0);
+  let upperThreshold = $state(0);
+  let lowerThreshold = $state(0);
   let savingAnswers = $state(false);
   let exporting = $state(false);
   let previewAnswered = $state(false);
@@ -74,6 +78,11 @@
   const statusLabel = { open: 'Open', closed: 'Closed', ignored: 'Ignored' } as const;
   const statusTone = { open: 'success', closed: 'neutral', ignored: 'warning' } as const;
   const modeLabel: Record<BingoTogetherMode, string> = { off: 'Off', positive: 'Positive', negative: 'Negative' };
+  const togetherSuggestion = $derived.by((): string => {
+    if (totalScoreRanked > upperThreshold) return 'Suggestion: Positive';
+    if (totalScoreRanked < lowerThreshold) return 'Suggestion: Negative';
+    return 'Suggestion: none';
+  });
 
   async function load() {
     try {
@@ -359,6 +368,41 @@
                   </Button>
                 </div>
               </SettingRow>
+              <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <label class="flex flex-col gap-1 text-xs text-zinc-400">
+                  Total Participant Score (All)
+                  <input
+                    type="number"
+                    bind:value={totalScoreAll}
+                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-zinc-400">
+                  Total Participant Score (Ranked)
+                  <input
+                    type="number"
+                    bind:value={totalScoreRanked}
+                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-zinc-400">
+                  Upper threshold
+                  <input
+                    type="number"
+                    bind:value={upperThreshold}
+                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-xs text-zinc-400">
+                  Lower threshold
+                  <input
+                    type="number"
+                    bind:value={lowerThreshold}
+                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
+                  />
+                </label>
+              </div>
+              <p class="mt-2 text-xs text-zinc-400">{togetherSuggestion}</p>
               <p class="text-xs text-zinc-500">
                 {current.together_mode === 'off'
                   ? 'Nothing is applied while the mode is off.'
