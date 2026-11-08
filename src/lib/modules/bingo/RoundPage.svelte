@@ -374,25 +374,23 @@
                   </Button>
                 </div>
               </SettingRow>
-              <div class="mt-3 grid gap-3 sm:grid-cols-2">
-                <div class="flex flex-col gap-1 text-xs text-zinc-400">
-                  Total Participant Score (All)
-                  <span class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100">
-                    {totalScoreAll.toLocaleString('en-US')}
-                  </span>
+              <div class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-zinc-500">Total score (all):</span>
+                  <span class="font-semibold text-zinc-100">{totalScoreAll.toLocaleString('en-US')}</span>
                 </div>
-                <div class="flex flex-col gap-1 text-xs text-zinc-400">
-                  Total Participant Score (Ranked)
-                  <span class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100">
-                    {totalScoreRanked.toLocaleString('en-US')}
-                  </span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-zinc-500">Total score (ranked):</span>
+                  <span class="font-semibold text-zinc-100">{totalScoreRanked.toLocaleString('en-US')}</span>
                 </div>
+              </div>
+              <div class="mt-3 flex flex-wrap items-end gap-3">
                 <label class="flex flex-col gap-1 text-xs text-zinc-400">
                   Upper threshold
                   <input
                     type="number"
                     bind:value={upperThreshold}
-                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
+                    class="w-28 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100"
                   />
                 </label>
                 <label class="flex flex-col gap-1 text-xs text-zinc-400">
@@ -400,11 +398,11 @@
                   <input
                     type="number"
                     bind:value={lowerThreshold}
-                    class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100"
+                    class="w-28 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100"
                   />
                 </label>
+                <span class="pb-1 text-sm font-medium text-zinc-300">{togetherSuggestion}</span>
               </div>
-              <p class="mt-2 text-xs text-zinc-400">{togetherSuggestion}</p>
               <p class="text-xs text-zinc-500">
                 {current.together_mode === 'off'
                   ? 'Nothing is applied while the mode is off.'
