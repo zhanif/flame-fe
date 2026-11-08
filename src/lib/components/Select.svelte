@@ -10,7 +10,7 @@
   let {
     value = $bindable(''),
     options,
-    placeholder,
+    placeholder = '',
     label,
     disabled = false,
     onchange,
@@ -38,11 +38,13 @@
   type="single"
   {items}
   {disabled}
-  bind:value={() => value || ALL,
-  v => {
-    value = v === ALL ? '' : v;
-    onchange?.();
-  }}
+  bind:value={
+    () => value || ALL,
+    v => {
+      value = v === ALL ? '' : v;
+      onchange?.();
+    }
+  }
 >
   <Select.Trigger
     aria-label={label}

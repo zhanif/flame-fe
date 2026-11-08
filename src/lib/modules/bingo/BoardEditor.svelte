@@ -80,7 +80,7 @@
     ...rounds.map(round => ({ value: round.id, label: round.tag, hint: round.thread_name })),
   ]);
   const selectedRound = $derived(rounds.find(round => round.id === roundId) ?? null);
-  const previewAnswers = $derived(previewAnswered ? selectedRound?.correct_answers ?? null : null);
+  const previewAnswers = $derived(previewAnswered ? (selectedRound?.correct_answers ?? null) : null);
   const heading = $derived(design?.id ? board.title.trim() || 'Untitled design' : 'New design');
 
   async function save() {
@@ -96,7 +96,11 @@
       toast(
         'success',
         created ? 'Design created' : 'Design saved',
-        saved.rescored ? `${saved.rescored} ${saved.rescored === 1 ? 'entry was' : 'entries were'} rescored.` : roundId ? 'The board is stored for that round.' : 'The board is stored on its own.',
+        saved.rescored
+          ? `${saved.rescored} ${saved.rescored === 1 ? 'entry was' : 'entries were'} rescored.`
+          : roundId
+            ? 'The board is stored for that round.'
+            : 'The board is stored on its own.',
       );
     } catch (e: any) {
       toast('error', e.message);
@@ -196,7 +200,9 @@
       </div>
     </div>
     <div class="flex flex-wrap gap-2">
-      <Button variant="secondary" onclick={download} disabled={exporting}><Download class="w-3.5 h-3.5" />{exporting ? 'Exporting…' : 'Export PNG'}</Button>
+      <Button variant="secondary" onclick={download} disabled={exporting}
+        ><Download class="w-3.5 h-3.5" />{exporting ? 'Exporting…' : 'Export PNG'}</Button
+      >
       {#if isAdmin}
         <SaveButton onclick={save} disabled={!dirty} {saving} />
       {/if}
@@ -250,7 +256,10 @@
             <p class="px-0.5 pb-2 pt-3 {caps} text-zinc-500">{group.heading}</p>
             {#each group.positions as position (position)}
               <div class="flex items-center gap-2 py-1.5">
-                <span class="flex h-6 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-800/70 font-mono text-[11px] font-semibold text-zinc-400">{position}</span>
+                <span
+                  class="flex h-6 w-7 shrink-0 items-center justify-center rounded-md bg-zinc-800/70 font-mono text-[11px] font-semibold text-zinc-400"
+                  >{position}</span
+                >
                 <div class="min-w-0 flex-1">
                   <Input
                     value={board.questions[position - 1] ?? ''}
@@ -277,7 +286,10 @@
           {/each}
         </div>
         {#if empty.length}
-          <p class="mt-3 text-xs text-amber-400">{empty.length} question{empty.length === 1 ? '' : 's'} still empty. The board saves as a draft but cannot be posted until all 12 are in.</p>
+          <p class="mt-3 text-xs text-amber-400">
+            {empty.length} question{empty.length === 1 ? '' : 's'} still empty. The board saves as a draft but cannot be posted until all 12 are
+            in.
+          </p>
         {/if}
       </Card>
 
@@ -291,12 +303,21 @@
           <ColorField bind:value={board.style.subtitle_color} label="Subtitle text" disabled={!isAdmin} />
           <div>
             <span class={label}>Corner radius</span>
-            <Input value={String(board.style.radius)} inputmode="numeric" maxlength={2} disabled={!isAdmin} aria-label="Corner radius" oninput={e => setRadius(e.currentTarget.value)} />
+            <Input
+              value={String(board.style.radius)}
+              inputmode="numeric"
+              maxlength={2}
+              disabled={!isAdmin}
+              aria-label="Corner radius"
+              oninput={e => setRadius(e.currentTarget.value)}
+            />
           </div>
         </div>
         <div class="mt-5 border-t border-zinc-800/60 pt-4">
           <span class="{caps} text-zinc-500">Bands</span>
-          <p class="mt-1 text-xs text-zinc-500">The band holds the number and the points. Box is the nine main cells, Bonus 1 to 3 are cells 10, 11 and 12.</p>
+          <p class="mt-1 text-xs text-zinc-500">
+            The band holds the number and the points. Box is the nine main cells, Bonus 1 to 3 are cells 10, 11 and 12.
+          </p>
           <div class="mt-3 grid gap-3 sm:grid-cols-2">
             <div class="rounded-lg border border-zinc-800/60 p-3">
               <p class="mb-2 text-xs font-semibold text-zinc-200">Box</p>
@@ -331,11 +352,21 @@
         <div class="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-zinc-800/60 pt-4">
           <div class="flex flex-wrap gap-6">
             <label class="flex items-center gap-2 text-xs text-zinc-300">
-              <Toggle on={board.style.show_numbers} disabled={!isAdmin} label="Show numbers" onclick={() => (board.style = { ...board.style, show_numbers: !board.style.show_numbers })} />
+              <Toggle
+                on={board.style.show_numbers}
+                disabled={!isAdmin}
+                label="Show numbers"
+                onclick={() => (board.style = { ...board.style, show_numbers: !board.style.show_numbers })}
+              />
               Numbers
             </label>
             <label class="flex items-center gap-2 text-xs text-zinc-300">
-              <Toggle on={board.style.show_points} disabled={!isAdmin} label="Show points" onclick={() => (board.style = { ...board.style, show_points: !board.style.show_points })} />
+              <Toggle
+                on={board.style.show_points}
+                disabled={!isAdmin}
+                label="Show points"
+                onclick={() => (board.style = { ...board.style, show_points: !board.style.show_points })}
+              />
               Points
             </label>
             <Button

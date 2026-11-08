@@ -16,13 +16,27 @@ export const label = `block mb-1.5 ${caps} text-zinc-400`;
 export const th = `h-10 px-5 text-left align-middle ${caps} text-zinc-500`;
 export const td = 'h-11 px-5 align-middle text-xs';
 
-
 /** The accent palette: orange is the brand, the rest give each area its own color. */
-export type Tone = 'orange' | 'sky' | 'cyan' | 'violet' | 'emerald' | 'amber' | 'fuchsia' | 'green' | 'blue' | 'lime' | 'teal' | 'red' | 'vermilion' | 'rose';
+export type Tone =
+  | 'orange'
+  | 'sky'
+  | 'cyan'
+  | 'violet'
+  | 'emerald'
+  | 'amber'
+  | 'fuchsia'
+  | 'green'
+  | 'blue'
+  | 'lime'
+  | 'teal'
+  | 'red'
+  | 'vermilion'
+  | 'rose';
 
 /** A stable "random" tone for an id (a server, a module): same id, same color, everywhere. */
 const RANDOM_TONES: Tone[] = ['sky', 'violet', 'amber', 'emerald', 'orange'];
-export const toneFor = (id: string): Tone => RANDOM_TONES[[...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7) % RANDOM_TONES.length];
+export const toneFor = (id: string): Tone =>
+  RANDOM_TONES[[...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7) % RANDOM_TONES.length];
 
 /** Flat tinted icon tile per tone (see Tile). */
 export const tile: Record<Tone, string> = {

@@ -5,7 +5,7 @@
   let { show, onClose, wide = false, children }: { show: boolean; onClose: () => void; wide?: boolean; children: Snippet } = $props();
 </script>
 
-<svelte:window onkeydown={(e) => show && e.key === 'Escape' && onClose()} />
+<svelte:window onkeydown={e => show && e.key === 'Escape' && onClose()} />
 
 {#if show}
   <div
@@ -19,8 +19,8 @@
       role="dialog"
       aria-modal="true"
       tabindex="-1"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.stopPropagation()}
       transition:scale|global={{ start: 0.96, duration: 180 }}
     >
       {@render children()}

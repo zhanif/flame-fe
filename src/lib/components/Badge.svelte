@@ -33,6 +33,8 @@
   };
 </script>
 
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ring-1 {TONES[tone] ?? TONES.neutral}">
+<span
+  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ring-1 {TONES[tone] ?? TONES.neutral}"
+>
   {@render children()}
 </span>

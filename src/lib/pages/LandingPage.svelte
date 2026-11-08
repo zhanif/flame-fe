@@ -9,10 +9,30 @@
   import type { Component } from 'svelte';
 
   const features: { icon: Component<any>; tone: Tone; title: string; text: string }[] = [
-    { icon: Blocks, tone: 'orange', title: 'Modular', text: 'A server starts with nothing. Install only the modules you want, and remove them with their data whenever you like.' },
-    { icon: SlidersHorizontal, tone: 'sky', title: 'Per server', text: 'Every setting belongs to one server and lives in the dashboard, not in files or shared config.' },
-    { icon: MousePointerClick, tone: 'emerald', title: 'Your click', text: 'Slash commands and bulk role changes happen only when an admin clicks, one command at a time.' },
-    { icon: ScrollText, tone: 'violet', title: 'Audit trail', text: 'Every configuration change is recorded with who made it, what changed and why.' },
+    {
+      icon: Blocks,
+      tone: 'orange',
+      title: 'Modular',
+      text: 'A server starts with nothing. Install only the modules you want, and remove them with their data whenever you like.',
+    },
+    {
+      icon: SlidersHorizontal,
+      tone: 'sky',
+      title: 'Per server',
+      text: 'Every setting belongs to one server and lives in the dashboard, not in files or shared config.',
+    },
+    {
+      icon: MousePointerClick,
+      tone: 'emerald',
+      title: 'Your click',
+      text: 'Slash commands and bulk role changes happen only when an admin clicks, one command at a time.',
+    },
+    {
+      icon: ScrollText,
+      tone: 'violet',
+      title: 'Audit trail',
+      text: 'Every configuration change is recorded with who made it, what changed and why.',
+    },
   ];
 </script>
 
@@ -32,16 +52,24 @@
   <main class="flex-1 flex flex-col items-center justify-center px-5 py-10">
     <section class="max-w-md w-full text-center">
       {#if bot.avatar}
-        <img src={bot.avatar} alt={bot.name} class="w-24 h-24 rounded-full mx-auto mb-6 ring-4 ring-orange-500/30 shadow-lg shadow-orange-500/20" />
+        <img
+          src={bot.avatar}
+          alt={bot.name}
+          class="w-24 h-24 rounded-full mx-auto mb-6 ring-4 ring-orange-500/30 shadow-lg shadow-orange-500/20"
+        />
       {:else}
         <div class="mx-auto mb-6"><Tile icon={Flame} tone="orange" size="lg" /></div>
       {/if}
       <h1 class="font-display text-5xl font-extrabold tracking-tight mb-3 text-orange-400">{bot.name}</h1>
-      <p class="text-sm text-zinc-400 mb-7 leading-relaxed">One Discord bot for every server. Install the modules you need and run them from one dashboard.</p>
+      <p class="text-sm text-zinc-400 mb-7 leading-relaxed">
+        One Discord bot for every server. Install the modules you need and run them from one dashboard.
+      </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
         <Button variant="primary" href="/api/auth/login" class="!h-10 !text-sm sm:min-w-48">Log in with Discord</Button>
         {#if bot.inviteUrl}
-          <Button variant="secondary" href={bot.inviteUrl} target="_blank" rel="noreferrer" class="!h-10 !text-sm sm:min-w-48"><Plus class="w-4 h-4" />Add to your server</Button>
+          <Button variant="secondary" href={bot.inviteUrl} target="_blank" rel="noreferrer" class="!h-10 !text-sm sm:min-w-48"
+            ><Plus class="w-4 h-4" />Add to your server</Button
+          >
         {/if}
       </div>
     </section>

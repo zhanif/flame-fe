@@ -16,7 +16,12 @@
 
   // The forum where rounds live, the pattern that recognises a round, the roles, and the rescan for threads that
   // were created before the module was installed.
-  let { guildId, config, isAdmin, onSaved }: { guildId: string; config: BingoConfig; isAdmin: boolean; onSaved: (config: BingoConfig) => void } = $props();
+  let {
+    guildId,
+    config,
+    isAdmin,
+    onSaved,
+  }: { guildId: string; config: BingoConfig; isAdmin: boolean; onSaved: (config: BingoConfig) => void } = $props();
 
   let channels: DiscordChannel[] = $state([]);
   let roles: DiscordRole[] = $state([]);
@@ -118,7 +123,10 @@
         </div>
       </div>
     </SettingRow>
-    <SettingRow title="Send the board automatically" hint="Once a round's board is designed, post it in the thread without pressing anything.">
+    <SettingRow
+      title="Send the board automatically"
+      hint="Once a round's board is designed, post it in the thread without pressing anything."
+    >
       <div class="flex items-center justify-end gap-3">
         <span class="text-sm text-zinc-300">{announce ? 'On' : 'Off'}</span>
         <Toggle on={announce} disabled={!isAdmin} label="Send the board automatically" onclick={() => (announce = !announce)} />
@@ -139,7 +147,10 @@
     <SettingRow title="Newcomer role" hint="Holders of this role are ranked outside the results.">
       <RoleSelect {roles} bind:value={newcomer} none="Everyone is ranked" label="Newcomer role" disabled={!isAdmin} />
     </SettingRow>
-    <SettingRow title="Positive together role" hint="The role the together mode applies to the ranked participants, and that a member can join with /bingo together.">
+    <SettingRow
+      title="Positive together role"
+      hint="The role the together mode applies to the ranked participants, and that a member can join with /bingo together."
+    >
       <RoleSelect {roles} bind:value={positive} none="No role" label="Positive together role" manageable disabled={!isAdmin} />
     </SettingRow>
     <SettingRow title="Negative together role" hint="The other side of the together mode: applied instead of the positive one, never both.">
@@ -151,7 +162,9 @@
     <SectionTitle icon={RefreshCw} title="Threads created before now" class="mb-4" />
     <SettingRow
       title="Scan the forum"
-      hint={scanned ? `Last scan: ${scanned.found} threads read, ${scanned.created} rounds created.` : 'Reads the active threads and one page of archived ones, and creates the rounds it missed.'}
+      hint={scanned
+        ? `Last scan: ${scanned.found} threads read, ${scanned.created} rounds created.`
+        : 'Reads the active threads and one page of archived ones, and creates the rounds it missed.'}
     >
       <div class="flex justify-end">
         <Button variant="secondary" onclick={rescan} disabled={!isAdmin || rescanning || !channelId}>

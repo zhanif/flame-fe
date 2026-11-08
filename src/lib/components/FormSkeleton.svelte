@@ -1,7 +1,12 @@
 <script lang="ts">
   // The stand-in for a form while it loads. `grid` lays the fields out in two columns like the real form,
   // `hint` adds the helper line most fields have between the label and the control.
-  let { fields = 2, button = false, grid = false, hint = false }: { fields?: number; button?: boolean; grid?: boolean; hint?: boolean } = $props();
+  let {
+    fields = 2,
+    button = false,
+    grid = false,
+    hint = false,
+  }: { fields?: number; button?: boolean; grid?: boolean; hint?: boolean } = $props();
 </script>
 
 <div class={grid ? 'grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5' : 'space-y-4'} aria-hidden="true">

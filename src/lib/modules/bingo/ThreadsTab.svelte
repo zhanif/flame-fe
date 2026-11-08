@@ -85,7 +85,8 @@
   onConfirm={remove}
   onClose={() => (deleting = null)}
 >
-  Its submissions, its correct answers and its board are removed. The thread in Discord stays, and a scan of the forum would create the round again.
+  Its submissions, its correct answers and its board are removed. The thread in Discord stays, and a scan of the forum would create the
+  round again.
 </ConfirmModal>
 
 <div class="space-y-5">
@@ -107,7 +108,11 @@
 
   {#if !loaded}
     <Card flush>
-      <TableSkeleton columns={['w-16', 'flex-1', 'flex-1', 'w-28', 'w-24', '>w-20', '>w-24', '>w-12']} rows={limit} headings={['#', 'Tag', 'Thread', 'Status', 'Design', 'Entries', 'Top score', '']} />
+      <TableSkeleton
+        columns={['w-16', 'flex-1', 'flex-1', 'w-28', 'w-24', '>w-20', '>w-24', '>w-12']}
+        rows={limit}
+        headings={['#', 'Tag', 'Thread', 'Status', 'Design', 'Entries', 'Top score', '']}
+      />
     </Card>
   {:else if total === 0}
     <EmptyState
@@ -124,8 +129,8 @@
           <thead>
             <tr class="border-b border-zinc-800/60">
               <th class="{th} w-16">#</th>
-              <th class="{th}">Tag</th>
-              <th class="{th}">Thread</th>
+              <th class={th}>Tag</th>
+              <th class={th}>Thread</th>
               <th class="{th} w-28">Status</th>
               <th class="{th} w-24">Board</th>
               <th class="{th} w-20 text-right">Entries</th>
@@ -137,10 +142,15 @@
             {#each rounds as round, index (round.id)}
               <tr class="transition hover:bg-zinc-800/20">
                 <td class="{td} w-16 text-zinc-500">{(page - 1) * limit + index + 1}</td>
-                <td class="{td}">
-                  <button type="button" onclick={() => onOpen(round.id)} class="cursor-pointer font-mono text-xs font-semibold text-rose-300 hover:underline">{round.tag}</button>
+                <td class={td}>
+                  <button
+                    type="button"
+                    onclick={() => onOpen(round.id)}
+                    class="cursor-pointer font-mono text-xs font-semibold text-rose-300 hover:underline">{round.tag}</button
+                  >
                 </td>
-                <td class="{td}"><p class="max-w-[22rem] truncate text-xs text-zinc-300" title={round.thread_name}>{round.thread_name}</p></td>
+                <td class={td}><p class="max-w-[22rem] truncate text-xs text-zinc-300" title={round.thread_name}>{round.thread_name}</p></td
+                >
                 <td class="{td} w-28"><span class="text-xs text-zinc-300">{statusLabel[round.status]}</span></td>
                 <td class="{td} w-24">
                   <span class="text-xs {round.board_ready ? 'text-zinc-300' : round.has_design ? 'text-amber-400' : 'text-zinc-500'}">
@@ -148,14 +158,21 @@
                   </span>
                 </td>
                 <td class="{td} w-20 text-right text-zinc-300">{round.entries}</td>
-                <td class="{td} w-24 text-right text-zinc-300">{round.top_score === null ? '-' : round.top_score.toLocaleString('en-US')}</td>
+                <td class="{td} w-24 text-right text-zinc-300"
+                  >{round.top_score === null ? '-' : round.top_score.toLocaleString('en-US')}</td
+                >
                 <td class="{td} w-12 text-right">
                   <RowMenu
                     items={[
                       { label: 'View round', icon: PencilRuler, onclick: () => onOpen(round.id) },
                       round.status === 'closed'
                         ? { label: 'Reopen round', icon: RotateCcw, disabled: !isAdmin, onclick: () => void setStatus(round, 'open') }
-                        : { label: 'Finalize round', icon: Check, disabled: !isAdmin || round.status !== 'open', onclick: () => void setStatus(round, 'closed') },
+                        : {
+                            label: 'Finalize round',
+                            icon: Check,
+                            disabled: !isAdmin || round.status !== 'open',
+                            onclick: () => void setStatus(round, 'closed'),
+                          },
                       { label: 'Delete round', icon: Trash2, danger: true, disabled: !isAdmin, onclick: () => (deleting = round) },
                     ]}
                   />

@@ -7,7 +7,9 @@ export interface TimezoneOption {
 }
 
 function offsetMinutes(zone: string, at: Date): number {
-  const part = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' }).formatToParts(at).find(p => p.type === 'timeZoneName')?.value ?? 'GMT';
+  const part =
+    new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' }).formatToParts(at).find(p => p.type === 'timeZoneName')
+      ?.value ?? 'GMT';
   const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(part);
   if (!m) return 0;
   return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
@@ -36,7 +38,14 @@ export function timezoneOptions(now = new Date()): TimezoneOption[] {
 
 export function timeIn(zone: string, now: Date): string {
   try {
-    return new Intl.DateTimeFormat('en-US', { timeZone: zone, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(now);
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: zone,
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(now);
   } catch {
     return '';
   }

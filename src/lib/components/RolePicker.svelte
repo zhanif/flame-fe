@@ -30,7 +30,14 @@
     const kind = problemKind(problem);
     return kind === 'integration' ? { badge: Link2 } : kind === 'above' ? { badge: Lock } : {};
   };
-  const items = $derived(roles.map(r => ({ id: r.id, name: r.name, color: r.color, ...(manageable && r.problem ? { disabled: true, hint: shortRoleProblem(r.problem), tooltip: r.problem, ...badgeOf(r.problem) } : {}) })));
+  const items = $derived(
+    roles.map(r => ({
+      id: r.id,
+      name: r.name,
+      color: r.color,
+      ...(manageable && r.problem ? { disabled: true, hint: shortRoleProblem(r.problem), tooltip: r.problem, ...badgeOf(r.problem) } : {}),
+    })),
+  );
 </script>
 
 <ChipPicker {items} {placeholder} {...rest} />

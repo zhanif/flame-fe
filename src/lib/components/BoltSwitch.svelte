@@ -31,9 +31,16 @@
   title={label}
   disabled={disabled || busy}
   {onclick}
-  class="relative h-5 w-9 shrink-0 rounded-full ring-1 transition-colors duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 disabled:cursor-not-allowed {disabled && !busy ? 'opacity-40' : ''} {track}"
+  class="relative h-5 w-9 shrink-0 rounded-full ring-1 transition-colors duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60 disabled:cursor-not-allowed {disabled &&
+  !busy
+    ? 'opacity-40'
+    : ''} {track}"
 >
-  <span class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full flex items-center justify-center shadow-sm transition-transform duration-200 ease-out {on ? 'translate-x-4' : 'translate-x-0'} {knob}">
+  <span
+    class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full flex items-center justify-center shadow-sm transition-transform duration-200 ease-out {on
+      ? 'translate-x-4'
+      : 'translate-x-0'} {knob}"
+  >
     {#if busy}
       <LoaderCircle class="w-2.5 h-2.5 animate-spin" />
     {:else}

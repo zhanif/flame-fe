@@ -11,7 +11,9 @@
   const meta = $derived(module ? MODULE_PAGES[module] : PAGES[page ?? 'dashboard']);
 </script>
 
-<div class="sticky top-0 z-30 flex items-center justify-between gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50 bg-zinc-950/70 backdrop-blur-md">
+<div
+  class="sticky top-0 z-30 flex items-center justify-between gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50 bg-zinc-950/70 backdrop-blur-md"
+>
   <div class="flex items-center gap-3 min-w-0">
     {#if meta}
       <Tile icon={meta.icon} tone={meta.tone} />

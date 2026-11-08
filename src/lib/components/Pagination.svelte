@@ -43,11 +43,19 @@
     </label>
 
     <div class="flex items-center gap-1">
-      <Button size="icon" onclick={() => onPage(1)} disabled={disabled || page <= 1} aria-label="First page" title="First"><ChevronsLeft class="w-3.5 h-3.5" /></Button>
-      <Button size="icon" onclick={() => onPage(page - 1)} disabled={disabled || page <= 1} aria-label="Previous page" title="Previous"><ChevronLeft class="w-3.5 h-3.5" /></Button>
+      <Button size="icon" onclick={() => onPage(1)} disabled={disabled || page <= 1} aria-label="First page" title="First"
+        ><ChevronsLeft class="w-3.5 h-3.5" /></Button
+      >
+      <Button size="icon" onclick={() => onPage(page - 1)} disabled={disabled || page <= 1} aria-label="Previous page" title="Previous"
+        ><ChevronLeft class="w-3.5 h-3.5" /></Button
+      >
       <span class="px-2 text-xs text-zinc-500">{page} / {totalPages}</span>
-      <Button size="icon" onclick={() => onPage(page + 1)} disabled={disabled || page >= totalPages} aria-label="Next page" title="Next"><ChevronRight class="w-3.5 h-3.5" /></Button>
-      <Button size="icon" onclick={() => onPage(totalPages)} disabled={disabled || page >= totalPages} aria-label="Last page" title="Last"><ChevronsRight class="w-3.5 h-3.5" /></Button>
+      <Button size="icon" onclick={() => onPage(page + 1)} disabled={disabled || page >= totalPages} aria-label="Next page" title="Next"
+        ><ChevronRight class="w-3.5 h-3.5" /></Button
+      >
+      <Button size="icon" onclick={() => onPage(totalPages)} disabled={disabled || page >= totalPages} aria-label="Last page" title="Last"
+        ><ChevronsRight class="w-3.5 h-3.5" /></Button
+      >
     </div>
   </div>
 </div>

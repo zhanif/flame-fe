@@ -41,7 +41,13 @@
     <div class="flex items-center {rowHeight} border-b border-zinc-800/20">
       {#each parsed as col, c}
         {@const kind = kinds?.[c] ?? 'bar'}
-        <div class="{col.width} {col.width === 'flex-1' ? 'min-w-0' : 'shrink-0'} px-5 flex items-center {col.right || kind === 'actions' || kind === 'action' ? 'justify-end' : ''}">
+        <div
+          class="{col.width} {col.width === 'flex-1' ? 'min-w-0' : 'shrink-0'} px-5 flex items-center {col.right ||
+          kind === 'actions' ||
+          kind === 'action'
+            ? 'justify-end'
+            : ''}"
+        >
           {#if kind === 'thumb'}
             <div class="h-14 w-14 rounded-lg bg-zinc-800/40 animate-pulse"></div>
           {:else if kind === 'actor'}

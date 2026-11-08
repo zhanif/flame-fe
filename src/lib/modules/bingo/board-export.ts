@@ -73,12 +73,27 @@ class BoardExporter {
     }
   }
 
-  private drawCell(ctx: CanvasRenderingContext2D, board: BingoBoard, position: number, x: number, y: number, width: number, answers?: string): void {
+  private drawCell(
+    ctx: CanvasRenderingContext2D,
+    board: BingoBoard,
+    position: number,
+    x: number,
+    y: number,
+    width: number,
+    answers?: string,
+  ): void {
     const figure = cellFigure(board, position);
     const band = cellBand(board.style, position);
     const hasStrip = Boolean(figure.position || figure.points);
     const answer = answers?.[position - 1];
-    const tone = answer && answer !== ' ' ? ({ Y: { tile: '#5ee6ad', band: { color: '#52525b', text: '#fafafa' } }, N: { tile: '#fa7d90', band: { color: '#52525b', text: '#fafafa' } }, '-': { tile: '#8b8b92', band: { color: '#52525b', text: '#fafafa' } } }[answer] ?? null) : null;
+    const tone =
+      answer && answer !== ' '
+        ? ({
+            Y: { tile: '#5ee6ad', band: { color: '#52525b', text: '#fafafa' } },
+            N: { tile: '#fa7d90', band: { color: '#52525b', text: '#fafafa' } },
+            '-': { tile: '#8b8b92', band: { color: '#52525b', text: '#fafafa' } },
+          }[answer] ?? null)
+        : null;
     const tileColor = tone ? tone.tile : board.style.tile;
     const bandColor = tone ? tone.band.color : band.color;
     const bandText = tone ? tone.band.text : band.text;

@@ -136,8 +136,10 @@
 
   const cell = td.replace('h-11', 'h-20');
   const rowCell = td.replace('h-11', 'h-14');
-  const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-  const short = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const when = (ts: string) =>
+    new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const short = (ts: string) =>
+    new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const roleOf = (id: string | null) => (id ? roles.find(r => r.id === id) : undefined);
   const isImage = (type: string | null) => !!type?.startsWith('image/');
   const isVideo = (type: string | null) => !!type?.startsWith('video/');
@@ -208,7 +210,11 @@
     try {
       data = editing ? await api.fileSubmissions.update(guildId, editing.id, input) : await api.fileSubmissions.create(guildId, input);
       remember('collections', data.collections.length);
-      toast('success', editing ? 'Collection saved' : 'Collection added', `Switch on /${commandName} from the Slash page so staff can post panels.`);
+      toast(
+        'success',
+        editing ? 'Collection saved' : 'Collection added',
+        `Switch on /${commandName} from the Slash page so staff can post panels.`,
+      );
       panel = false;
     } catch (e: any) {
       toast('error', e.message);
@@ -223,7 +229,11 @@
     try {
       data = await api.fileSubmissions.remove(guildId, removeTarget.id);
       remember('collections', data.collections.length);
-      toast('success', 'Collection removed', `Its panels and entries are removed too. Remove /${removeTarget.command_name} from the Slash page.`);
+      toast(
+        'success',
+        'Collection removed',
+        `Its panels and entries are removed too. Remove /${removeTarget.command_name} from the Slash page.`,
+      );
       removeTarget = null;
     } catch (e: any) {
       toast('error', e.message);
@@ -231,7 +241,6 @@
       removing = false;
     }
   }
-
 
   // Each level has its own hint, so it starts closed when the person moves between them.
   $effect(() => {
@@ -384,93 +393,123 @@
 </script>
 
 {#snippet hint()}
-          <p class="mb-5 text-xs text-zinc-500">
-            Staff open a round with <span class="font-mono {toneText.amber}">/{commandName || 'command'} panel tag:&lt;round&gt; name:&lt;thread&gt;</span> in this collection's submission forum. The thread is named after <span class="font-mono">name</span>, or the tag when it is left out, and it holds the Submit panel and the entries.
-          </p>
+  <p class="mb-5 text-xs text-zinc-500">
+    Staff open a round with <span class="font-mono {toneText.amber}"
+      >/{commandName || 'command'} panel tag:&lt;round&gt; name:&lt;thread&gt;</span
+    >
+    in this collection's submission forum. The thread is named after <span class="font-mono">name</span>, or the tag when it is left out,
+    and it holds the Submit panel and the entries.
+  </p>
 {/snippet}
 
 {#snippet form()}
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <span class={label}>Name</span>
-              <Input bind:value={name} maxlength={50} placeholder="Weekly Contest" aria-label="Name" />
-            </div>
-            <div>
-              <span class={label}>Command</span>
-              <Input
-                bind:value={commandName}
-                maxlength={32}
-                placeholder="weekly-contest"
-                oninput={restrictTo(onlyCommandName, v => ((commandName = v), (commandTouched = true)))}
-                aria-label="Command name"
-              />
-              <p class="mt-1.5 text-xs text-zinc-500">Typed as <span class="font-mono {toneText.amber}">/{commandName || 'command'}</span>. Lowercase, no spaces.</p>
-            </div>
-            <div class="sm:col-span-2">
-              <span class={label}>Description</span>
-              <Input bind:value={description} maxlength={100} placeholder="Shown in Discord next to the command (optional)" aria-label="Description" />
-            </div>
-            <div>
-              <span class={label}>Accepted files</span>
-              <ChipPicker items={KIND_ITEMS} selected={kinds} onchange={next => (kinds = next)} placeholder="Add a kind..." label="Accepted files" />
-            </div>
-            <div>
-              <span class={label}>Submission thread</span>
-              <ChannelPicker {channels} types={[15]} bind:value={submissionForum} none="No forum" label="Submission thread" />
-              <p class="mt-1.5 text-xs text-zinc-500">Every round opens its own thread in this forum.</p>
-            </div>
-            <div>
-              <span class={label}>Files per upload</span>
-              <Input bind:value={maxFiles} inputmode="numeric" maxlength={2} oninput={restrictTo(onlyDigits, v => (maxFiles = v))} aria-label="Files per upload" />
-              <p class="mt-1.5 text-xs text-zinc-500">1 to 10.</p>
-            </div>
-            <div>
-              <span class={label}>Entries per member</span>
-              <Input bind:value={maxEntries} inputmode="numeric" maxlength={3} placeholder="Unlimited" oninput={restrictTo(onlyDigits, v => (maxEntries = v))} aria-label="Entries per member" />
-              <p class="mt-1.5 text-xs text-zinc-500">Counted per round. Empty is unlimited.</p>
-            </div>
-            <div>
-              <span class={label}>Approval role</span>
-              <RoleSelect {roles} manageable bind:value={approveRole} none="No role" label="Approval role" class="w-full" />
-              <p class="mt-1.5 text-xs text-zinc-500">Given to the member when an entry is approved.</p>
-            </div>
-            <div>
-              <span class={label}>Rejection role</span>
-              <RoleSelect {roles} manageable bind:value={rejectRole} none="No role" label="Rejection role" class="w-full" />
-              <p class="mt-1.5 text-xs text-zinc-500">Given to the member when an entry is rejected.</p>
-            </div>
-            <div>
-              <span class={label}>Publish reaction</span>
-              <Input bind:value={reaction} maxlength={64} placeholder="An emoji, empty for none" aria-label="Publish reaction" />
-              <p class="mt-1.5 text-xs text-zinc-500">Added to each message of <span class="font-mono">publish</span>.</p>
-            </div>
-            <div class="space-y-3 pt-6">
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-xs text-zinc-300">All files of an upload are one entry</span>
-                <Toggle on={grouped} label="All files of an upload are one entry" onclick={() => (grouped = !grouped)} />
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-xs text-zinc-300">A rejected entry still counts</span>
-                <Toggle on={countRejected} label="A rejected entry still counts" onclick={() => (countRejected = !countRejected)} />
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-xs text-zinc-300">Rejecting needs a reason</span>
-                <Toggle on={requireReason} label="Rejecting needs a reason" onclick={() => (requireReason = !requireReason)} />
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-xs text-zinc-300">Show the reason to the submitter</span>
-                <Toggle on={showReason} label="Show the reason to the submitter" onclick={() => (showReason = !showReason)} />
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-xs text-zinc-300">Staff can set upvotes</span>
-                <Toggle on={allowUpvotes} label="Staff can set upvotes" onclick={() => (allowUpvotes = !allowUpvotes)} />
-              </div>
-            </div>
-          </div>
-          <div class="mt-5 flex justify-end gap-2">
-            <Button variant="ghost" onclick={() => (panel = false)}>Cancel</Button>
-            <SaveButton onclick={save} disabled={!name.trim() || !commandName || !kinds.length} {saving} />
-          </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <span class={label}>Name</span>
+      <Input bind:value={name} maxlength={50} placeholder="Weekly Contest" aria-label="Name" />
+    </div>
+    <div>
+      <span class={label}>Command</span>
+      <Input
+        bind:value={commandName}
+        maxlength={32}
+        placeholder="weekly-contest"
+        oninput={restrictTo(onlyCommandName, v => ((commandName = v), (commandTouched = true)))}
+        aria-label="Command name"
+      />
+      <p class="mt-1.5 text-xs text-zinc-500">
+        Typed as <span class="font-mono {toneText.amber}">/{commandName || 'command'}</span>. Lowercase, no spaces.
+      </p>
+    </div>
+    <div class="sm:col-span-2">
+      <span class={label}>Description</span>
+      <Input
+        bind:value={description}
+        maxlength={100}
+        placeholder="Shown in Discord next to the command (optional)"
+        aria-label="Description"
+      />
+    </div>
+    <div>
+      <span class={label}>Accepted files</span>
+      <ChipPicker
+        items={KIND_ITEMS}
+        selected={kinds}
+        onchange={next => (kinds = next)}
+        placeholder="Add a kind..."
+        label="Accepted files"
+      />
+    </div>
+    <div>
+      <span class={label}>Submission thread</span>
+      <ChannelPicker {channels} types={[15]} bind:value={submissionForum} none="No forum" label="Submission thread" />
+      <p class="mt-1.5 text-xs text-zinc-500">Every round opens its own thread in this forum.</p>
+    </div>
+    <div>
+      <span class={label}>Files per upload</span>
+      <Input
+        bind:value={maxFiles}
+        inputmode="numeric"
+        maxlength={2}
+        oninput={restrictTo(onlyDigits, v => (maxFiles = v))}
+        aria-label="Files per upload"
+      />
+      <p class="mt-1.5 text-xs text-zinc-500">1 to 10.</p>
+    </div>
+    <div>
+      <span class={label}>Entries per member</span>
+      <Input
+        bind:value={maxEntries}
+        inputmode="numeric"
+        maxlength={3}
+        placeholder="Unlimited"
+        oninput={restrictTo(onlyDigits, v => (maxEntries = v))}
+        aria-label="Entries per member"
+      />
+      <p class="mt-1.5 text-xs text-zinc-500">Counted per round. Empty is unlimited.</p>
+    </div>
+    <div>
+      <span class={label}>Approval role</span>
+      <RoleSelect {roles} manageable bind:value={approveRole} none="No role" label="Approval role" class="w-full" />
+      <p class="mt-1.5 text-xs text-zinc-500">Given to the member when an entry is approved.</p>
+    </div>
+    <div>
+      <span class={label}>Rejection role</span>
+      <RoleSelect {roles} manageable bind:value={rejectRole} none="No role" label="Rejection role" class="w-full" />
+      <p class="mt-1.5 text-xs text-zinc-500">Given to the member when an entry is rejected.</p>
+    </div>
+    <div>
+      <span class={label}>Publish reaction</span>
+      <Input bind:value={reaction} maxlength={64} placeholder="An emoji, empty for none" aria-label="Publish reaction" />
+      <p class="mt-1.5 text-xs text-zinc-500">Added to each message of <span class="font-mono">publish</span>.</p>
+    </div>
+    <div class="space-y-3 pt-6">
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs text-zinc-300">All files of an upload are one entry</span>
+        <Toggle on={grouped} label="All files of an upload are one entry" onclick={() => (grouped = !grouped)} />
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs text-zinc-300">A rejected entry still counts</span>
+        <Toggle on={countRejected} label="A rejected entry still counts" onclick={() => (countRejected = !countRejected)} />
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs text-zinc-300">Rejecting needs a reason</span>
+        <Toggle on={requireReason} label="Rejecting needs a reason" onclick={() => (requireReason = !requireReason)} />
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs text-zinc-300">Show the reason to the submitter</span>
+        <Toggle on={showReason} label="Show the reason to the submitter" onclick={() => (showReason = !showReason)} />
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs text-zinc-300">Staff can set upvotes</span>
+        <Toggle on={allowUpvotes} label="Staff can set upvotes" onclick={() => (allowUpvotes = !allowUpvotes)} />
+      </div>
+    </div>
+  </div>
+  <div class="mt-5 flex justify-end gap-2">
+    <Button variant="ghost" onclick={() => (panel = false)}>Cancel</Button>
+    <SaveButton onclick={save} disabled={!name.trim() || !commandName || !kinds.length} {saving} />
+  </div>
 {/snippet}
 
 <PageHeader module="file-submissions" description="Collect files from members, review them and publish the approved ones" />
@@ -479,10 +518,15 @@
   <div class="flex items-center justify-between gap-3 flex-wrap">
     {#if openId}
       <nav class="flex items-center gap-1.5 text-sm" aria-label="Where you are">
-        <button type="button" class="cursor-pointer font-semibold text-zinc-400 hover:text-zinc-200" onclick={closeCollection}>Rounds</button>
+        <button type="button" class="cursor-pointer font-semibold text-zinc-400 hover:text-zinc-200" onclick={closeCollection}
+          >Rounds</button
+        >
         <ChevronRight class="w-3.5 h-3.5 text-zinc-600" />
         <span class="font-semibold text-zinc-100">
-          {#if opened}{opened.name}{:else}<span class="inline-block h-4 w-28 rounded bg-zinc-700/40 animate-pulse align-middle" aria-hidden="true"></span>{/if}
+          {#if opened}{opened.name}{:else}<span
+              class="inline-block h-4 w-28 rounded bg-zinc-700/40 animate-pulse align-middle"
+              aria-hidden="true"
+            ></span>{/if}
         </span>
         {#if openTag !== null}
           <ChevronRight class="w-3.5 h-3.5 text-zinc-600" />
@@ -504,7 +548,9 @@
       <div class="flex items-center gap-3">
         {#if data}
           <span class="text-xs text-zinc-500">{data.collections.length} of {data.max_collections} collections</span>
-          <Button variant="primary" disabled={full && !panel} onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}><Plus class="w-3.5 h-3.5" />Add collection</Button>
+          <Button variant="primary" disabled={full && !panel} onclick={() => (panel && !editing ? (panel = false) : openPanel(null))}
+            ><Plus class="w-3.5 h-3.5" />Add collection</Button
+          >
         {:else}
           <ControlSkeleton class="w-36" h="h-8" />
           <ControlSkeleton class="w-36" h="h-8" />
@@ -522,9 +568,16 @@
       title="How rounds work"
       tone="amber"
       steps={[
-        { text: 'Staff open a round with a collection\'s command: the bot creates a thread in that collection\'s submission forum, named after the name or the tag, and posts the Submit panel there. Each tag shows up here as a round.', command: `/${opened?.command_name ?? 'command'} panel tag:<round> name:<thread>` },
-        { text: 'A member presses Submit and attaches files. They are checked against the collection\'s rules: file kinds, how many in one upload, and how many entries that person already has in the round.' },
-        { text: 'Each valid entry is posted in the round\'s thread as its own message (one per file, or one per upload, as the collection says) and counted in the round. Staff can submit for someone else.' },
+        {
+          text: "Staff open a round with a collection's command: the bot creates a thread in that collection's submission forum, named after the name or the tag, and posts the Submit panel there. Each tag shows up here as a round.",
+          command: `/${opened?.command_name ?? 'command'} panel tag:<round> name:<thread>`,
+        },
+        {
+          text: "A member presses Submit and attaches files. They are checked against the collection's rules: file kinds, how many in one upload, and how many entries that person already has in the round.",
+        },
+        {
+          text: "Each valid entry is posted in the round's thread as its own message (one per file, or one per upload, as the collection says) and counted in the round. Staff can submit for someone else.",
+        },
       ]}
     />
   {:else if openTag !== null}
@@ -534,10 +587,19 @@
       title="How entries are handled"
       tone="amber"
       steps={[
-        { text: 'A new entry waits as pending. Its message in the thread has Approve and Reject buttons (and Set Upvotes when the collection uses them).' },
-        { text: 'A reviewer approves or rejects, with a reason when the collection asks for one. The message in the thread is updated and the approval or rejection role is given, if the collection has one. The same review can be done here: preview an entry, then use its menu.' },
-        { text: 'The member sees the outcome under Check Status: their counts, and the approved or rejected files (with the reason, when the collection shows it).' },
-        { text: 'Publishing posts the approved entries of this round in a channel, with the collection\'s reaction. The files are read from the thread messages again, since Discord links expire, and kept for a month so this page stays fast.', command: `/${opened?.command_name ?? 'command'} publish tag:<round>` },
+        {
+          text: 'A new entry waits as pending. Its message in the thread has Approve and Reject buttons (and Set Upvotes when the collection uses them).',
+        },
+        {
+          text: 'A reviewer approves or rejects, with a reason when the collection asks for one. The message in the thread is updated and the approval or rejection role is given, if the collection has one. The same review can be done here: preview an entry, then use its menu.',
+        },
+        {
+          text: 'The member sees the outcome under Check Status: their counts, and the approved or rejected files (with the reason, when the collection shows it).',
+        },
+        {
+          text: "Publishing posts the approved entries of this round in a channel, with the collection's reaction. The files are read from the thread messages again, since Discord links expire, and kept for a month so this page stays fast.",
+          command: `/${opened?.command_name ?? 'command'} publish tag:<round>`,
+        },
       ]}
     />
   {/if}
@@ -601,7 +663,9 @@
                           {#if isImage(file.type)}
                             <img src={file.url} alt={file.name} loading="lazy" class="w-full h-full object-cover" />
                           {:else}
-                            <span class="flex h-full items-center justify-center px-1 text-[10px] text-zinc-400 break-all text-center">{file.name.split('.').pop()}</span>
+                            <span class="flex h-full items-center justify-center px-1 text-[10px] text-zinc-400 break-all text-center"
+                              >{file.name.split('.').pop()}</span
+                            >
                           {/if}
                         </button>
                       {:else}
@@ -613,7 +677,9 @@
                   <td class="{cell} text-zinc-500 whitespace-nowrap">{when(row.created_at)}</td>
                   <td class={cell}>
                     {#if row.user}<ActorCell actor={row.user} />{/if}
-                    {#if row.submitted_by}<p class="mt-0.5 text-xs text-zinc-500">sent by {row.submitted_by.name ?? row.submitted_by.id}</p>{/if}
+                    {#if row.submitted_by}<p class="mt-0.5 text-xs text-zinc-500">
+                        sent by {row.submitted_by.name ?? row.submitted_by.id}
+                      </p>{/if}
                   </td>
                   <td class={cell}><Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge></td>
                   <td class="{cell} text-zinc-300">{row.upvotes === null ? '-' : row.upvotes}</td>
@@ -626,7 +692,14 @@
               {/each}
             </tbody>
           </table>
-          <Pagination {page} {limit} {total} onPage={p => toPage('page', p)} onLimit={l => ((limit = l), toPage('page', 1))} disabled={loading} />
+          <Pagination
+            {page}
+            {limit}
+            {total}
+            onPage={p => toPage('page', p)}
+            onLimit={l => ((limit = l), toPage('page', 1))}
+            disabled={loading}
+          />
         {/if}
       </Card>
     {/if}
@@ -675,7 +748,11 @@
         {/each}
       </div>
     {:else if data.collections.length === 0}
-      <EmptyState kind="modules" title="No collections yet" description="Add a collection, then switch its command on from the Slash page." />
+      <EmptyState
+        kind="modules"
+        title="No collections yet"
+        description="Add a collection, then switch its command on from the Slash page."
+      />
     {:else}
       <div class="space-y-3">
         {#each data.collections as collection (collection.id)}
@@ -690,12 +767,20 @@
                 <dl class="grid grid-cols-2 gap-4 text-xs">
                   <div class="min-w-0">
                     <dt class="{caps} text-zinc-500">Per upload</dt>
-                    <dd class="mt-1 truncate text-zinc-300">{collection.max_files}{collection.entry_style === 'grouped' ? ', one entry' : ''}</dd>
+                    <dd class="mt-1 truncate text-zinc-300">
+                      {collection.max_files}{collection.entry_style === 'grouped' ? ', one entry' : ''}
+                    </dd>
                   </div>
                   <div class="min-w-0">
                     <dt class="{caps} text-zinc-500">Per member</dt>
-                    <dd class="mt-1 flex items-center truncate text-zinc-300" title={collection.max_entries ? undefined : 'Unlimited entries per member'}>
-                      {#if collection.max_entries}{collection.max_entries}{:else}<InfinityIcon class="h-4 w-4 shrink-0" aria-label="Unlimited" />{/if}
+                    <dd
+                      class="mt-1 flex items-center truncate text-zinc-300"
+                      title={collection.max_entries ? undefined : 'Unlimited entries per member'}
+                    >
+                      {#if collection.max_entries}{collection.max_entries}{:else}<InfinityIcon
+                          class="h-4 w-4 shrink-0"
+                          aria-label="Unlimited"
+                        />{/if}
                     </dd>
                   </div>
                 </dl>
@@ -718,8 +803,21 @@
               </div>
               <div class="flex shrink-0 items-center gap-1">
                 {#if isAdmin}
-                  <Button variant="ghost" size="icon" aria-label="Edit {collection.name}" title="Edit" onclick={() => (panel && editing?.id === collection.id ? (panel = false) : openPanel(collection))}><Pencil class="w-3.5 h-3.5" /></Button>
-                  <Button variant="ghost" size="icon" aria-label="Remove {collection.name}" title="Remove" onclick={() => (removeTarget = collection)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Edit {collection.name}"
+                    title="Edit"
+                    onclick={() => (panel && editing?.id === collection.id ? (panel = false) : openPanel(collection))}
+                    ><Pencil class="w-3.5 h-3.5" /></Button
+                  >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remove {collection.name}"
+                    title="Remove"
+                    onclick={() => (removeTarget = collection)}
+                  >
                     <Trash2 class="w-3.5 h-3.5 text-red-400" />
                   </Button>
                 {/if}
@@ -739,7 +837,11 @@
   {:else}
     <!-- Every round of every collection, newest first. -->
     {#if groupsLoaded && groupTotal === 0}
-      <EmptyState kind="search" title="No rounds yet" description="Open a round with a collection's command and its entries will be grouped by its tag." />
+      <EmptyState
+        kind="search"
+        title="No rounds yet"
+        description="Open a round with a collection's command and its entries will be grouped by its tag."
+      />
     {:else}
       <Card flush>
         {#if !groupsLoaded}
@@ -812,14 +914,21 @@
       <div class="max-h-[60vh] space-y-2 overflow-y-auto rounded-xl bg-zinc-950/60 p-2 ring-1 ring-zinc-800">
         {#each previewRow.files as file (file.url)}
           {#if isImage(file.type)}
-            <a href={file.url} target="_blank" rel="noreferrer" title="Open the original"><img src={file.url} alt={file.name} class="mx-auto max-h-[56vh] w-auto rounded-lg object-contain" /></a>
+            <a href={file.url} target="_blank" rel="noreferrer" title="Open the original"
+              ><img src={file.url} alt={file.name} class="mx-auto max-h-[56vh] w-auto rounded-lg object-contain" /></a
+            >
           {:else if isVideo(file.type)}
             <!-- svelte-ignore a11y_media_has_caption -->
             <video src={file.url} controls class="mx-auto max-h-[56vh] rounded-lg"></video>
           {:else if isAudio(file.type)}
             <audio src={file.url} controls class="w-full"></audio>
           {:else}
-            <a href={file.url} target="_blank" rel="noreferrer" class="block truncate rounded-lg bg-zinc-800/60 px-3 py-2 text-xs text-zinc-300 hover:text-zinc-100">{file.name}</a>
+            <a
+              href={file.url}
+              target="_blank"
+              rel="noreferrer"
+              class="block truncate rounded-lg bg-zinc-800/60 px-3 py-2 text-xs text-zinc-300 hover:text-zinc-100">{file.name}</a
+            >
           {/if}
         {:else}
           <p class="px-3 py-10 text-center text-xs text-zinc-500">The message with the files is gone from the box.</p>
@@ -843,7 +952,9 @@
         <div>
           <p class="{caps} mb-1.5 text-zinc-500">Submitted by</p>
           {#if previewRow.user}<ActorCell actor={previewRow.user} />{/if}
-          {#if previewRow.submitted_by}<p class="mt-1 text-zinc-500">sent by {previewRow.submitted_by.name ?? previewRow.submitted_by.id}</p>{/if}
+          {#if previewRow.submitted_by}<p class="mt-1 text-zinc-500">
+              sent by {previewRow.submitted_by.name ?? previewRow.submitted_by.id}
+            </p>{/if}
         </div>
 
         {#if previewRow.status !== 'pending'}
@@ -863,7 +974,15 @@
           <div>
             <p class="{caps} mb-1.5 text-zinc-500">Upvotes</p>
             <div class="flex items-center gap-2">
-              <Input bind:value={upvotes} inputmode="numeric" maxlength={7} placeholder="0" oninput={restrictTo(onlyDigits, v => (upvotes = v))} aria-label="Upvotes" class="w-full" />
+              <Input
+                bind:value={upvotes}
+                inputmode="numeric"
+                maxlength={7}
+                placeholder="0"
+                oninput={restrictTo(onlyDigits, v => (upvotes = v))}
+                aria-label="Upvotes"
+                class="w-full"
+              />
               <Button variant="soft" disabled={working || !upvotes} onclick={() => saveUpvotes(previewRow)}>Save</Button>
             </div>
           </div>
@@ -875,7 +994,8 @@
       <Button variant="ghost" onclick={closePreview}>Close</Button>
       <div class="flex gap-2">
         <Button variant="danger" disabled={working} onclick={() => rejectFromPreview(previewRow)}>Reject</Button>
-        <Button variant="success" disabled={working || previewRow.status === 'approved'} onclick={() => approve(previewRow)}>Approve</Button>
+        <Button variant="success" disabled={working || previewRow.status === 'approved'} onclick={() => approve(previewRow)}>Approve</Button
+        >
       </div>
     </div>
   {/if}
@@ -893,7 +1013,9 @@
     </div>
     <div class="flex justify-end gap-2 mt-5">
       <Button variant="ghost" onclick={() => (rejecting = null)} disabled={working}>Cancel</Button>
-      <Button variant="danger" onclick={reject} disabled={working || (rejectNeedsReason && !reason.trim())}>{working ? 'Rejecting…' : 'Reject'}</Button>
+      <Button variant="danger" onclick={reject} disabled={working || (rejectNeedsReason && !reason.trim())}
+        >{working ? 'Rejecting…' : 'Reject'}</Button
+      >
     </div>
   {/if}
 </Modal>
@@ -904,7 +1026,8 @@
       <Trash2 class="w-4 h-4 shrink-0 text-red-400" />Remove {removeTarget.name}?
     </h3>
     <p class="text-xs text-zinc-400 mt-3 leading-relaxed">
-      Its panels and the record of its entries are deleted, and /{removeTarget.command_name} stops working. The messages already in the box stay in Discord.
+      Its panels and the record of its entries are deleted, and /{removeTarget.command_name} stops working. The messages already in the box stay
+      in Discord.
     </p>
     <div class="flex justify-end gap-2 mt-5">
       <Button variant="ghost" onclick={() => (removeTarget = null)} disabled={removing}>Cancel</Button>

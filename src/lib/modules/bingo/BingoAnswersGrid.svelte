@@ -4,11 +4,7 @@
 
   // The 12 correct answers of a round, in the board's own positions: 1-9 only Y or N, 10-11 may be skipped,
   // 12 cannot be N. Unset slots are kept as a space so the string stays aligned to its 12 positions.
-  let {
-    value = $bindable(''),
-    disabled = false,
-    points = [],
-  }: { value?: string; disabled?: boolean; points?: number[] } = $props();
+  let { value = $bindable(''), disabled = false, points = [] }: { value?: string; disabled?: boolean; points?: number[] } = $props();
 
   const answers = $derived(answersOf(value));
   const complete = $derived(answers.every(answer => /[YN-]/.test(answer)));
@@ -34,7 +30,9 @@
             aria-pressed={current === choice}
             aria-label="Question {position}: {choice}"
             onclick={() => pick(position, choice)}
-            class="{choicesFor(position).length === 2 ? 'aspect-square' : 'h-[4.3rem]'} flex-1 cursor-pointer rounded-lg text-sm font-bold transition disabled:cursor-not-allowed {current === choice
+            class="{choicesFor(position).length === 2
+              ? 'aspect-square'
+              : 'h-[4.3rem]'} flex-1 cursor-pointer rounded-lg text-sm font-bold transition disabled:cursor-not-allowed {current === choice
               ? choice === 'Y'
                 ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
                 : choice === 'N'
@@ -57,5 +55,7 @@
 </div>
 
 <p class="mt-3 text-xs {complete ? 'text-zinc-500' : 'text-amber-400'}">
-  {complete ? 'All 12 answers are set. Saving rescores every entry of this round.' : `Pick ${answers.filter(answer => /[YN-]/.test(answer)).length} of ${QUESTION_COUNT} answers so far.`}
+  {complete
+    ? 'All 12 answers are set. Saving rescores every entry of this round.'
+    : `Pick ${answers.filter(answer => /[YN-]/.test(answer)).length} of ${QUESTION_COUNT} answers so far.`}
 </p>

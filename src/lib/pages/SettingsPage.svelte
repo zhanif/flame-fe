@@ -1,6 +1,5 @@
 <script lang="ts">
   import BotProfileCard from '$lib/components/BotProfileCard.svelte';
-  import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import SaveButton from '$lib/components/SaveButton.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
@@ -85,8 +84,14 @@
           <label for="language" class={label}>Language</label>
           <p class="mb-2.5 text-xs text-zinc-500">Bot and dashboard language. English only for now.</p>
           <div class="relative">
-            <select id="language" bind:value={draft.language} disabled title="English is the only language available for now" class="{control} appearance-none w-full h-9 pl-3 pr-9 text-sm cursor-not-allowed">
-              {#each languages as l}<option value={l.value}>{l.flag}  {l.name}</option>{/each}
+            <select
+              id="language"
+              bind:value={draft.language}
+              disabled
+              title="English is the only language available for now"
+              class="{control} appearance-none w-full h-9 pl-3 pr-9 text-sm cursor-not-allowed"
+            >
+              {#each languages as l}<option value={l.value}>{l.flag} {l.name}</option>{/each}
             </select>
             <Lock class="w-3.5 h-3.5 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -94,14 +99,24 @@
         <div>
           <label for="timezone" class={label}>Timezone</label>
           <p class="mb-2.5 text-xs text-zinc-500">
-            Used for dates and times. Now: {#if timeIn(draft.timezone, now)}<span class="text-zinc-300 font-medium">{timeIn(draft.timezone, now)}</span>{/if}
+            Used for dates and times. Now: {#if timeIn(draft.timezone, now)}<span class="text-zinc-300 font-medium"
+                >{timeIn(draft.timezone, now)}</span
+              >{/if}
           </p>
-          <Combobox id="timezone" bind:value={draft.timezone} options={timezones} placeholder="Search by city or offset, e.g. Jakarta, UTC +7" label="Timezone" disabled={!isAdmin} />
+          <Combobox
+            id="timezone"
+            bind:value={draft.timezone}
+            options={timezones}
+            placeholder="Search by city or offset, e.g. Jakarta, UTC +7"
+            label="Timezone"
+            disabled={!isAdmin}
+          />
         </div>
         <div>
           <label for="prefix" class={label}>Prefix</label>
           <p class="mb-2.5 text-xs text-zinc-500">
-            Starts a text command, like <span class="font-mono text-zinc-300">{draft.prefix || 'f!'}ping</span>. 1 to 5 characters, no spaces.
+            Starts a text command, like <span class="font-mono text-zinc-300">{draft.prefix || 'f!'}ping</span>. 1 to 5 characters, no
+            spaces.
           </p>
           <Input id="prefix" bind:value={draft.prefix} maxlength={5} disabled={!isAdmin} />
         </div>
@@ -118,12 +133,27 @@
         <div>
           <span class={label}>Admin roles</span>
           {@render included(['Administrator', 'Manage Server'])}
-          <RolePicker {roles} selected={draft.admin_role_ids} locked={adminByPermission} lockedHint="Has Administrator or Manage Server, so it is always an admin role" disabled={!isAdmin} onchange={(next) => (draft!.admin_role_ids = next)} />
+          <RolePicker
+            {roles}
+            selected={draft.admin_role_ids}
+            locked={adminByPermission}
+            lockedHint="Has Administrator or Manage Server, so it is always an admin role"
+            disabled={!isAdmin}
+            onchange={next => (draft!.admin_role_ids = next)}
+          />
         </div>
         <div>
           <span class={label}>Moderator roles</span>
           {@render included(['Manage Messages', 'Moderate Members', 'Kick Members', 'Ban Members'])}
-          <RolePicker {roles} selected={draft.moderator_role_ids} locked={moderatorByPermission} hidden={adminByPermission} lockedHint="Has a moderation permission, so it is always a moderator role" disabled={!isAdmin} onchange={(next) => (draft!.moderator_role_ids = next)} />
+          <RolePicker
+            {roles}
+            selected={draft.moderator_role_ids}
+            locked={moderatorByPermission}
+            hidden={adminByPermission}
+            lockedHint="Has a moderation permission, so it is always a moderator role"
+            disabled={!isAdmin}
+            onchange={next => (draft!.moderator_role_ids = next)}
+          />
         </div>
       </div>
     {/if}

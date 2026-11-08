@@ -11,5 +11,4 @@
   bind:value
   spellcheck="false"
   class="{control} w-full px-3 py-2.5 text-sm leading-6 resize-y {mono ? 'font-mono' : ''} {className}"
-  {...rest}
-></textarea>
+  {...rest}></textarea>

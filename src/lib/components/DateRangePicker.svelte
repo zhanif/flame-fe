@@ -102,11 +102,15 @@
         >
           {#snippet children({ months, weekdays })}
             <RangeCalendar.Header class="flex items-center justify-between mb-3">
-              <RangeCalendar.PrevButton class="grid h-7 w-7 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 cursor-pointer">
+              <RangeCalendar.PrevButton
+                class="grid h-7 w-7 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 cursor-pointer"
+              >
                 <ChevronLeft class="w-4 h-4" />
               </RangeCalendar.PrevButton>
               <RangeCalendar.Heading class="font-display text-sm font-bold text-zinc-100" />
-              <RangeCalendar.NextButton class="grid h-7 w-7 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 cursor-pointer">
+              <RangeCalendar.NextButton
+                class="grid h-7 w-7 place-items-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 cursor-pointer"
+              >
                 <ChevronRight class="w-4 h-4" />
               </RangeCalendar.NextButton>
             </RangeCalendar.Header>
@@ -116,7 +120,8 @@
                 <RangeCalendar.GridHead>
                   <RangeCalendar.GridRow>
                     {#each weekdays as day, i (i)}
-                      <RangeCalendar.HeadCell class="w-8 pb-1.5 text-xs font-medium text-zinc-500">{day.slice(0, 2)}</RangeCalendar.HeadCell>
+                      <RangeCalendar.HeadCell class="w-8 pb-1.5 text-xs font-medium text-zinc-500">{day.slice(0, 2)}</RangeCalendar.HeadCell
+                      >
                     {/each}
                   </RangeCalendar.GridRow>
                 </RangeCalendar.GridHead>

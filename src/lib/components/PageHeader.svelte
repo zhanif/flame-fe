@@ -17,7 +17,9 @@
 <!-- The top bar: page identity on the left (label, icon and color come from the
      same table as the sidebar), the theme toggle on the right. Page actions
      belong in the page content, not here. -->
-<div class="sticky top-0 z-30 flex items-center justify-between gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50 bg-zinc-950/70 backdrop-blur-md">
+<div
+  class="sticky top-0 z-30 flex items-center justify-between gap-3 -mx-5 -mt-5 mb-5 px-5 h-[69px] border-b border-zinc-800/50 bg-zinc-950/70 backdrop-blur-md"
+>
   <div class="flex items-center gap-3 min-w-0">
     <Tile icon={meta.icon} tone={meta.tone} />
     <div class="min-w-0">
@@ -31,7 +33,8 @@
   <div class="mb-5 flex items-center gap-3 rounded-xl bg-sky-500/10 px-4 py-3 ring-1 ring-sky-500/25" role="status">
     <PowerOff class="h-4 w-4 shrink-0 text-sky-400" />
     <p class="text-xs leading-relaxed text-sky-300">
-      <span class="font-bold text-sky-300">Turned off.</span> Its data and settings are kept, but nothing of it runs until an admin turns it on from the Dashboard.
+      <span class="font-bold text-sky-300">Turned off.</span> Its data and settings are kept, but nothing of it runs until an admin turns it on
+      from the Dashboard.
     </p>
   </div>
 {/if}

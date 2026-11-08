@@ -29,17 +29,25 @@
     quotes: {
       title: 'How quotes are made',
       steps: [
-        { text: 'Quoting a message saves it as a numbered quote: its text, its author, who quoted it and a link back to the original. A message can only be quoted once.' },
+        {
+          text: 'Quoting a message saves it as a numbered quote: its text, its author, who quoted it and a link back to the original. A message can only be quoted once.',
+        },
         { text: 'Every quote is listed here, newest first, with its author and who quoted it.' },
-        { text: 'Deleting a quote needs a reason. It is not erased: its number is never reused, the same message cannot be quoted again, and its card and published copies are removed from Discord. Each deletion is kept in the audit log.' },
+        {
+          text: 'Deleting a quote needs a reason. It is not erased: its number is never reused, the same message cannot be quoted again, and its card and published copies are removed from Discord. Each deletion is kept in the audit log.',
+        },
       ],
     },
     settings: {
       title: 'How publishing works',
       steps: [
         { text: 'When a message is quoted, the bot posts the quote as a card where it was quoted.' },
-        { text: 'With a publish channel set, the card is posted there too. Every published copy is remembered, so deleting the quote removes the copies as well.' },
-        { text: 'Without one (Not published), quotes stay only where they were made. Only new quotes are affected; the ones already published stay.' },
+        {
+          text: 'With a publish channel set, the card is posted there too. Every published copy is remembered, so deleting the quote removes the copies as well.',
+        },
+        {
+          text: 'Without one (Not published), quotes stay only where they were made. Only new quotes are affected; the ones already published stay.',
+        },
       ],
     },
   };
@@ -69,8 +77,7 @@
 
   const cell = td.replace('h-11', 'h-14');
 
-  const when = (ts: string) =>
-    new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   async function loadQuotes() {
     loading = true;
@@ -118,7 +125,11 @@
       const saved = await api.updateQuoteSettings(guildId, publishChannel || null);
       savedChannel = publishChannel = saved.publish_channel_id ?? '';
       warnings = saved.warnings;
-      toast('success', savedChannel ? 'Publish channel saved' : 'Publishing stopped', savedChannel ? 'New quotes will be posted there.' : 'Quotes are no longer posted to a channel.');
+      toast(
+        'success',
+        savedChannel ? 'Publish channel saved' : 'Publishing stopped',
+        savedChannel ? 'New quotes will be posted there.' : 'Quotes are no longer posted to a channel.',
+      );
     } catch (e: any) {
       publishChannel = savedChannel;
       toast('error', e.message);
@@ -171,7 +182,15 @@
       <span class={label}>Publish channel</span>
       <p class="mb-2.5 text-xs text-zinc-500">Where new quotes are posted. Pick Not published to stop posting them.</p>
       {#if settingsLoaded}
-        <ChannelPicker {channels} bind:value={publishChannel} onchange={saveChannel} none="Not published" label="Publish channel" disabled={!isAdmin} class="w-full sm:w-80" />
+        <ChannelPicker
+          {channels}
+          bind:value={publishChannel}
+          onchange={saveChannel}
+          none="Not published"
+          label="Publish channel"
+          disabled={!isAdmin}
+          class="w-full sm:w-80"
+        />
       {:else}
         <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
       {/if}
@@ -182,12 +201,12 @@
     <Card flush>
       {#if !loaded}
         <TableSkeleton
-            columns={['w-16', 'flex-1', 'w-64', 'w-64', 'w-36', 'w-36', 'w-16']}
-            headings={['#', 'Quote', 'Author', 'Quoted by', 'Quoted', 'Status', '']}
-            kinds={['bar', 'bar', 'actor', 'actor', 'bar', 'pill', 'action']}
-            rows={5}
-            rowHeight="h-14"
-          />
+          columns={['w-16', 'flex-1', 'w-64', 'w-64', 'w-36', 'w-36', 'w-16']}
+          headings={['#', 'Quote', 'Author', 'Quoted by', 'Quoted', 'Status', '']}
+          kinds={['bar', 'bar', 'actor', 'actor', 'bar', 'pill', 'action']}
+          rows={5}
+          rowHeight="h-14"
+        />
       {:else}
         <table class="w-full text-sm">
           <thead>
@@ -206,8 +225,12 @@
               <tr class="hover:bg-zinc-800/30 transition-colors">
                 <td class="{cell} text-zinc-500">{quote.number}</td>
                 <td class="{cell} text-zinc-200"><span class="line-clamp-2">{quote.content}</span></td>
-                <td class={cell}>{#if quote.author}<ActorCell actor={quote.author} />{/if}</td>
-                <td class={cell}>{#if quote.creator}<ActorCell actor={quote.creator} />{/if}</td>
+                <td class={cell}
+                  >{#if quote.author}<ActorCell actor={quote.author} />{/if}</td
+                >
+                <td class={cell}
+                  >{#if quote.creator}<ActorCell actor={quote.creator} />{/if}</td
+                >
                 <td class="{cell} text-zinc-500 whitespace-nowrap">{when(quote.created_at)}</td>
                 <td class={cell}>
                   {#if quote.deleted}
@@ -218,7 +241,12 @@
                 </td>
                 <td class="{cell} text-right">
                   {#if quote.deleted}
-                    <Button variant="ghost" size="icon" aria-label="Deletion log of quote {quote.number}" onclick={() => (logTarget = quote)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Deletion log of quote {quote.number}"
+                      onclick={() => (logTarget = quote)}
+                    >
                       <ScrollText class="w-3.5 h-3.5" />
                     </Button>
                   {:else}
@@ -266,7 +294,8 @@
       <Trash2 class="w-4 h-4 shrink-0 text-red-400" />Delete quote #{deleteTarget.number}?
     </h3>
     <p class="text-xs text-zinc-400 mt-3 leading-relaxed">
-      The quote is marked as deleted and its messages on Discord are removed, including the card and every published copy. The message cannot be quoted again.
+      The quote is marked as deleted and its messages on Discord are removed, including the card and every published copy. The message
+      cannot be quoted again.
     </p>
     <span class="{label} mt-4">Reason</span>
     <Input bind:value={deleteReason} maxlength={300} placeholder="Why is this quote being deleted?" aria-label="Reason" />

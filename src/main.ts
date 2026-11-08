@@ -6,8 +6,7 @@ import App from './App.svelte';
 import './theme.css';
 
 const channel = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
-const scale = (name: string, shades: number[]) =>
-  Object.fromEntries(shades.map(s => [s, channel(`${name}-${s}`)]));
+const scale = (name: string, shades: number[]) => Object.fromEntries(shades.map(s => [s, channel(`${name}-${s}`)]));
 const accent = (name: string) => scale(name, [300, 400]);
 
 // Twind generates the utility CSS at runtime from the classes in the DOM.

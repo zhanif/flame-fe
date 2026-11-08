@@ -501,7 +501,14 @@ export interface ChatCompletionView extends ChatCompletionConfig {
   premium: boolean;
   limits: Record<ChatMode, ChatCompletionLimits>;
   presets: ChatPreset[];
-  flame: { configured: boolean; model: string; used_today: number; daily_limit: number; guild_used_today: number; guild_daily_limit: number };
+  flame: {
+    configured: boolean;
+    model: string;
+    used_today: number;
+    daily_limit: number;
+    guild_used_today: number;
+    guild_daily_limit: number;
+  };
   default_prompt: string;
 }
 
@@ -641,7 +648,8 @@ export interface BingoEntries {
   pagination: Pagination;
 }
 
-export interface AuditFilters {  actions: string[];
+export interface AuditFilters {
+  actions: string[];
   actors: UserProfile[];
 }
 
@@ -688,8 +696,7 @@ export const api = {
     apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}/install`, 'POST'),
   setModuleEnabled: (guildId: string, moduleId: string, enabled: boolean) =>
     apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}/enabled`, 'PUT', { enabled }),
-  uninstallModule: (guildId: string, moduleId: string) =>
-    apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}`, 'DELETE'),
+  uninstallModule: (guildId: string, moduleId: string) => apiCall<{ success: boolean }>(`/guilds/${guildId}/modules/${moduleId}`, 'DELETE'),
 
   slash: (guildId: string) => apiCall<{ commands: SlashCommand[] }>(`/guilds/${guildId}/slash`),
   slashRegister: (guildId: string, name: string) =>
@@ -700,9 +707,9 @@ export const api = {
 
   settings: (guildId: string) => apiCall<GuildSettings>(`/guilds/${guildId}/settings`),
   botProfile: (guildId: string) => apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`),
-  updateBotProfile: (guildId: string, patch: { nickname?: string | null; avatar?: string | null }) => apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`, 'PUT', patch),
-  updateSettings: (guildId: string, patch: Partial<GuildSettings>) =>
-    apiCall<GuildSettings>(`/guilds/${guildId}/settings`, 'PUT', patch),
+  updateBotProfile: (guildId: string, patch: { nickname?: string | null; avatar?: string | null }) =>
+    apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`, 'PUT', patch),
+  updateSettings: (guildId: string, patch: Partial<GuildSettings>) => apiCall<GuildSettings>(`/guilds/${guildId}/settings`, 'PUT', patch),
   roles: (guildId: string) => apiCall<DiscordRole[]>(`/guilds/${guildId}/roles`),
   channels: (guildId: string) => apiCall<DiscordChannel[]>(`/guilds/${guildId}/channels`),
 
@@ -736,26 +743,44 @@ export const api = {
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/enabled`, 'PUT', { enabled }),
     setChannelEnabled: (guildId: string, channelId: string, enabled: boolean) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/enabled`, 'PUT', { enabled }),
-    addChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}`, 'PUT'),
-    removeChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}`, 'DELETE'),
-    channelPermissions: (guildId: string, channelId: string) => apiCall<ChannelPermissions>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/permissions`),
-    restoreChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/restore`, 'POST'),
-    lockChannel: (guildId: string, channelId: string) => apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/lock`, 'POST'),
+    addChannel: (guildId: string, channelId: string) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}`, 'PUT'),
+    removeChannel: (guildId: string, channelId: string) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}`, 'DELETE'),
+    channelPermissions: (guildId: string, channelId: string) =>
+      apiCall<ChannelPermissions>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/permissions`),
+    restoreChannel: (guildId: string, channelId: string) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/restore`, 'POST'),
+    lockChannel: (guildId: string, channelId: string) =>
+      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/lock`, 'POST'),
     addChannelException: (guildId: string, channelId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/exceptions`, 'POST', target),
     removeChannelException: (guildId: string, channelId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
-      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/channels/${channelId}/exceptions/${target.target_type}/${target.target_id}`, 'DELETE'),
+      apiCall<AntiTamperRules>(
+        `/guilds/${guildId}/m/anti-tamper/channels/${channelId}/exceptions/${target.target_type}/${target.target_id}`,
+        'DELETE',
+      ),
     logs: (guildId: string, query: { page: number; limit: number }) =>
-      apiCall<{ logs: AntiTamperLog[]; pagination: Pagination }>(`/guilds/${guildId}/m/anti-tamper/logs?page=${query.page}&limit=${query.limit}`),
+      apiCall<{ logs: AntiTamperLog[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/anti-tamper/logs?page=${query.page}&limit=${query.limit}`,
+      ),
     addRoleException: (guildId: string, roleId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
       apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/exceptions`, 'POST', target),
     removeRoleException: (guildId: string, roleId: string, target: Pick<RoleExemption, 'target_type' | 'target_id'>) =>
-      apiCall<AntiTamperRules>(`/guilds/${guildId}/m/anti-tamper/roles/${roleId}/exceptions/${target.target_type}/${target.target_id}`, 'DELETE'),
+      apiCall<AntiTamperRules>(
+        `/guilds/${guildId}/m/anti-tamper/roles/${roleId}/exceptions/${target.target_type}/${target.target_id}`,
+        'DELETE',
+      ),
   },
   autoremover: {
     config: (guildId: string) => apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`),
-    updateConfig: (guildId: string, config: Pick<AutoremoverConfig, 'enabled' | 'ttl_seconds' | 'target_ids' | 'remove_kinds' | 'exclude_mods' | 'exclude_admins' | 'exclude_pinned'>) =>
-      apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`, 'PUT', config),
+    updateConfig: (
+      guildId: string,
+      config: Pick<
+        AutoremoverConfig,
+        'enabled' | 'ttl_seconds' | 'target_ids' | 'remove_kinds' | 'exclude_mods' | 'exclude_admins' | 'exclude_pinned'
+      >,
+    ) => apiCall<AutoremoverConfig>(`/guilds/${guildId}/m/autoremover/config`, 'PUT', config),
     items: (guildId: string, query: { status?: string; page: number; limit: number }) =>
       apiCall<{ items: AutoremoverItem[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/autoremover/items?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
@@ -768,7 +793,8 @@ export const api = {
     updateConfig: (guildId: string, body: ChatCompletionConfig & { api_key?: string | null }) =>
       apiCall<ChatCompletionView>(`/guilds/${guildId}/m/chat-completion/config`, 'PUT', body),
     test: (guildId: string) => apiCall<ChatCompletionTest>(`/guilds/${guildId}/m/chat-completion/test`, 'POST'),
-    stats: (guildId: string, range?: string) => apiCall<ChatCompletionStats>(`/guilds/${guildId}/m/chat-completion/stats${range ? `?range=${range}` : ''}`),
+    stats: (guildId: string, range?: string) =>
+      apiCall<ChatCompletionStats>(`/guilds/${guildId}/m/chat-completion/stats${range ? `?range=${range}` : ''}`),
   },
   ocrDetection: {
     config: (guildId: string) => apiCall<OcrDetectionConfig>(`/guilds/${guildId}/m/ocr-detection/config`),
@@ -777,8 +803,12 @@ export const api = {
     terms: (guildId: string) => apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`),
     saveTerms: (guildId: string, terms: { term: string; is_regex: boolean }[]) =>
       apiCall<OcrTerms>(`/guilds/${guildId}/m/ocr-detection/terms`, 'PUT', { terms }),
-    deleteMessage: (guildId: string, id: string) => apiCall<{ ok: boolean }>(`/guilds/${guildId}/m/ocr-detection/detections/${id}/delete`, 'POST'),
-    ignore: (guildId: string, id: string, reason: string) => apiCall<{ ok: boolean }>(`/guilds/${guildId}/m/ocr-detection/detections/${id}/ignore`, 'POST', { reason }),
+    restoreDefaults: (guildId: string) =>
+      apiCall<OcrTerms & { restored: number }>(`/guilds/${guildId}/m/ocr-detection/terms/defaults`, 'POST'),
+    deleteMessage: (guildId: string, id: string) =>
+      apiCall<{ ok: boolean }>(`/guilds/${guildId}/m/ocr-detection/detections/${id}/delete`, 'POST'),
+    ignore: (guildId: string, id: string, reason: string) =>
+      apiCall<{ ok: boolean }>(`/guilds/${guildId}/m/ocr-detection/detections/${id}/ignore`, 'POST', { reason }),
     detections: (guildId: string, query: { page: number; limit: number; status?: string }) =>
       apiCall<{ items: OcrDetectionItem[]; pending: number; pagination: Pagination }>(
         `/guilds/${guildId}/m/ocr-detection/detections?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
@@ -786,8 +816,10 @@ export const api = {
   },
   fileSubmissions: {
     collections: (guildId: string) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections`),
-    create: (guildId: string, input: FileCollectionInput) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections`, 'POST', input),
-    update: (guildId: string, id: string, input: FileCollectionInput) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'PUT', input),
+    create: (guildId: string, input: FileCollectionInput) =>
+      apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections`, 'POST', input),
+    update: (guildId: string, id: string, input: FileCollectionInput) =>
+      apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'PUT', input),
     remove: (guildId: string, id: string) => apiCall<FileCollections>(`/guilds/${guildId}/m/file-submissions/collections/${id}`, 'DELETE'),
     groups: (guildId: string, query: { page: number; limit: number; collectionId?: string }) =>
       apiCall<{ groups: FileSubmissionGroup[]; pagination: Pagination }>(
@@ -797,28 +829,42 @@ export const api = {
       apiCall<{ submissions: FileSubmissionRow[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/file-submissions/submissions?page=${query.page}&limit=${query.limit}&status=${query.status}&collection_id=${query.collectionId}&tag=${encodeURIComponent(query.tag)}`,
       ),
-    approve: (guildId: string, id: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/approve`, 'POST'),
-    reject: (guildId: string, id: string, reason: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/reject`, 'POST', { reason }),
-    upvotes: (guildId: string, id: string, upvotes: number) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/upvotes`, 'POST', { upvotes }),
+    approve: (guildId: string, id: string) =>
+      apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/approve`, 'POST'),
+    reject: (guildId: string, id: string, reason: string) =>
+      apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/reject`, 'POST', { reason }),
+    upvotes: (guildId: string, id: string, upvotes: number) =>
+      apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/upvotes`, 'POST', { upvotes }),
   },
   announcements: {
     templates: (guildId: string) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates`),
-    createTemplate: (guildId: string, body: Record<string, unknown>) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates`, 'POST', body),
-    updateTemplate: (guildId: string, id: string, body: Record<string, unknown>) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates/${id}`, 'PUT', body),
-    removeTemplate: (guildId: string, id: string) => apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates/${id}`, 'DELETE'),
+    createTemplate: (guildId: string, body: Record<string, unknown>) =>
+      apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates`, 'POST', body),
+    updateTemplate: (guildId: string, id: string, body: Record<string, unknown>) =>
+      apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates/${id}`, 'PUT', body),
+    removeTemplate: (guildId: string, id: string) =>
+      apiCall<AnnouncementTemplates>(`/guilds/${guildId}/m/announcements/templates/${id}`, 'DELETE'),
     list: (guildId: string, query: { page: number; limit: number }) =>
-      apiCall<{ announcements: AnnouncementEntry[]; pagination: Pagination }>(`/guilds/${guildId}/m/announcements/announcements?page=${query.page}&limit=${query.limit}`),
-    send: (guildId: string, body: Record<string, unknown>) => apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements`, 'POST', body),
-    edit: (guildId: string, id: string, body: Record<string, unknown>) => apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements/${id}`, 'PUT', body),
-    remove: (guildId: string, id: string) => apiCall<{ success: boolean }>(`/guilds/${guildId}/m/announcements/announcements/${id}`, 'DELETE'),
+      apiCall<{ announcements: AnnouncementEntry[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/announcements/announcements?page=${query.page}&limit=${query.limit}`,
+      ),
+    send: (guildId: string, body: Record<string, unknown>) =>
+      apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements`, 'POST', body),
+    edit: (guildId: string, id: string, body: Record<string, unknown>) =>
+      apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements/${id}`, 'PUT', body),
+    remove: (guildId: string, id: string) =>
+      apiCall<{ success: boolean }>(`/guilds/${guildId}/m/announcements/announcements/${id}`, 'DELETE'),
   },
   roleColors: {
     list: (guildId: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors`),
     create: (guildId: string, input: RoleColorInput) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors`, 'POST', input),
-    update: (guildId: string, id: string, input: RoleColorInput) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}`, 'PUT', input),
+    update: (guildId: string, id: string, input: RoleColorInput) =>
+      apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}`, 'PUT', input),
     remove: (guildId: string, id: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}`, 'DELETE'),
-    revert: (guildId: string, changeId: string) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/changes/${changeId}/revert`, 'POST'),
-    apply: (guildId: string, id: string, colors: string[]) => apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}/apply`, 'POST', { colors }),
+    revert: (guildId: string, changeId: string) =>
+      apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/changes/${changeId}/revert`, 'POST'),
+    apply: (guildId: string, id: string, colors: string[]) =>
+      apiCall<RoleColors>(`/guilds/${guildId}/m/role-colors/colors/${id}/apply`, 'POST', { colors }),
     changes: (guildId: string, query: { page: number; limit: number; colorId?: string }) =>
       apiCall<{ changes: RoleColorChange[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/role-colors/changes?page=${query.page}&limit=${query.limit}${query.colorId ? `&color_id=${query.colorId}` : ''}`,
@@ -826,7 +872,8 @@ export const api = {
   },
   bingo: {
     config: (guildId: string) => apiCall<BingoConfig>(`/guilds/${guildId}/m/bingo/config`),
-    saveConfig: (guildId: string, patch: Record<string, unknown>) => apiCall<BingoConfig>(`/guilds/${guildId}/m/bingo/config`, 'PUT', patch),
+    saveConfig: (guildId: string, patch: Record<string, unknown>) =>
+      apiCall<BingoConfig>(`/guilds/${guildId}/m/bingo/config`, 'PUT', patch),
     testRegex: (guildId: string, pattern: string, text: string) =>
       apiCall<{ match: string | null; index: number | null }>(`/guilds/${guildId}/m/bingo/config/test-regex`, 'POST', { pattern, text }),
     rescan: (guildId: string) => apiCall<{ found: number; created: number }>(`/guilds/${guildId}/m/bingo/channel/rescan`, 'POST'),
@@ -849,7 +896,8 @@ export const api = {
       apiCall<{ rescored: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/answers`, 'POST', { answers }),
     together: (guildId: string, id: string, mode: BingoTogetherMode) =>
       apiCall<{ granted: number; removed: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/together`, 'POST', { mode }),
-    setStatus: (guildId: string, id: string, status: BingoRoundStatus) => apiCall<BingoRound>(`/guilds/${guildId}/m/bingo/threads/${id}`, 'PUT', { status }),
+    setStatus: (guildId: string, id: string, status: BingoRoundStatus) =>
+      apiCall<BingoRound>(`/guilds/${guildId}/m/bingo/threads/${id}`, 'PUT', { status }),
     remove: (guildId: string, id: string) => apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/bingo/threads/${id}`, 'DELETE'),
     entries: (guildId: string, id: string, query: { page: number; limit: number }) =>
       apiCall<BingoEntries>(`/guilds/${guildId}/m/bingo/threads/${id}/entries?page=${query.page}&limit=${query.limit}`),

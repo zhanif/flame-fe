@@ -1,7 +1,22 @@
 import type { GuildPage } from '$lib/stores/router.svelte';
 import type { Tone } from '$lib/ui';
 import type { ModuleSection } from '$lib/api/endpoints';
-import { Images, LayoutDashboard, Megaphone, Palette, Quote, Rocket, ScanText, ScrollText, Settings, ShieldAlert, Sparkles, Terminal, Timer, Grid3x3 } from '@lucide/svelte';
+import {
+  Images,
+  LayoutDashboard,
+  Megaphone,
+  Palette,
+  Quote,
+  Rocket,
+  ScanText,
+  ScrollText,
+  Settings,
+  ShieldAlert,
+  Sparkles,
+  Terminal,
+  Timer,
+  Grid3x3,
+} from '@lucide/svelte';
 import { type Component, getContext, setContext } from 'svelte';
 
 export interface PageMeta {

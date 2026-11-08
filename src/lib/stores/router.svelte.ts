@@ -25,7 +25,13 @@ function parse(): Route {
   if (root === 'privacy' || root === 'terms') return { legal: root, guildId: null, page: 'dashboard', moduleId: null, query };
   if (root === 'guild' && guildId) {
     if (page === 'm' && moduleId) return { legal: null, guildId, page: 'dashboard', moduleId, query };
-    return { legal: null, guildId, page: GUILD_PAGES.includes(page as GuildPage) ? (page as GuildPage) : 'dashboard', moduleId: null, query };
+    return {
+      legal: null,
+      guildId,
+      page: GUILD_PAGES.includes(page as GuildPage) ? (page as GuildPage) : 'dashboard',
+      moduleId: null,
+      query,
+    };
   }
   return { legal: null, guildId: null, page: 'dashboard', moduleId: null, query };
 }

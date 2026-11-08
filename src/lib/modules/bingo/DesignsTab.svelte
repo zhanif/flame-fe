@@ -39,10 +39,11 @@
   let busy = $state(false);
 
   const editing = $derived(designId !== '');
-  const editingDesign = $derived(designId && designId !== 'new' ? designs.find(design => design.id === designId) ?? null : null);
+  const editingDesign = $derived(designId && designId !== 'new' ? (designs.find(design => design.id === designId) ?? null) : null);
   const missing = $derived(editing && designId !== 'new' && loaded && !editingDesign);
   const titleOf = (design: BingoDesign) => design.board.title.trim() || 'Untitled design';
-  const dateOf = (design: BingoDesign) => (design.updated_at ? new Date(design.updated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+  const dateOf = (design: BingoDesign) =>
+    design.updated_at ? new Date(design.updated_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
 
   const cell = td.replace('h-11', 'h-14');
 
@@ -85,7 +86,9 @@
   onMount(load);
 
   function saved(next: BingoDesign) {
-    designs = designs.some(design => design.id === next.id) ? designs.map(design => (design.id === next.id ? next : design)) : [next, ...designs];
+    designs = designs.some(design => design.id === next.id)
+      ? designs.map(design => (design.id === next.id ? next : design))
+      : [next, ...designs];
     if (designId === 'new') onOpen(next.id, next.round_id ?? '');
   }
 
@@ -114,7 +117,9 @@
   onConfirm={remove}
   onClose={() => (deleting = null)}
 >
-  The stored board goes away. {deleting?.round_id ? 'The round stays and loses its board; it can be designed again.' : 'No round is affected.'}
+  The stored board goes away. {deleting?.round_id
+    ? 'The round stays and loses its board; it can be designed again.'
+    : 'No round is affected.'}
 </ConfirmModal>
 
 {#if editing}

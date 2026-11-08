@@ -58,7 +58,9 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-y-4 pt-5 lg:pt-0 border-t lg:border-t-0 border-zinc-700/50 lg:flex lg:divide-x divide-zinc-700/50">
+      <div
+        class="grid grid-cols-2 sm:grid-cols-4 gap-y-4 pt-5 lg:pt-0 border-t lg:border-t-0 border-zinc-700/50 lg:flex lg:divide-x divide-zinc-700/50"
+      >
         {#each stats() as stat (stat.label)}
           <div class="lg:px-6 lg:first:pl-0 lg:last:pr-0">
             <p class="flex items-center gap-1.5 {caps} text-zinc-500">

@@ -26,7 +26,6 @@
   const tone = pageTone();
 
   let commands: SlashCommand[] = $state([]);
-  let loading = $state(true);
   let loaded = $state(false);
   let pending = $state<string | null>(null);
   // A removal that cannot be undone from here asks first: a command no module owns.
@@ -54,9 +53,17 @@
   function usagesOf(c: SlashCommand): Usage[] {
     const walk = (options: SlashOption[], group: string | null): Usage[] =>
       options.flatMap(option =>
-        option.kind === 'option' ? [] : option.kind === 'subcommand' ? [{ group, name: option.name, description: option.description, params: option.options }] : walk(option.options, option.name),
+        option.kind === 'option'
+          ? []
+          : option.kind === 'subcommand'
+            ? [{ group, name: option.name, description: option.description, params: option.options }]
+            : walk(option.options, option.name),
       );
-    return c.options.some(option => option.kind !== 'option') ? walk(c.options, null) : c.options.length ? [{ group: null, name: null, description: '', params: c.options }] : [];
+    return c.options.some(option => option.kind !== 'option')
+      ? walk(c.options, null)
+      : c.options.length
+        ? [{ group: null, name: null, description: '', params: c.options }]
+        : [];
   }
   const page = $derived(pageParam.value);
 
@@ -70,7 +77,9 @@
     ...[...new Set(commands.flatMap(c => (c.module_id ? [c.module_id] : [])))].sort().map(id => ({ value: id, label: moduleName(id) })),
     ...(commands.some(c => c.module_id === null) ? [{ value: NO_MODULE, label: 'No module (leftovers)' }] : []),
   ]);
-  const filtered = $derived(commands.filter(c => !moduleFilter || (moduleFilter === NO_MODULE ? c.module_id === null : c.module_id === moduleFilter)));
+  const filtered = $derived(
+    commands.filter(c => !moduleFilter || (moduleFilter === NO_MODULE ? c.module_id === null : c.module_id === moduleFilter)),
+  );
   const visible = $derived(filtered.slice((page - 1) * limit, page * limit));
   const unused = $derived(commands.filter(c => c.module_id === null));
 
@@ -79,15 +88,12 @@
   const LABEL = { live: 'Live', missing: 'Not registered', stale: 'Stale' } as const;
 
   async function load() {
-    loading = true;
     try {
       commands = (await api.slash(guildId)).commands;
       pageParam.value = Math.min(page, Math.max(Math.ceil(filtered.length / limit), 1));
       loaded = true;
     } catch (e: any) {
       toast('error', e.message);
-    } finally {
-      loading = false;
     }
   }
   onMount(load);
@@ -95,7 +101,8 @@
   // Purge reads Discord once from the table and then makes a single bulk request, so even a big purge cannot
   // hit the rate limit.
   function openPurge(mode: 'unused' | 'all') {
-    if (mode === 'unused' && unused.length === 0) return void toast('info', 'Nothing to purge', 'Every registered command belongs to an installed module.');
+    if (mode === 'unused' && unused.length === 0)
+      return void toast('info', 'Nothing to purge', 'Every registered command belongs to an installed module.');
     purgeAsk = mode;
   }
 
@@ -170,7 +177,9 @@
   <div class="border-t border-zinc-800/40 bg-zinc-800/10 px-5 py-4" transition:slide={{ duration: 220, easing: cubicOut }}>
     {#if c.description}<p class="text-xs text-zinc-300">{c.description}</p>{/if}
     {#if c.kind === 'message'}
-      <p class="{c.description ? 'mt-1.5' : ''} text-xs text-zinc-500">Right-click a message, then Apps, then {c.name}. It takes no options: it works on the message you pick.</p>
+      <p class="{c.description ? 'mt-1.5' : ''} text-xs text-zinc-500">
+        Right-click a message, then Apps, then {c.name}. It takes no options: it works on the message you pick.
+      </p>
     {:else}
       {@const usages = usagesOf(c)}
       <div class="{c.description ? 'mt-3' : ''} grid gap-3">
@@ -192,16 +201,22 @@
             {#if usage.description}<p class="mt-1.5 text-xs text-zinc-400">{usage.description}</p>{/if}
 
             {#if usage.params.length}
-              <div class="mt-3 grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-t border-zinc-800/60 pt-3 text-xs">
+              <div
+                class="mt-3 grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-t border-zinc-800/60 pt-3 text-xs"
+              >
                 {#each usage.params as param (param.name)}
                   <span class="font-mono font-medium {toneText[tone()]}">{param.name}</span>
                   <span class="flex items-center gap-1.5">
                     <span class="rounded-md bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-300">{param.type}</span>
-                    <span class="text-[11px] {param.required ? 'text-orange-400' : 'text-zinc-500'}">{param.required ? 'required' : 'optional'}</span>
+                    <span class="text-[11px] {param.required ? 'text-orange-400' : 'text-zinc-500'}"
+                      >{param.required ? 'required' : 'optional'}</span
+                    >
                   </span>
                   <span class="text-zinc-400">
                     {param.description}
-                    {#each param.choices as choice (choice)}<span class="ml-1 rounded-md bg-zinc-800/70 px-1.5 py-0.5 text-[11px] text-zinc-400">{choice}</span>{/each}
+                    {#each param.choices as choice (choice)}<span
+                        class="ml-1 rounded-md bg-zinc-800/70 px-1.5 py-0.5 text-[11px] text-zinc-400">{choice}</span
+                      >{/each}
                   </span>
                 {/each}
               </div>
@@ -219,80 +234,88 @@
 {#if loaded && commands.length === 0}
   <EmptyState kind="commands" title="No commands yet" description="Install a module from the Dashboard to get slash commands." />
 {:else}
-<Card flush>
-  {#if !loaded}
-    <TableSkeleton
-            columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28', 'w-12']}
-            headings={['#', 'Command', 'Module', 'State', 'Live', '']}
-            kinds={['bar', 'bar', 'bar', 'pill', 'bar', 'bar']}
-            rows={3}
-            rowHeight="h-11"
-    />
-  {:else}
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
-          <th class="{th} w-16">#</th>
-          <th class={th}>Command</th>
-          <th class="{th} w-40">Module</th>
-          <th class="{th} w-36">State</th>
-          <th class="{th} w-28 text-right">Live</th>
-          <th class="{th} w-12" aria-label="Details"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-zinc-800/30">
-        {#each visible as c, i (c.name)}
-          {@const hasDetails = c.kind !== 'user' && c.state !== 'stale'}
-          <tr
-            class="transition-colors hover:bg-zinc-800/30 {hasDetails ? 'cursor-pointer' : ''}"
-            onclick={e => hasDetails && !(e.target as HTMLElement).closest('button') && toggleOpen(c.name)}
-          >
-            <td class="{td} text-zinc-600">{(page - 1) * limit + i + 1}</td>
-            <td class="{td} font-mono text-zinc-100">
-              {#if c.kind === 'slash'}<span class={toneText[tone()]}>/</span>{c.name}{:else}<span class="flex items-center gap-2"><MessageSquare class="w-3.5 h-3.5 {toneText[tone()]}" aria-label="Message menu command" />{c.name}</span>{/if}
-            </td>
-            <td class="{td} text-zinc-400">{c.module_id ? moduleName(c.module_id) : '-'}</td>
-            <td class={td}><Badge tone={TONE[c.state]}>{LABEL[c.state]}</Badge></td>
-            <td class="{td} text-right">
-              <div class="flex justify-end">
-                <BoltSwitch
-                  on={c.state !== 'missing'}
-                  danger={c.state === 'stale'}
-                  busy={pending === c.name}
-                  disabled={!!pending && pending !== c.name}
-                  label={c.state === 'missing' ? `Register ${label(c)}` : `Remove ${label(c)} from Discord`}
-                  onclick={() => (c.state !== 'missing' && c.module_id === null ? (removeAsk = c) : toggle(c))}
-                />
-              </div>
-            </td>
-            <td class="{td} w-12 text-right">
-              {#if hasDetails}
-                <button
-                  type="button"
-                  onclick={() => toggleOpen(c.name)}
-                  aria-expanded={openName === c.name}
-                  aria-label="Details of /{c.name}"
-                  class="cursor-pointer rounded-md p-1 text-zinc-500 outline-none transition hover:text-zinc-200 focus-visible:ring-2 focus-visible:ring-orange-500/50"
-                >
-                  <ChevronDown class="h-4 w-4 transition {openName === c.name ? 'rotate-180' : ''}" />
-                </button>
-              {/if}
-            </td>
+  <Card flush>
+    {#if !loaded}
+      <TableSkeleton
+        columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28', 'w-12']}
+        headings={['#', 'Command', 'Module', 'State', 'Live', '']}
+        kinds={['bar', 'bar', 'bar', 'pill', 'bar', 'bar']}
+        rows={3}
+        rowHeight="h-11"
+      />
+    {:else}
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+            <th class="{th} w-16">#</th>
+            <th class={th}>Command</th>
+            <th class="{th} w-40">Module</th>
+            <th class="{th} w-36">State</th>
+            <th class="{th} w-28 text-right">Live</th>
+            <th class="{th} w-12" aria-label="Details"></th>
           </tr>
-          {#if openName === c.name && hasDetails}
-            <tr>
-              <td colspan="6" class="p-0">{@render details(c)}</td>
+        </thead>
+        <tbody class="divide-y divide-zinc-800/30">
+          {#each visible as c, i (c.name)}
+            {@const hasDetails = c.kind !== 'user' && c.state !== 'stale'}
+            <tr
+              class="transition-colors hover:bg-zinc-800/30 {hasDetails ? 'cursor-pointer' : ''}"
+              onclick={e => hasDetails && !(e.target as HTMLElement).closest('button') && toggleOpen(c.name)}
+            >
+              <td class="{td} text-zinc-600">{(page - 1) * limit + i + 1}</td>
+              <td class="{td} font-mono text-zinc-100">
+                {#if c.kind === 'slash'}<span class={toneText[tone()]}>/</span>{c.name}{:else}<span class="flex items-center gap-2"
+                    ><MessageSquare class="w-3.5 h-3.5 {toneText[tone()]}" aria-label="Message menu command" />{c.name}</span
+                  >{/if}
+              </td>
+              <td class="{td} text-zinc-400">{c.module_id ? moduleName(c.module_id) : '-'}</td>
+              <td class={td}><Badge tone={TONE[c.state]}>{LABEL[c.state]}</Badge></td>
+              <td class="{td} text-right">
+                <div class="flex justify-end">
+                  <BoltSwitch
+                    on={c.state !== 'missing'}
+                    danger={c.state === 'stale'}
+                    busy={pending === c.name}
+                    disabled={!!pending && pending !== c.name}
+                    label={c.state === 'missing' ? `Register ${label(c)}` : `Remove ${label(c)} from Discord`}
+                    onclick={() => (c.state !== 'missing' && c.module_id === null ? (removeAsk = c) : toggle(c))}
+                  />
+                </div>
+              </td>
+              <td class="{td} w-12 text-right">
+                {#if hasDetails}
+                  <button
+                    type="button"
+                    onclick={() => toggleOpen(c.name)}
+                    aria-expanded={openName === c.name}
+                    aria-label="Details of /{c.name}"
+                    class="cursor-pointer rounded-md p-1 text-zinc-500 outline-none transition hover:text-zinc-200 focus-visible:ring-2 focus-visible:ring-orange-500/50"
+                  >
+                    <ChevronDown class="h-4 w-4 transition {openName === c.name ? 'rotate-180' : ''}" />
+                  </button>
+                {/if}
+              </td>
             </tr>
-          {/if}
-        {/each}
-      </tbody>
-    </table>
-    {#if filtered.length === 0}
-      <p class="px-5 py-8 text-center text-xs text-zinc-500">No command belongs to this module.</p>
+            {#if openName === c.name && hasDetails}
+              <tr>
+                <td colspan="6" class="p-0">{@render details(c)}</td>
+              </tr>
+            {/if}
+          {/each}
+        </tbody>
+      </table>
+      {#if filtered.length === 0}
+        <p class="px-5 py-8 text-center text-xs text-zinc-500">No command belongs to this module.</p>
+      {/if}
+      <Pagination
+        {page}
+        {limit}
+        total={filtered.length}
+        onPage={p => (pageParam.value = p)}
+        onLimit={l => ((limit = l), (pageParam.value = 1))}
+      />
     {/if}
-    <Pagination {page} {limit} total={filtered.length} onPage={p => (pageParam.value = p)} onLimit={l => ((limit = l), (pageParam.value = 1))} />
-  {/if}
-</Card>
+  </Card>
 {/if}
 
 <ConfirmModal
@@ -302,7 +325,10 @@
   busyLabel="Removing…"
   busy={!!pending}
   icon={Trash2}
-  onConfirm={async () => { if (removeAsk) await toggle(removeAsk); removeAsk = null; }}
+  onConfirm={async () => {
+    if (removeAsk) await toggle(removeAsk);
+    removeAsk = null;
+  }}
   onClose={() => (removeAsk = null)}
 >
   No installed module owns this command, so it cannot be registered again from here.
@@ -310,7 +336,9 @@
 
 <ConfirmModal
   show={purgeAsk !== null}
-  title={purgeAsk === 'all' ? 'Purge all registered commands?' : `Purge ${unused.length} unused ${unused.length === 1 ? 'command' : 'commands'}?`}
+  title={purgeAsk === 'all'
+    ? 'Purge all registered commands?'
+    : `Purge ${unused.length} unused ${unused.length === 1 ? 'command' : 'commands'}?`}
   confirmLabel="Purge"
   busyLabel="Purging…"
   busy={purging}
@@ -320,7 +348,10 @@
   onClose={() => (purgeAsk = null)}
 >
   {#if purgeAsk === 'all'}
-    <p>Every command registered on Discord for this server is removed in one request. The commands of installed modules stay listed here as Not registered, and a switch turns one back on.</p>
+    <p>
+      Every command registered on Discord for this server is removed in one request. The commands of installed modules stay listed here as
+      Not registered, and a switch turns one back on.
+    </p>
   {:else}
     <p>These are registered on Discord but no installed module owns them, so they are removed for good:</p>
     <p class="mt-2 flex flex-wrap gap-1.5">

@@ -87,7 +87,10 @@
   });
 
   onMount(() => {
-    api.auditFilters(guildId).then(f => ((filters = f), (filtersLoaded = true))).catch(() => (filtersLoaded = true));
+    api
+      .auditFilters(guildId)
+      .then(f => ((filters = f), (filtersLoaded = true)))
+      .catch(() => (filtersLoaded = true));
   });
 
   const goTo = (p: number) => (pageParam.value = p);
@@ -107,14 +110,21 @@
   }
   const clear = () => router.setQuery({ q: null, action: null, actor: null, from: null, to: null, module: null, page: null });
 
-  const when = (ts: string) =>
-    new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 </script>
 
 <PageHeader page="audit" description="Every configuration change made in this server" />
 
 <div class="flex flex-wrap items-center gap-3 mb-5">
-  <Input bind:value={searchText} icon={Search} type="search" placeholder="Search details or actor" aria-label="Search details or actor" oninput={onSearch} class="w-full sm:w-72" />
+  <Input
+    bind:value={searchText}
+    icon={Search}
+    type="search"
+    placeholder="Search details or actor"
+    aria-label="Search details or actor"
+    oninput={onSearch}
+    class="w-full sm:w-72"
+  />
   {#if filtersLoaded && !moduleCatalog.loading}
     <Select
       bind:value={moduleParam.value}
@@ -124,8 +134,22 @@
       options={moduleCatalog.entries.filter(m => m.installed).map(m => ({ value: m.id, label: m.name }))}
       class="w-44"
     />
-    <Select bind:value={actionParam.value} onchange={refilter} placeholder="All actions" label="Action" options={filters.actions.map(a => ({ value: a, label: a }))} class="w-44" />
-    <Select bind:value={actorParam.value} onchange={refilter} placeholder="All actors" label="Actor" options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))} class="w-44" />
+    <Select
+      bind:value={actionParam.value}
+      onchange={refilter}
+      placeholder="All actions"
+      label="Action"
+      options={filters.actions.map(a => ({ value: a, label: a }))}
+      class="w-44"
+    />
+    <Select
+      bind:value={actorParam.value}
+      onchange={refilter}
+      placeholder="All actors"
+      label="Actor"
+      options={filters.actors.map(a => ({ value: a.id, label: a.name ?? a.id }))}
+      class="w-44"
+    />
   {:else}
     <ControlSkeleton class="w-44" />
     <ControlSkeleton class="w-44" />
@@ -144,39 +168,39 @@
     <EmptyState kind="log" title="Nothing recorded yet" description="Configuration changes will show up here." />
   {/if}
 {:else}
-<Card flush>
-  {#if !loaded}
-    <TableSkeleton
-            columns={['w-16', 'w-32', 'w-64', 'w-44', 'flex-1']}
-            headings={['#', 'When', 'Actor', 'Action', 'Details']}
-            kinds={['bar', 'bar', 'actor', 'pill', 'bar']}
-            rows={5}
-            rowHeight="h-14"
-    />
-  {:else}
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
-          <th class="{th} w-16">#</th>
-          <th class="{th} w-32">When</th>
-          <th class="{th} w-64">Actor</th>
-          <th class="{th} w-44">Action</th>
-          <th class={th}>Details</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-zinc-800/30">
-        {#each logs as log, i (log.id)}
-          <tr class="hover:bg-zinc-800/30 transition-colors">
-            <td class="{cell} text-zinc-600">{(page - 1) * limit + i + 1}</td>
-            <td class="{cell} text-zinc-500 whitespace-nowrap">{when(log.created_at)}</td>
-            <td class={cell}><ActorCell actor={log.actor} /></td>
-            <td class={cell}><Badge tone={actionTone(log.action)}>{log.action}</Badge></td>
-            <td class="{cell} text-zinc-400">{log.reason ?? '-'}</td>
+  <Card flush>
+    {#if !loaded}
+      <TableSkeleton
+        columns={['w-16', 'w-32', 'w-64', 'w-44', 'flex-1']}
+        headings={['#', 'When', 'Actor', 'Action', 'Details']}
+        kinds={['bar', 'bar', 'actor', 'pill', 'bar']}
+        rows={5}
+        rowHeight="h-14"
+      />
+    {:else}
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+            <th class="{th} w-16">#</th>
+            <th class="{th} w-32">When</th>
+            <th class="{th} w-64">Actor</th>
+            <th class="{th} w-44">Action</th>
+            <th class={th}>Details</th>
           </tr>
-        {/each}
-      </tbody>
-    </table>
-    <Pagination {page} {limit} {total} onPage={goTo} onLimit={setLimit} disabled={loading} />
-  {/if}
-</Card>
+        </thead>
+        <tbody class="divide-y divide-zinc-800/30">
+          {#each logs as log, i (log.id)}
+            <tr class="hover:bg-zinc-800/30 transition-colors">
+              <td class="{cell} text-zinc-600">{(page - 1) * limit + i + 1}</td>
+              <td class="{cell} text-zinc-500 whitespace-nowrap">{when(log.created_at)}</td>
+              <td class={cell}><ActorCell actor={log.actor} /></td>
+              <td class={cell}><Badge tone={actionTone(log.action)}>{log.action}</Badge></td>
+              <td class="{cell} text-zinc-400">{log.reason ?? '-'}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+      <Pagination {page} {limit} {total} onPage={goTo} onLimit={setLimit} disabled={loading} />
+    {/if}
+  </Card>
 {/if}

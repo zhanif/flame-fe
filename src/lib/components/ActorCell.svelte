@@ -16,7 +16,7 @@
       <Bot class="w-4 h-4 text-zinc-400" />
     </div>
   {:else}
-    <Avatar src={actor.avatar_url} name={name} id={actor.id} size="sm" />
+    <Avatar src={actor.avatar_url} {name} id={actor.id} size="sm" />
   {/if}
   <div class="min-w-0 leading-4">
     <p class="text-xs font-semibold truncate {actor.name ? 'text-zinc-100' : 'text-zinc-500'}">{name}</p>

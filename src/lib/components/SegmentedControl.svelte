@@ -17,7 +17,8 @@
       role="radio"
       aria-checked={value === option.id}
       onclick={() => (value = option.id)}
-      class="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-orange-500/50 {value === option.id
+      class="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-orange-500/50 {value ===
+      option.id
         ? 'bg-zinc-700 text-zinc-100 shadow-sm'
         : 'text-zinc-400 hover:text-zinc-200'}"
     >

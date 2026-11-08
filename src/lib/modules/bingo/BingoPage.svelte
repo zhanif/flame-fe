@@ -31,18 +31,30 @@
     threads: {
       title: 'How a round works',
       steps: [
-        { text: 'A staff member opens a thread in the bingo forum whose first message carries the tag. The thread becomes a round on its own.' },
-        { text: 'Design the board in the Designs tab: the 12 questions, their points and the look of the card. Assign the design to a round when it is ready, then post it in the thread so members see what they are answering.' },
-        { text: 'Members submit by sending their 12 answers in the thread, for example Y N Y N Y Y N N Y - - Y. A valid one is recorded at once and the first message of a member is their entry; a later one is refused until the earlier message is deleted.' },
-        { text: 'Set the correct answers when they are known. Every entry is rescored and the table is ready, and /bingo view shows it in Discord.' },
+        {
+          text: 'A staff member opens a thread in the bingo forum whose first message carries the tag. The thread becomes a round on its own.',
+        },
+        {
+          text: 'Design the board in the Designs tab: the 12 questions, their points and the look of the card. Assign the design to a round when it is ready, then post it in the thread so members see what they are answering.',
+        },
+        {
+          text: 'Members submit by sending their 12 answers in the thread, for example Y N Y N Y Y N N Y - - Y. A valid one is recorded at once and the first message of a member is their entry; a later one is refused until the earlier message is deleted.',
+        },
+        {
+          text: 'Set the correct answers when they are known. Every entry is rescored and the table is ready, and /bingo view shows it in Discord.',
+        },
       ],
     },
     designs: {
       title: 'How designs work',
       steps: [
-        { text: 'A design is a stored board: 12 questions, their points and the look of the card. It exists on its own, before a round does.' },
-        { text: 'Pick a round when saving to make the design that round\'s board. Leave it unassigned to keep the design as a library entry.' },
-        { text: 'A round can have one design. Assigning another one is refused until the round\'s current design is unassigned.' },
+        {
+          text: 'A design is a stored board: 12 questions, their points and the look of the card. It exists on its own, before a round does.',
+        },
+        {
+          text: "Pick a round when saving to make the design that round's board. Leave it unassigned to keep the design as a library entry.",
+        },
+        { text: "A round can have one design. Assigning another one is refused until the round's current design is unassigned." },
         { text: 'A design can be saved as a draft. It can only be posted or scored when all 12 questions are filled in.' },
       ],
     },
@@ -50,7 +62,9 @@
       title: 'How detection works',
       steps: [
         { text: 'The forum decides where rounds live: only threads in that forum are looked at.' },
-        { text: 'The tag pattern is a regular expression tested against a thread\'s first message. The first match is the round tag, so the pattern decides which threads count and what the round is called.' },
+        {
+          text: "The tag pattern is a regular expression tested against a thread's first message. The first match is the round tag, so the pattern decides which threads count and what the round is called.",
+        },
         { text: 'Threads made before the module was installed are picked up by scanning the forum once.' },
       ],
     },

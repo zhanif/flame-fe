@@ -9,7 +9,7 @@
   import Textarea from '$lib/components/Textarea.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import type { DiscordChannel, DiscordRole } from '$lib/api/endpoints';
-  import { label } from '$lib/ui';
+  import { label, toneText } from '$lib/ui';
   import Card from '$lib/components/Card.svelte';
   import Select from '$lib/components/Select.svelte';
   import { th } from '$lib/ui';
@@ -79,12 +79,22 @@
       <div class="sm:col-span-2">
         <span class={label}>Subcommand name</span>
         <Input bind:value={subCommandName} maxlength={32} placeholder="weekly-update" aria-label="Subcommand name" {disabled} />
-        <p class="mt-1.5 text-xs text-zinc-500">Typed as <span class="font-mono {toneText.teal}">/announce {subCommandName || 'name'}</span>. Lowercase letters, digits, - and _ only.</p>
+        <p class="mt-1.5 text-xs text-zinc-500">
+          Typed as <span class="font-mono {toneText.teal}">/announce {subCommandName || 'name'}</span>. Lowercase letters, digits, - and _
+          only.
+        </p>
       </div>
     {/if}
     <div class="sm:col-span-2">
       <span class={label}>Message</span>
-      <Textarea bind:value={draft.content} rows={3} maxlength={1500} placeholder="Plain text above the embed (optional)" aria-label="Message" {disabled} />
+      <Textarea
+        bind:value={draft.content}
+        rows={3}
+        maxlength={1500}
+        placeholder="Plain text above the embed (optional)"
+        aria-label="Message"
+        {disabled}
+      />
     </div>
     <div class="sm:col-span-2">
       <span class={label}>Title</span>
@@ -92,17 +102,31 @@
     </div>
     <div class="sm:col-span-2">
       <span class={label}>Body</span>
-      <Textarea bind:value={draft.body} rows={6} maxlength={4000} placeholder="What you want to say. Markdown works: **bold**, [links](https://example.com)" aria-label="Body" {disabled} />
+      <Textarea
+        bind:value={draft.body}
+        rows={6}
+        maxlength={4000}
+        placeholder="What you want to say. Markdown works: **bold**, [links](https://example.com)"
+        aria-label="Body"
+        {disabled}
+      />
       {#if templateHint}
         <p class="mt-1.5 text-xs text-zinc-500">
-          Put <span class="font-mono">{'{name}'}</span> where a value goes, in the message, title, body, footer or fields (up to 3 different ones). They are asked for each time it is sent.
+          Put <span class="font-mono">{'{name}'}</span> where a value goes, in the message, title, body, footer or fields (up to 3 different ones).
+          They are asked for each time it is sent.
         </p>
       {/if}
     </div>
     <div class="sm:col-span-2">
       <div class="flex items-center justify-between gap-3">
         <span class={label}>Fields <span class="font-normal normal-case text-zinc-500">{draft.fields.length} of {MAX_FIELDS}</span></span>
-        <Button variant="ghost" size="sm" disabled={disabled || draft.fields.length >= MAX_FIELDS} title={draft.fields.length >= MAX_FIELDS ? `An announcement can have up to ${MAX_FIELDS} fields` : undefined} onclick={() => (draft.fields = [...draft.fields, { name: '', value: '', inline: false }])}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={disabled || draft.fields.length >= MAX_FIELDS}
+          title={draft.fields.length >= MAX_FIELDS ? `An announcement can have up to ${MAX_FIELDS} fields` : undefined}
+          onclick={() => (draft.fields = [...draft.fields, { name: '', value: '', inline: false }])}
+        >
           <Plus class="h-3.5 w-3.5" />Add field
         </Button>
       </div>
@@ -112,11 +136,30 @@
             <li class="rounded-xl bg-zinc-800/40 p-3 ring-1 ring-zinc-800/60">
               <div class="flex items-center gap-2">
                 <Input bind:value={field.name} maxlength={256} placeholder="Name" aria-label="Field {i + 1} name" {disabled} />
-                <Button variant="ghost" size="icon" {disabled} onclick={() => (draft.fields = draft.fields.filter((_, n) => n !== i))} aria-label="Remove field {i + 1}"><Trash2 class="h-3.5 w-3.5" /></Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  {disabled}
+                  onclick={() => (draft.fields = draft.fields.filter((_, n) => n !== i))}
+                  aria-label="Remove field {i + 1}"><Trash2 class="h-3.5 w-3.5" /></Button
+                >
               </div>
-              <Textarea bind:value={field.value} rows={2} maxlength={1024} placeholder="Value" aria-label="Field {i + 1} value" class="mt-2" {disabled} />
+              <Textarea
+                bind:value={field.value}
+                rows={2}
+                maxlength={1024}
+                placeholder="Value"
+                aria-label="Field {i + 1} value"
+                class="mt-2"
+                {disabled}
+              />
               <div class="mt-2 flex items-center gap-2">
-                <Toggle on={field.inline} {disabled} label="Show field {i + 1} beside the next one" onclick={() => (field.inline = !field.inline)} />
+                <Toggle
+                  on={field.inline}
+                  {disabled}
+                  label="Show field {i + 1} beside the next one"
+                  onclick={() => (field.inline = !field.inline)}
+                />
                 <span class="text-xs text-zinc-400">Inline Position</span>
               </div>
             </li>
@@ -142,27 +185,52 @@
     {#if showChannel}
       <div class="sm:col-span-2">
         <span class={label}>Channel</span>
-        <ChannelPicker {channels} bind:value={channelId} none={templateHint ? 'Pick when sending' : 'Pick a channel'} label="Channel" {disabled} class="w-full" />
+        <ChannelPicker
+          {channels}
+          bind:value={channelId}
+          none={templateHint ? 'Pick when sending' : 'Pick a channel'}
+          label="Channel"
+          {disabled}
+          class="w-full"
+        />
       </div>
     {/if}
     {#if showMentions}
       <div class="sm:col-span-2">
         <span class={label}>Mentions</span>
-        <RolePicker {roles} selected={draft.mention_role_ids} onchange={next => (draft.mention_role_ids = next)} max={10} placeholder="Roles to ping…" label="Roles to ping" {disabled} />
+        <RolePicker
+          {roles}
+          selected={draft.mention_role_ids}
+          onchange={next => (draft.mention_role_ids = next)}
+          max={10}
+          placeholder="Roles to ping…"
+          label="Roles to ping"
+          {disabled}
+        />
         <div class="mt-3 flex items-center justify-between gap-4">
           <div class="min-w-0">
             <p class="text-xs text-zinc-300">Ping @everyone</p>
             <p class="text-xs text-zinc-500">Whether or not to ping everyone.</p>
             {#if !canEveryone}<p class="text-xs text-zinc-500">Admins only.</p>{/if}
           </div>
-          <Toggle on={draft.mention_everyone} disabled={disabled || !canEveryone} label="Ping @everyone" onclick={() => (draft.mention_everyone = !draft.mention_everyone)} />
+          <Toggle
+            on={draft.mention_everyone}
+            disabled={disabled || !canEveryone}
+            label="Ping @everyone"
+            onclick={() => (draft.mention_everyone = !draft.mention_everyone)}
+          />
         </div>
         <div class="mt-4 flex items-center justify-between gap-4">
           <div class="min-w-0">
             <p class="text-xs text-zinc-300">New line after the mentions</p>
             <p class="text-xs text-zinc-500">The message starts on its own line (after the mentions).</p>
           </div>
-          <Toggle on={draft.mention_newline} {disabled} label="New line after the mentions" onclick={() => (draft.mention_newline = !draft.mention_newline)} />
+          <Toggle
+            on={draft.mention_newline}
+            {disabled}
+            label="New line after the mentions"
+            onclick={() => (draft.mention_newline = !draft.mention_newline)}
+          />
         </div>
       </div>
     {/if}
@@ -170,14 +238,26 @@
 
   <div class="min-w-0 space-y-2 lg:sticky lg:top-20 lg:self-start">
     <span class={label}>Preview</span>
-    <EmbedPreview content={draft.content} title={draft.title} body={draft.body} color={draft.color} imageUrl={draft.image_url} thumbnailUrl={draft.thumbnail_url} footer={draft.footer} fields={draft.fields} mentions={mentionNames} mentionNewline={draft.mention_newline} />
+    <EmbedPreview
+      content={draft.content}
+      title={draft.title}
+      body={draft.body}
+      color={draft.color}
+      imageUrl={draft.image_url}
+      thumbnailUrl={draft.thumbnail_url}
+      footer={draft.footer}
+      fields={draft.fields}
+      mentions={mentionNames}
+      mentionNewline={draft.mention_newline}
+    />
 
     {#if templateHint && variables.length}
       <!-- What each {variable} is asked as when the template is sent. -->
       <span class="{label} block pt-2">Variables</span>
       {#if variables.length > MAX_VARIABLES}
         <p class="rounded-xl bg-orange-500/10 px-3 py-2 text-xs text-orange-400 ring-1 ring-orange-500/25">
-          A template can have up to {MAX_VARIABLES} variables and this one has {variables.length}. Remove {variables.length - MAX_VARIABLES} to save it.
+          A template can have up to {MAX_VARIABLES} variables and this one has {variables.length}. Remove {variables.length - MAX_VARIABLES} to
+          save it.
         </p>
       {/if}
       <Card flush>
@@ -192,12 +272,15 @@
             <tbody>
               <tr>
                 <td class="px-5 pb-1 pt-3">
-                  <span class="block font-mono text-xs text-zinc-200">{'{'}{variable}{'}'}</span>
+                  <span class="block font-mono text-xs text-zinc-200">&#123;{variable}&#125;</span>
                   <span class="block text-[11px] text-zinc-500">Asked as {labelOf(variable)}</span>
                 </td>
                 <td class="px-5 pb-1 pt-2.5 align-top">
                   <Select
-                    bind:value={() => (types[variable] && types[variable] !== 'text' ? types[variable] : ''), next => (types[variable] = next || 'text')}
+                    bind:value={
+                      () => (types[variable] && types[variable] !== 'text' ? types[variable] : ''),
+                      next => (types[variable] = next || 'text')
+                    }
                     options={VARIABLE_TYPES.filter(type => type.value !== 'text')}
                     placeholder="Text"
                     label="Type of {variable}"
@@ -209,8 +292,21 @@
               </tr>
               <tr>
                 <td colspan="2" class="space-y-2 px-5 pb-3 pt-1">
-                  <Input bind:value={() => placeholders[variable] ?? '', next => (placeholders[variable] = next)} maxlength={100} placeholder="Placeholder (inside the box)" aria-label="Placeholder of {variable}" {disabled} />
-                  <Textarea bind:value={() => descriptions[variable] ?? '', next => (descriptions[variable] = next)} rows={2} maxlength={100} placeholder="Description (under the box)" aria-label="Description of {variable}" {disabled} />
+                  <Input
+                    bind:value={() => placeholders[variable] ?? '', next => (placeholders[variable] = next)}
+                    maxlength={100}
+                    placeholder="Placeholder (inside the box)"
+                    aria-label="Placeholder of {variable}"
+                    {disabled}
+                  />
+                  <Textarea
+                    bind:value={() => descriptions[variable] ?? '', next => (descriptions[variable] = next)}
+                    rows={2}
+                    maxlength={100}
+                    placeholder="Description (under the box)"
+                    aria-label="Description of {variable}"
+                    {disabled}
+                  />
                 </td>
               </tr>
             </tbody>

@@ -50,7 +50,12 @@
   const filtered = $derived.by(() => {
     const q = query.trim().toLowerCase();
     const matching = q
-      ? modules.filter(m => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || m.commands.some(c => c.name.toLowerCase().includes(q)))
+      ? modules.filter(
+          m =>
+            m.name.toLowerCase().includes(q) ||
+            m.description.toLowerCase().includes(q) ||
+            m.commands.some(c => c.name.toLowerCase().includes(q)),
+        )
       : modules;
     return [...matching].sort((a, b) => Number(a.installed) - Number(b.installed) || a.name.localeCompare(b.name));
   });
@@ -85,7 +90,11 @@
     disableTarget = null;
     try {
       await api.setModuleEnabled(guildId, m.id, !m.enabled);
-      toast('success', m.enabled ? `${m.name} turned off` : `${m.name} turned on`, m.enabled ? 'It keeps its data and settings, but nothing of it runs.' : 'It runs again.');
+      toast(
+        'success',
+        m.enabled ? `${m.name} turned off` : `${m.name} turned on`,
+        m.enabled ? 'It keeps its data and settings, but nothing of it runs.' : 'It runs again.',
+      );
       await onchange();
     } catch (e: any) {
       toast('error', e.message);
@@ -114,7 +123,15 @@
 <section>
   <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
     <SectionTitle icon={Package} tone="orange" title="Modules" />
-    <Input bind:value={queryText} icon={Search} type="search" placeholder="Search modules…" oninput={onSearch} disabled={loading} class="w-full sm:w-64" />
+    <Input
+      bind:value={queryText}
+      icon={Search}
+      type="search"
+      placeholder="Search modules…"
+      oninput={onSearch}
+      disabled={loading}
+      class="w-full sm:w-64"
+    />
   </div>
 
   {#if loading}
@@ -154,10 +171,21 @@
               <h4 class="min-w-0 truncate font-display text-sm font-bold text-zinc-100">{m.name}</h4>
             </div>
             {#if m.installed}
-              <Toggle on={m.enabled} disabled={!isAdmin || busyId === m.id} label="{m.enabled ? 'Turn off' : 'Turn on'} {m.name}" onclick={() => (m.enabled ? (disableTarget = m) : setEnabled(m))} />
+              <Toggle
+                on={m.enabled}
+                disabled={!isAdmin || busyId === m.id}
+                label="{m.enabled ? 'Turn off' : 'Turn on'} {m.name}"
+                onclick={() => (m.enabled ? (disableTarget = m) : setEnabled(m))}
+              />
               <RowMenu label="Actions for {m.name}" items={menuOf(m)} />
             {:else}
-              <Button variant="soft" size="sm" onclick={() => install(m)} disabled={!isAdmin || busyId === m.id} title={isAdmin ? undefined : 'Admins only'}>
+              <Button
+                variant="soft"
+                size="sm"
+                onclick={() => install(m)}
+                disabled={!isAdmin || busyId === m.id}
+                title={isAdmin ? undefined : 'Admins only'}
+              >
                 {busyId === m.id ? 'Installing…' : 'Install'}
               </Button>
             {/if}
@@ -172,7 +200,8 @@
               aria-expanded={!!showCommands[m.id]}
               onclick={() => (showCommands[m.id] = !showCommands[m.id])}
             >
-              {m.commands.length} {m.commands.length === 1 ? 'command' : 'commands'}
+              {m.commands.length}
+              {m.commands.length === 1 ? 'command' : 'commands'}
               <ChevronDown class="h-3.5 w-3.5 transition-transform {showCommands[m.id] ? 'rotate-180' : ''}" />
             </button>
             {#if showCommands[m.id]}
@@ -180,7 +209,10 @@
                 {#each m.commands as command (command.name)}
                   <span class="inline-flex items-center gap-1 rounded-md bg-zinc-800/60 px-1.5 py-0.5 font-mono text-xs text-zinc-300">
                     <!-- A slash command is typed as /name; a message command lives in the right-click menu, so it gets an arrow instead. -->
-                    {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<MessageSquare class="h-3 w-3 {toneText[toneOf(m.id)]}" aria-label="Message menu command" />{/if}{command.name}
+                    {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<MessageSquare
+                        class="h-3 w-3 {toneText[toneOf(m.id)]}"
+                        aria-label="Message menu command"
+                      />{/if}{command.name}
                   </span>
                 {/each}
               </div>
@@ -198,7 +230,8 @@
       <Trash2 class="w-4 h-4 shrink-0 text-red-400" />Uninstall {uninstallTarget.name}?
     </h3>
     <p class="text-xs text-zinc-400 mt-3 leading-relaxed">
-      Everything this module stored for this server (its settings and records) is deleted. The audit log keeps what was recorded about it. Its slash commands stay registered on Discord until you prune them from the Slash page.
+      Everything this module stored for this server (its settings and records) is deleted. The audit log keeps what was recorded about it.
+      Its slash commands stay registered on Discord until you prune them from the Slash page.
     </p>
     <div class="flex justify-end gap-2 mt-5">
       <Button variant="ghost" onclick={() => (uninstallTarget = null)}>Cancel</Button>
@@ -215,8 +248,11 @@
   confirmLabel="Turn off"
   busyLabel="Turning off…"
   busy={!!disableTarget && busyId === disableTarget.id}
-  onConfirm={async () => { if (disableTarget) await setEnabled(disableTarget); }}
+  onConfirm={async () => {
+    if (disableTarget) await setEnabled(disableTarget);
+  }}
   onClose={() => (disableTarget = null)}
 >
-  Its commands stop answering, its events are ignored and its background work waits. Its data and settings are kept, and turning it on again brings everything back.
+  Its commands stop answering, its events are ignored and its background work waits. Its data and settings are kept, and turning it on again
+  brings everything back.
 </ConfirmModal>

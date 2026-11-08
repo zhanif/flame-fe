@@ -40,14 +40,24 @@
   // Each kind of channel has its own icon, and a category reads as a heading, so a long list can be scanned.
   const postable = $derived(
     channels.filter(c =>
-      types?.length ? types.includes(c.type) : all ? !THREAD_TYPES.includes(c.type) && c.type !== 12 : c.type === 0 || c.type === 5 || THREAD_TYPES.includes(c.type),
+      types?.length
+        ? types.includes(c.type)
+        : all
+          ? !THREAD_TYPES.includes(c.type) && c.type !== 12
+          : c.type === 0 || c.type === 5 || THREAD_TYPES.includes(c.type),
     ),
   );
   const options = $derived([
     { value: '', label: none },
     ...postable.map(c =>
       THREAD_TYPES.includes(c.type)
-        ? { value: c.id, label: c.name, icon: channelIcon(c.type), hint: c.parent_name ? `thread in #${c.parent_name}` : 'thread', keywords: c.parent_name ?? '' }
+        ? {
+            value: c.id,
+            label: c.name,
+            icon: channelIcon(c.type),
+            hint: c.parent_name ? `thread in #${c.parent_name}` : 'thread',
+            keywords: c.parent_name ?? '',
+          }
         : {
             value: c.id,
             label: c.name,
@@ -62,11 +72,13 @@
 </script>
 
 <Combobox
-  bind:value={() => value,
-  v => {
-    value = v;
-    onchange?.();
-  }}
+  bind:value={
+    () => value,
+    v => {
+      value = v;
+      onchange?.();
+    }
+  }
   {options}
   placeholder="Search channels or threads..."
   {label}

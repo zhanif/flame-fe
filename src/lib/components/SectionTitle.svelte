@@ -5,12 +5,7 @@
 
   // A section heading: a small colored icon beside the title, nothing else (no
   // subtitle). Only the top bar uses boxed icons.
-  let {
-    icon: Icon,
-    tone,
-    title,
-    class: className = '',
-  }: { icon: Component<any>; tone?: Tone; title: string; class?: string } = $props();
+  let { icon: Icon, tone, title, class: className = '' }: { icon: Component<any>; tone?: Tone; title: string; class?: string } = $props();
 
   const pageColor = pageTone();
 </script>

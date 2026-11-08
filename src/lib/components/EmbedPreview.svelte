@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  /* eslint-disable svelte/no-at-html-tags -- renderMarkdown escapes the text before it adds any tag */
   /** Someone or something the message pings: a role (in its own color) or @everyone. */
   export interface Mention {
     name: string;
@@ -46,15 +47,17 @@
   let imageBroken = $state(false);
   let thumbBroken = $state(false);
   $effect(() => {
-    imageUrl;
+    void imageUrl;
     imageBroken = false;
   });
   $effect(() => {
-    thumbnailUrl;
+    void thumbnailUrl;
     thumbBroken = false;
   });
   const shownFields = $derived(fields.filter(field => field.name.trim() || field.value.trim()));
-  const hasEmbed = $derived(!!(title.trim() || body.trim() || imageUrl.trim() || thumbnailUrl.trim() || footer.trim() || shownFields.length));
+  const hasEmbed = $derived(
+    !!(title.trim() || body.trim() || imageUrl.trim() || thumbnailUrl.trim() || footer.trim() || shownFields.length),
+  );
   const empty = $derived(!content.trim() && !hasEmbed);
   // Like Discord: inline fields sit side by side (up to three), anything else takes a whole line.
   const fieldRows = $derived.by(() => {
@@ -103,38 +106,47 @@
     {/if}
 
     {#if empty}
-      <p class="mt-2 rounded-md border-l-4 border-[#4E5058] bg-[#2B2D31] px-3 py-3 text-xs text-[#949BA4]">The announcement shows here as you write it.</p>
+      <p class="mt-2 rounded-md border-l-4 border-[#4E5058] bg-[#2B2D31] px-3 py-3 text-xs text-[#949BA4]">
+        The announcement shows here as you write it.
+      </p>
     {:else}
       {#if hasEmbed}
-      <div class="mt-2 max-w-[28rem] overflow-hidden rounded-md border-l-4 bg-[#2B2D31] px-3 py-3" style="border-color:{color || '#4E5058'}">
-        <div class="flex gap-3">
-          <div class="min-w-0 flex-1">
-            {#if title.trim()}<p class="break-words text-sm font-semibold text-[#F2F3F5]">{title}</p>{/if}
-            {#if body.trim()}<div class="{title.trim() ? 'mt-1.5' : ''} break-words text-xs leading-relaxed text-[#DBDEE1]">{@html renderMarkdown(body, { maskedLinks: true })}</div>{/if}
-            {#if fieldRows.length}
-              <div class="mt-2 space-y-2">
-                {#each fieldRows as row, i (i)}
-                  <div class="grid gap-3" style="grid-template-columns: repeat({row[0].inline ? 3 : 1}, minmax(0, 1fr))">
-                    {#each row as field, j (j)}
-                      <div class="min-w-0">
-                        <p class="break-words text-xs font-semibold text-[#F2F3F5]">{field.name}</p>
-                        <div class="mt-0.5 break-words text-xs text-[#DBDEE1]">{@html renderMarkdown(field.value, { maskedLinks: true })}</div>
-                      </div>
-                    {/each}
-                  </div>
-                {/each}
-              </div>
+        <div
+          class="mt-2 max-w-[28rem] overflow-hidden rounded-md border-l-4 bg-[#2B2D31] px-3 py-3"
+          style="border-color:{color || '#4E5058'}"
+        >
+          <div class="flex gap-3">
+            <div class="min-w-0 flex-1">
+              {#if title.trim()}<p class="break-words text-sm font-semibold text-[#F2F3F5]">{title}</p>{/if}
+              {#if body.trim()}<div class="{title.trim() ? 'mt-1.5' : ''} break-words text-xs leading-relaxed text-[#DBDEE1]">
+                  {@html renderMarkdown(body, { maskedLinks: true })}
+                </div>{/if}
+              {#if fieldRows.length}
+                <div class="mt-2 space-y-2">
+                  {#each fieldRows as row, i (i)}
+                    <div class="grid gap-3" style="grid-template-columns: repeat({row[0].inline ? 3 : 1}, minmax(0, 1fr))">
+                      {#each row as field, j (j)}
+                        <div class="min-w-0">
+                          <p class="break-words text-xs font-semibold text-[#F2F3F5]">{field.name}</p>
+                          <div class="mt-0.5 break-words text-xs text-[#DBDEE1]">
+                            {@html renderMarkdown(field.value, { maskedLinks: true })}
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+            {#if thumbnailUrl.trim() && !thumbBroken}
+              <img src={thumbnailUrl} alt="" class="h-16 w-16 shrink-0 rounded-md object-cover" onerror={() => (thumbBroken = true)} />
             {/if}
           </div>
-          {#if thumbnailUrl.trim() && !thumbBroken}
-            <img src={thumbnailUrl} alt="" class="h-16 w-16 shrink-0 rounded-md object-cover" onerror={() => (thumbBroken = true)} />
+          {#if imageUrl.trim() && !imageBroken}
+            <img src={imageUrl} alt="" class="mt-3 max-h-56 w-full rounded-md object-cover" onerror={() => (imageBroken = true)} />
           {/if}
+          {#if footer.trim()}<p class="mt-2 text-[11px] text-[#949BA4]">{footer}</p>{/if}
         </div>
-        {#if imageUrl.trim() && !imageBroken}
-          <img src={imageUrl} alt="" class="mt-3 max-h-56 w-full rounded-md object-cover" onerror={() => (imageBroken = true)} />
-        {/if}
-        {#if footer.trim()}<p class="mt-2 text-[11px] text-[#949BA4]">{footer}</p>{/if}
-      </div>
       {/if}
     {/if}
   </div>

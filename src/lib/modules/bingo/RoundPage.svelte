@@ -2,7 +2,6 @@
   import Badge from '$lib/components/Badge.svelte';
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
-  import Select from '$lib/components/Select.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
@@ -19,7 +18,21 @@
   import { urlParam } from '$lib/url-param';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps } from '$lib/ui';
-  import { ArrowLeft, Check, Download, Eye, EyeOff, ListOrdered, Palette, PencilRuler, RotateCcw, Save, Trash2, Users, X } from '@lucide/svelte';
+  import {
+    ArrowLeft,
+    Check,
+    Download,
+    Eye,
+    EyeOff,
+    ListOrdered,
+    Palette,
+    PencilRuler,
+    RotateCcw,
+    Save,
+    Trash2,
+    Users,
+    X,
+  } from '@lucide/svelte';
   import { onMount } from 'svelte';
 
   let {
@@ -64,10 +77,7 @@
 
   async function load() {
     try {
-      const [result, designList] = await Promise.all([
-        api.bingo.round(guildId, roundId),
-        api.bingo.designs(guildId),
-      ]);
+      const [result, designList] = await Promise.all([api.bingo.round(guildId, roundId), api.bingo.designs(guildId)]);
       round = result.round;
       design = result.design;
       answers = result.round.correct_answers ?? '';
@@ -89,7 +99,9 @@
       toast(
         'success',
         'Answers saved',
-        result.rescored ? `${result.rescored} ${result.rescored === 1 ? 'entry was' : 'entries were'} rescored.` : 'No entry needed a new score.',
+        result.rescored
+          ? `${result.rescored} ${result.rescored === 1 ? 'entry was' : 'entries were'} rescored.`
+          : 'No entry needed a new score.',
       );
       await load();
     } catch (e: any) {
@@ -99,7 +111,18 @@
     }
   }
 
-  let exportChoice = $state('');
+  async function exportBoard() {
+    if (!board || exporting) return;
+    exporting = true;
+    try {
+      await boardExporter.download($state.snapshot(board.board));
+      toast('success', 'Board exported', 'The PNG is in your downloads.');
+    } catch (e: any) {
+      toast('error', e.message);
+    } finally {
+      exporting = false;
+    }
+  }
 
   async function exportAnsweredBoard() {
     if (!board || !current?.correct_answers || exporting) return;
@@ -133,13 +156,6 @@
     } finally {
       exporting = false;
     }
-  }
-
-  async function onExportChoice(value: string) {
-    if (!value) return;
-    if (value === 'board' || value === 'board-answered') await exportBoard();
-    else if (value === 'answers') await exportAnswers();
-    exportChoice = '';
   }
 
   async function setMode(next: BingoTogetherMode) {
@@ -233,7 +249,8 @@
   onConfirm={remove}
   onClose={() => (deleting = false)}
 >
-  Its submissions, its correct answers and its board are removed. The thread in Discord stays, and a scan of the forum would create the round again.
+  Its submissions, its correct answers and its board are removed. The thread in Discord stays, and a scan of the forum would create the
+  round again.
 </ConfirmModal>
 
 {#if !current || !board}
@@ -254,11 +271,16 @@
       <div class="flex flex-wrap items-center gap-2">
         <Badge tone={statusTone[current.status]}>{statusLabel[current.status]}</Badge>
         {#if isAdmin}
-          <RowMenu text="Export PNG" icon={Download} label="Export" items={[
-            { label: 'Board', onclick: () => void exportBoard() },
-            { label: 'Board (Answered)', onclick: () => void exportAnsweredBoard() },
-            { label: 'Participant Answers', onclick: () => void exportAnswers() },
-          ]} />
+          <RowMenu
+            text="Export PNG"
+            icon={Download}
+            label="Export"
+            items={[
+              { label: 'Board', onclick: () => void exportBoard() },
+              { label: 'Board (Answered)', onclick: () => void exportAnsweredBoard() },
+              { label: 'Participant Answers', onclick: () => void exportAnswers() },
+            ]}
+          />
           <RowMenu
             items={[
               current.status === 'closed'
@@ -295,11 +317,15 @@
                 The board is not ready yet, answers cannot be saved.
               </p>
             {/if}
-            <BingoAnswersGrid bind:value={answers} disabled={!isAdmin || blank} points={points} />
+            <BingoAnswersGrid bind:value={answers} disabled={!isAdmin || blank} {points} />
             <p class="mt-3 text-xs text-zinc-500">A wrong answer costs the same, a skipped bonus costs nothing.</p>
             {#if isAdmin}
               <div class="mt-4 flex justify-end border-t border-zinc-800/60 pt-4">
-                <Button variant="primary" onclick={saveAnswers} disabled={savingAnswers || blank || answers.replace(/[^YN-]/g, '').length !== 12}>
+                <Button
+                  variant="primary"
+                  onclick={saveAnswers}
+                  disabled={savingAnswers || blank || answers.replace(/[^YN-]/g, '').length !== 12}
+                >
                   <Save class="h-3.5 w-3.5" />{savingAnswers ? 'Saving…' : 'Save answers'}
                 </Button>
               </div>
@@ -343,38 +369,42 @@
         </div>
 
         <div class="space-y-3 xl:sticky xl:top-5 xl:self-start">
-            {#if blank}
-              <Card>
-                <SectionTitle icon={Palette} title="No board yet" class="mb-3" />
-                <p class="text-xs text-zinc-500">
-                  The 12 questions and the look are set in the designer. This round shows the card once the design has them.
-                </p>
-                {#if isAdmin}
-                  <div class="mt-4 flex flex-col gap-2">
-                    <Button variant="primary" onclick={() => onOpenDesign('', current.id)}>
-                      <PencilRuler class="h-3.5 w-3.5" />Create new design
-                    </Button>
-                    <div class="border-t border-zinc-800/60 pt-4">
-                      <p class="mb-2 text-xs text-zinc-500">Or use a design that is already stored and not assigned to a round.</p>
-                      <div class="flex flex-col gap-2 sm:flex-row">
-                        <Combobox
-                          bind:value={selectedDesignId}
-                          options={availableDesigns.map(d => ({ value: d.id, label: d.board.title.trim() || 'Untitled design', hint: d.board.subtitle.trim() || undefined }))}
-                          placeholder="Search a stored design..."
-                          class="flex-1"
-                        />
-                        <Button variant="secondary" disabled={!selectedDesignId || busy} onclick={assignDesign}>
-                          {busy ? 'Assigning…' : 'Use this design'}
-                        </Button>
-                      </div>
-                      {#if availableDesigns.length === 0}
-                        <p class="mt-2 text-xs text-zinc-500">No stored design is free right now. Duplicate one in the Designs tab first.</p>
-                      {/if}
+          {#if blank}
+            <Card>
+              <SectionTitle icon={Palette} title="No board yet" class="mb-3" />
+              <p class="text-xs text-zinc-500">
+                The 12 questions and the look are set in the designer. This round shows the card once the design has them.
+              </p>
+              {#if isAdmin}
+                <div class="mt-4 flex flex-col gap-2">
+                  <Button variant="primary" onclick={() => onOpenDesign('', current.id)}>
+                    <PencilRuler class="h-3.5 w-3.5" />Create new design
+                  </Button>
+                  <div class="border-t border-zinc-800/60 pt-4">
+                    <p class="mb-2 text-xs text-zinc-500">Or use a design that is already stored and not assigned to a round.</p>
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                      <Combobox
+                        bind:value={selectedDesignId}
+                        options={availableDesigns.map(d => ({
+                          value: d.id,
+                          label: d.board.title.trim() || 'Untitled design',
+                          hint: d.board.subtitle.trim() || undefined,
+                        }))}
+                        placeholder="Search a stored design..."
+                        class="flex-1"
+                      />
+                      <Button variant="secondary" disabled={!selectedDesignId || busy} onclick={assignDesign}>
+                        {busy ? 'Assigning…' : 'Use this design'}
+                      </Button>
                     </div>
+                    {#if availableDesigns.length === 0}
+                      <p class="mt-2 text-xs text-zinc-500">No stored design is free right now. Duplicate one in the Designs tab first.</p>
+                    {/if}
                   </div>
-                {/if}
-              </Card>
-            {:else}
+                </div>
+              {/if}
+            </Card>
+          {:else}
             <div class="flex items-center justify-between">
               <span class="{caps} text-zinc-500">Preview</span>
               <span class="text-xs text-zinc-500">What Discord posts</span>
@@ -399,7 +429,12 @@
                     <Eye class="h-3.5 w-3.5" />Preview answered board
                   {/if}
                 </Button>
-                <Button variant="secondary" class="w-full" disabled={busy || (current?.entries ?? 0) > 0} onclick={() => onOpenDesign(current.design_id ?? '', current.id)}>
+                <Button
+                  variant="secondary"
+                  class="w-full"
+                  disabled={busy || (current?.entries ?? 0) > 0}
+                  onclick={() => onOpenDesign(current.design_id ?? '', current.id)}
+                >
                   <PencilRuler class="h-3.5 w-3.5" />{current.design_id ? 'Restyle design' : 'Create design'}
                 </Button>
                 <Button variant="secondary" class="w-full" disabled={busy || (current?.entries ?? 0) > 0} onclick={unlinkDesign}>

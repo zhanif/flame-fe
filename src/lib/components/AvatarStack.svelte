@@ -19,7 +19,9 @@
   const NEUTRAL = '#52525b';
   const fillOf = (color?: string) => (color && /^#[0-9a-f]{6}$/i.test(color) && color !== '#000000' ? color : NEUTRAL);
   const inkOf = (fill: string) => {
-    const [r, g, b] = [1, 3, 5].map(i => Number.parseInt(fill.slice(i, i + 2), 16) / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    const [r, g, b] = [1, 3, 5]
+      .map(i => Number.parseInt(fill.slice(i, i + 2), 16) / 255)
+      .map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
     return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#1e1f22' : '#ffffff';
   };
 </script>
@@ -40,6 +42,9 @@
     {/if}
   {/each}
   {#if rest > 0}
-    <span class="{size} inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[11px] font-semibold text-zinc-200 ring-2 ring-zinc-900">+{rest}</span>
+    <span
+      class="{size} inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[11px] font-semibold text-zinc-200 ring-2 ring-zinc-900"
+      >+{rest}</span
+    >
   {/if}
 </span>

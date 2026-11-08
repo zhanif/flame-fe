@@ -1,7 +1,6 @@
 <script lang="ts">
-  import Badge from '$lib/components/Badge.svelte';
-  import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
+  import Button from '$lib/components/Button.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ChannelPicker from '$lib/components/ChannelPicker.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -17,7 +16,14 @@
   import Toggle from '$lib/components/Toggle.svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
-  import { api, type BoosterRoleFlags, type BoosterRoleRule, type BoosterRules, type DiscordChannel, type DiscordRole } from '$lib/api/endpoints';
+  import {
+    api,
+    type BoosterRoleFlags,
+    type BoosterRoleRule,
+    type BoosterRules,
+    type DiscordChannel,
+    type DiscordRole,
+  } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
@@ -64,7 +70,13 @@
   const addRole = async () => {
     const roleId = pickedRole;
     pickedRole = '';
-    if (await change(() => api.booster.saveRole(guildId, roleId, { assign_on_boost: false, remove_on_unboost: false, guard: true }), 'Booster role added')) addingRole = false;
+    if (
+      await change(
+        () => api.booster.saveRole(guildId, roleId, { assign_on_boost: false, remove_on_unboost: false, guard: true }),
+        'Booster role added',
+      )
+    )
+      addingRole = false;
   };
   const setFlag = (rule: BoosterRoleRule, flag: keyof BoosterRoleFlags) =>
     change(() =>
@@ -83,10 +95,15 @@
     if (await change(() => api.booster.removeRole(guildId, removeTarget!.role_id), 'Booster role removed')) removeTarget = null;
     removing = false;
   }
-  const saveChannel = () => change(() => api.booster.setLogChannel(guildId, logChannel || null), logChannel ? 'Log channel saved' : 'Logging stopped');
+  const saveChannel = () =>
+    change(() => api.booster.setLogChannel(guildId, logChannel || null), logChannel ? 'Log channel saved' : 'Logging stopped');
 
   onMount(async () => {
-    const [loaded, roleList, channelList] = await Promise.allSettled([api.booster.rules(guildId), api.roles(guildId), api.channels(guildId)]);
+    const [loaded, roleList, channelList] = await Promise.allSettled([
+      api.booster.rules(guildId),
+      api.roles(guildId),
+      api.channels(guildId),
+    ]);
     if (roleList.status === 'fulfilled') roles = roleList.value;
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (loaded.status === 'fulfilled') apply(loaded.value);
@@ -119,9 +136,19 @@
     <Card>
       <SectionTitle icon={Megaphone} title="Log channel" class="mb-5" />
       <span class={label}>Channel</span>
-      <p class="mb-2.5 text-xs text-zinc-500">Where the bot says which roles it gave or took. Pick Not logged to stay silent; the audit log still records everything.</p>
+      <p class="mb-2.5 text-xs text-zinc-500">
+        Where the bot says which roles it gave or took. Pick Not logged to stay silent; the audit log still records everything.
+      </p>
       {#if rules}
-        <ChannelPicker {channels} bind:value={logChannel} onchange={saveChannel} none="Not logged" label="Log channel" disabled={!isAdmin} class="w-full sm:w-80" />
+        <ChannelPicker
+          {channels}
+          bind:value={logChannel}
+          onchange={saveChannel}
+          none="Not logged"
+          label="Log channel"
+          disabled={!isAdmin}
+          class="w-full sm:w-80"
+        />
       {:else}
         <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
       {/if}
@@ -129,7 +156,8 @@
     <Card>
       <SectionTitle icon={Radar} title="Sweep" class="mb-5" />
       <p class="mb-4 text-xs text-zinc-500">
-        Sweep is locked for now. Discord cannot list the members of a role, so a sweep would have to load every member of the server first. Roles are still enforced as members change.
+        Sweep is locked for now. Discord cannot list the members of a role, so a sweep would have to load every member of the server first.
+        Roles are still enforced as members change.
       </p>
       <Button variant="secondary" disabled title="Locked for now"><Lock class="w-3.5 h-3.5" />Sweep now</Button>
     </Card>
@@ -147,38 +175,44 @@
     {:else}
       <Card flush>
         <TableSkeleton
-            columns={['w-16', 'flex-1', 'w-36', ...(isAdmin ? ['w-16'] : [])]}
-            headings={['#', 'Who', 'Type', ...(isAdmin ? [''] : [])]}
-            kinds={['bar', 'bar', 'pill', ...(isAdmin ? ['action' as const] : [])]}
-            rows={4}
-            rowHeight="h-14"
-          />
+          columns={['w-16', 'flex-1', 'w-36', ...(isAdmin ? ['w-16'] : [])]}
+          headings={['#', 'Who', 'Type', ...(isAdmin ? [''] : [])]}
+          kinds={['bar', 'bar', 'pill', ...(isAdmin ? ['action' as const] : [])]}
+          rows={4}
+          rowHeight="h-14"
+        />
       </Card>
     {/if}
   {:else}
     {#if isAdmin && addingRole}
       <div transition:slide={{ duration: 220, easing: cubicOut }}>
-      <Card>
-        <SectionTitle icon={Plus} title="Add a booster role" class="mb-1" />
-        <p class="mb-4 text-xs text-zinc-500">New roles start with the guard on: anyone holding the role without boosting loses it. Change what each role does in the table.</p>
-        <div class="flex flex-col sm:flex-row sm:items-end gap-3">
-          <div class="w-full sm:w-80">
-            <span class={label}>Role</span>
-            {#if rules}
-              <RoleSelect {roles} manageable exclude={takenRoles} bind:value={pickedRole} class="w-full" />
-            {:else}
-              <ControlSkeleton class="w-full" />
-            {/if}
+        <Card>
+          <SectionTitle icon={Plus} title="Add a booster role" class="mb-1" />
+          <p class="mb-4 text-xs text-zinc-500">
+            New roles start with the guard on: anyone holding the role without boosting loses it. Change what each role does in the table.
+          </p>
+          <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div class="w-full sm:w-80">
+              <span class={label}>Role</span>
+              {#if rules}
+                <RoleSelect {roles} manageable exclude={takenRoles} bind:value={pickedRole} class="w-full" />
+              {:else}
+                <ControlSkeleton class="w-full" />
+              {/if}
+            </div>
+            <Button variant="primary" onclick={addRole} disabled={!pickedRole}><Plus class="w-3.5 h-3.5" />Add</Button>
+            <Button variant="ghost" onclick={() => (addingRole = false)}>Cancel</Button>
           </div>
-          <Button variant="primary" onclick={addRole} disabled={!pickedRole}><Plus class="w-3.5 h-3.5" />Add</Button>
-          <Button variant="ghost" onclick={() => (addingRole = false)}>Cancel</Button>
-        </div>
-      </Card>
+        </Card>
       </div>
     {/if}
 
     {#if rules && rules.roles.length === 0}
-      <EmptyState kind="modules" title="No booster roles" description="Add a role to give it to boosters, take it back when they stop, or keep it off everyone else." />
+      <EmptyState
+        kind="modules"
+        title="No booster roles"
+        description="Add a role to give it to boosters, take it back when they stop, or keep it off everyone else."
+      />
     {:else}
       <Card flush>
         {#if !rules}
@@ -209,12 +243,35 @@
                   <td class={cell}>
                     <RoleChip {role} />
                     {#if rule.problem}
-                      <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400"><TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}</p>
+                      <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400">
+                        <TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}
+                      </p>
                     {/if}
                   </td>
-                  <td class={cell}><Toggle on={rule.assign_on_boost} disabled={!isAdmin} label="Assign {role?.name ?? rule.role_id} on boost" onclick={() => setFlag(rule, 'assign_on_boost')} /></td>
-                  <td class={cell}><Toggle on={rule.remove_on_unboost} disabled={!isAdmin} label="Remove {role?.name ?? rule.role_id} when boosting stops" onclick={() => setFlag(rule, 'remove_on_unboost')} /></td>
-                  <td class={cell}><Toggle on={rule.guard} disabled={!isAdmin} label="Guard {role?.name ?? rule.role_id}" onclick={() => setFlag(rule, 'guard')} /></td>
+                  <td class={cell}
+                    ><Toggle
+                      on={rule.assign_on_boost}
+                      disabled={!isAdmin}
+                      label="Assign {role?.name ?? rule.role_id} on boost"
+                      onclick={() => setFlag(rule, 'assign_on_boost')}
+                    /></td
+                  >
+                  <td class={cell}
+                    ><Toggle
+                      on={rule.remove_on_unboost}
+                      disabled={!isAdmin}
+                      label="Remove {role?.name ?? rule.role_id} when boosting stops"
+                      onclick={() => setFlag(rule, 'remove_on_unboost')}
+                    /></td
+                  >
+                  <td class={cell}
+                    ><Toggle
+                      on={rule.guard}
+                      disabled={!isAdmin}
+                      label="Guard {role?.name ?? rule.role_id}"
+                      onclick={() => setFlag(rule, 'guard')}
+                    /></td
+                  >
                   {#if isAdmin}
                     <td class="{cell} text-right">
                       <Button variant="ghost" size="icon" aria-label="Remove booster role" onclick={() => (removeTarget = rule)}>
@@ -243,6 +300,7 @@
   onClose={() => (removeTarget = null)}
 >
   {#if removeTarget}
-    <span class="text-zinc-200">{roles.find(r => r.id === removeTarget!.role_id)?.name ?? 'This role'}</span> stops being managed for boosters: it is no longer given, taken back or guarded. The role itself and who holds it stay as they are.
+    <span class="text-zinc-200">{roles.find(r => r.id === removeTarget!.role_id)?.name ?? 'This role'}</span> stops being managed for boosters:
+    it is no longer given, taken back or guarded. The role itself and who holds it stay as they are.
   {/if}
 </ConfirmModal>

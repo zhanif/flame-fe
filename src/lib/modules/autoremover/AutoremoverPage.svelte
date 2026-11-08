@@ -38,9 +38,13 @@
     messages: {
       title: 'How a message is removed',
       steps: [
-        { text: 'A message sent in the watched channel that matches what is removed (images, videos, files or every message) is marked. Each row here is one marked message.' },
+        {
+          text: 'A message sent in the watched channel that matches what is removed (images, videos, files or every message) is marked. Each row here is one marked message.',
+        },
         { text: 'Its delete time is the moment it was sent plus the time set in Settings. Until then it is waiting.' },
-        { text: 'A background task looks for messages whose time is up every few seconds and deletes them. One that is already gone counts as done; one Discord refuses to delete is recorded with the reason and not tried again. A waiting deletion can be cancelled from its row, and the message then stays for good.' },
+        {
+          text: 'A background task looks for messages whose time is up every few seconds and deletes them. One that is already gone counts as done; one Discord refuses to delete is recorded with the reason and not tried again. A waiting deletion can be cancelled from its row, and the message then stays for good.',
+        },
         { text: 'A message pinned after it was marked is kept, if pinned messages are excluded.' },
       ],
     },
@@ -48,7 +52,9 @@
       title: 'How these settings apply',
       steps: [
         { text: 'The watched channel decides where messages are picked up. A message is only marked when it is sent there.' },
-        { text: 'The time is counted from when a message is sent, not from now. Changing it only affects messages sent afterwards; the ones already marked keep their delete time.' },
+        {
+          text: 'The time is counted from when a message is sent, not from now. Changing it only affects messages sent afterwards; the ones already marked keep their delete time.',
+        },
         { text: 'What to remove narrows which messages are marked. Moderators, admins and pinned messages can each be left alone.' },
       ],
     },
@@ -84,7 +90,8 @@
   let refresh: ReturnType<typeof setInterval> | undefined;
 
   const cell = td.replace('h-11', 'h-14');
-  const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  const when = (ts: string) =>
+    new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
   const channelOf = (id: string) => channels.find(c => c.id === id);
 
   // How long a waiting message has left, in words.
@@ -140,7 +147,8 @@
     if (!config || ttlError || kinds.length === 0) return;
     saving = true;
     try {
-      apply(await api.autoremover.updateConfig(guildId, {
+      apply(
+        await api.autoremover.updateConfig(guildId, {
           enabled,
           ttl_seconds: ttlNumber,
           target_ids: targets,
@@ -148,7 +156,8 @@
           exclude_mods: excludeMods,
           exclude_admins: excludeAdmins,
           exclude_pinned: excludePinned,
-        }));
+        }),
+      );
       toast('success', 'Settings saved', 'New messages use the new time. Messages already marked keep their own.');
     } catch (e: any) {
       toast('error', e.message);
@@ -254,7 +263,10 @@
         <div class="space-y-5" aria-hidden="true">
           {#each Array(3) as _}
             <div class="flex items-center justify-between gap-8">
-              <div class="space-y-2"><div class="h-3.5 w-32 rounded bg-zinc-700/40 animate-pulse"></div><div class="h-2.5 w-64 rounded bg-zinc-800/40 animate-pulse"></div></div>
+              <div class="space-y-2">
+                <div class="h-3.5 w-32 rounded bg-zinc-700/40 animate-pulse"></div>
+                <div class="h-2.5 w-64 rounded bg-zinc-800/40 animate-pulse"></div>
+              </div>
 
               <div class="h-9 w-56 rounded-lg bg-zinc-800/40 animate-pulse"></div>
             </div>
@@ -268,8 +280,18 @@
           </div>
         </SettingRow>
 
-        <SettingRow title="Watched channels" hint="Messages here can be deleted. A forum covers its threads. Up to {config.limits.max_targets} at the moment.">
-          <ChannelsPicker {channels} selected={targets} onchange={next => (targets = next)} max={config.limits.max_targets} disabled={!isAdmin} label="Watched channels" />
+        <SettingRow
+          title="Watched channels"
+          hint="Messages here can be deleted. A forum covers its threads. Up to {config.limits.max_targets} at the moment."
+        >
+          <ChannelsPicker
+            {channels}
+            selected={targets}
+            onchange={next => (targets = next)}
+            max={config.limits.max_targets}
+            disabled={!isAdmin}
+            label="Watched channels"
+          />
         </SettingRow>
 
         <SettingRow
@@ -279,24 +301,50 @@
             : 'A message is deleted when it matches any of these. Images and videos need one attached; Any file means any attachment; Every message includes text-only ones, so use it with care.'}
           error={kinds.length === 0}
         >
-          <ChipPicker items={KIND_ITEMS} selected={kinds} onchange={next => (kinds = next)} disabled={!isAdmin} placeholder="Add a kind..." label="What to remove" />
+          <ChipPicker
+            items={KIND_ITEMS}
+            selected={kinds}
+            onchange={next => (kinds = next)}
+            disabled={!isAdmin}
+            placeholder="Add a kind..."
+            label="What to remove"
+          />
         </SettingRow>
 
-        <SettingRow title="Time before deletion" hint={ttlError ?? `In seconds. ${ttlNumber >= 60 ? `That is ${formatDuration(ttlNumber)}.` : ''}`.trim()} error={!!ttlError}>
+        <SettingRow
+          title="Time before deletion"
+          hint={ttlError ?? `In seconds. ${ttlNumber >= 60 ? `That is ${formatDuration(ttlNumber)}.` : ''}`.trim()}
+          error={!!ttlError}
+        >
           <div class="sm:flex sm:flex-col sm:items-end">
-            <Input bind:value={ttl} inputmode="numeric" maxlength={6} placeholder="600" oninput={restrictTo(onlyDigits, v => (ttl = v))} aria-label="Time before deletion in seconds" disabled={!isAdmin} class="w-full sm:w-32" />
+            <Input
+              bind:value={ttl}
+              inputmode="numeric"
+              maxlength={6}
+              placeholder="600"
+              oninput={restrictTo(onlyDigits, v => (ttl = v))}
+              aria-label="Time before deletion in seconds"
+              disabled={!isAdmin}
+              class="w-full sm:w-32"
+            />
             {#if !ttlError && ttlNumber >= 60}<p class="mt-1.5 text-xs font-medium text-zinc-300">{formatDuration(ttlNumber)}</p>{/if}
           </div>
         </SettingRow>
 
-        <SettingRow title="Exclude moderators" hint="Messages from people with moderator permissions, or a moderator role of this server, are kept.">
+        <SettingRow
+          title="Exclude moderators"
+          hint="Messages from people with moderator permissions, or a moderator role of this server, are kept."
+        >
           <div class="flex items-center gap-3 sm:justify-end">
             <span class="text-sm text-zinc-300">{excludeMods ? 'Excluded' : 'Included'}</span>
             <Toggle on={excludeMods} disabled={!isAdmin} label="Exclude moderators" onclick={() => (excludeMods = !excludeMods)} />
           </div>
         </SettingRow>
 
-        <SettingRow title="Exclude admins" hint="Messages from people with admin permissions, an admin role of this server, or the server owner are kept.">
+        <SettingRow
+          title="Exclude admins"
+          hint="Messages from people with admin permissions, an admin role of this server, or the server owner are kept."
+        >
           <div class="flex items-center gap-3 sm:justify-end">
             <span class="text-sm text-zinc-300">{excludeAdmins ? 'Excluded' : 'Included'}</span>
             <Toggle on={excludeAdmins} disabled={!isAdmin} label="Exclude admins" onclick={() => (excludeAdmins = !excludeAdmins)} />
@@ -306,7 +354,12 @@
         <SettingRow title="Exclude pinned messages" hint="A pinned message is kept, even when it is pinned after it was sent.">
           <div class="flex items-center gap-3 sm:justify-end">
             <span class="text-sm text-zinc-300">{excludePinned ? 'Excluded' : 'Included'}</span>
-            <Toggle on={excludePinned} disabled={!isAdmin} label="Exclude pinned messages" onclick={() => (excludePinned = !excludePinned)} />
+            <Toggle
+              on={excludePinned}
+              disabled={!isAdmin}
+              label="Exclude pinned messages"
+              onclick={() => (excludePinned = !excludePinned)}
+            />
           </div>
         </SettingRow>
 
@@ -318,7 +371,11 @@
       {/if}
     </Card>
   {:else if loaded && total === 0 && !statusFilter}
-    <EmptyState kind="log" title="No messages yet" description="Messages the autoremover picks up in the watched channel are listed here while they wait, and after they are deleted." />
+    <EmptyState
+      kind="log"
+      title="No messages yet"
+      description="Messages the autoremover picks up in the watched channel are listed here while they wait, and after they are deleted."
+    />
   {:else}
     <Select
       bind:value={statusParam.value}
@@ -336,12 +393,12 @@
     <Card flush>
       {#if !loaded}
         <TableSkeleton
-            columns={['w-16', 'w-64', 'flex-1', 'w-44', 'w-40', 'w-52', 'w-24']}
-            headings={['#', 'Author', 'Files', 'Channel', 'Status', 'When', '']}
-            kinds={['bar', 'actor', 'bar', 'bar', 'pill', 'bar', 'action']}
-            rows={5}
-            rowHeight="h-14"
-          />
+          columns={['w-16', 'w-64', 'flex-1', 'w-44', 'w-40', 'w-52', 'w-24']}
+          headings={['#', 'Author', 'Files', 'Channel', 'Status', 'When', '']}
+          kinds={['bar', 'actor', 'bar', 'bar', 'pill', 'bar', 'action']}
+          rows={5}
+          rowHeight="h-14"
+        />
       {:else if items.length === 0}
         <p class="px-5 py-8 text-center text-xs text-zinc-500">No message has this status.</p>
       {:else}
@@ -361,7 +418,9 @@
             {#each items as item, i (item.id)}
               <tr class="hover:bg-zinc-800/30 transition-colors">
                 <td class="{cell} text-zinc-500">{(page - 1) * limit + i + 1}</td>
-                <td class={cell}>{#if item.author}<ActorCell actor={item.author} />{/if}</td>
+                <td class={cell}
+                  >{#if item.author}<ActorCell actor={item.author} />{/if}</td
+                >
                 <td class="{cell} text-zinc-200"><span class="line-clamp-2 break-all">{item.summary}</span></td>
                 <td class="{cell} whitespace-nowrap"><ChannelChip channel={channelOf(item.channel_id)} /></td>
                 <td class={cell}>
@@ -380,7 +439,13 @@
                     <ScrollText class="w-3.5 h-3.5" />
                   </Button>
                   {#if item.status === 'pending'}
-                    <Button variant="ghost" size="icon" aria-label="Cancel this deletion" title="Cancel this deletion" onclick={() => (cancelTarget = item)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Cancel this deletion"
+                      title="Cancel this deletion"
+                      onclick={() => (cancelTarget = item)}
+                    >
                       <X class="w-3.5 h-3.5 text-red-400" />
                     </Button>
                   {/if}
@@ -405,7 +470,12 @@
     <div class="mt-5 space-y-4">
       <div class="flex items-center justify-between gap-3">
         <Badge tone={statusTone[item.status]}>{statusLabel[item.status]}</Badge>
-        <a href={jump(item)} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors">
+        <a
+          href={jump(item)}
+          target="_blank"
+          rel="noreferrer"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors"
+        >
           Jump to message<ExternalLink class="w-3 h-3" />
         </a>
       </div>
@@ -449,7 +519,13 @@
 
     <div class="flex justify-end gap-2 mt-6">
       {#if item.status === 'pending'}
-        <Button variant="danger" onclick={() => { cancelTarget = item; logTarget = null; }}>Cancel deletion</Button>
+        <Button
+          variant="danger"
+          onclick={() => {
+            cancelTarget = item;
+            logTarget = null;
+          }}>Cancel deletion</Button
+        >
       {/if}
       <Button variant="secondary" onclick={() => (logTarget = null)}>Close</Button>
     </div>

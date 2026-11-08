@@ -39,7 +39,18 @@
     label?: string;
   }
 
-  let { items, selected, onchange, locked = [], lockedHint = 'Always included', hidden = [], placeholder = 'Type to search...', disabled = false, max, label }: Props = $props();
+  let {
+    items,
+    selected,
+    onchange,
+    locked = [],
+    lockedHint = 'Always included',
+    hidden = [],
+    placeholder = 'Type to search...',
+    disabled = false,
+    max,
+    label,
+  }: Props = $props();
 
   let query = $state('');
   let open = $state(false);
@@ -51,17 +62,28 @@
   const compact = $derived(!open && !query && (selected.length > 0 || locked.length > 0));
   const lockedItems = $derived(items.filter(i => locked.includes(i.id)));
   const selectedItems = $derived(
-    selected.filter(id => !locked.includes(id) && !hidden.includes(id)).map(id => items.find(i => i.id === id)).filter((i): i is ChipItem => !!i),
+    selected
+      .filter(id => !locked.includes(id) && !hidden.includes(id))
+      .map(id => items.find(i => i.id === id))
+      .filter((i): i is ChipItem => !!i),
   );
   const matches = $derived(
     items
-      .filter(i => !selected.includes(i.id) && !locked.includes(i.id) && !hidden.includes(i.id) && `${i.name} ${i.hint ?? ''}`.toLowerCase().includes(query.toLowerCase()))
+      .filter(
+        i =>
+          !selected.includes(i.id) &&
+          !locked.includes(i.id) &&
+          !hidden.includes(i.id) &&
+          `${i.name} ${i.hint ?? ''}`.toLowerCase().includes(query.toLowerCase()),
+      )
       .slice(0, 50),
   );
 
   const tint = (item: ChipItem) => {
     if (!item.color) return { bg: 'rgb(var(--zinc-800))', text: 'rgb(var(--zinc-300))' };
-    return item.color === '#000000' ? { bg: 'rgb(var(--zinc-800))', text: 'rgb(var(--zinc-400))' } : { bg: item.color + '20', text: item.color };
+    return item.color === '#000000'
+      ? { bg: 'rgb(var(--zinc-800))', text: 'rgb(var(--zinc-400))' }
+      : { bg: item.color + '20', text: item.color };
   };
 
   function add(id: string) {
@@ -89,26 +111,43 @@
   }
 </script>
 
-<svelte:window onpointerdown={(e) => container && !container.contains(e.target as Node) && (open = false)} />
+<svelte:window onpointerdown={e => container && !container.contains(e.target as Node) && (open = false)} />
 
 <div bind:this={container} class="relative">
   <div
     class="{control} flex flex-wrap items-center gap-1.5 px-2 py-1 {disabled ? 'opacity-50' : 'cursor-text'}"
     style="min-height: 2.25rem"
     role="presentation"
-    onclick={() => { if (!disabled && !full) { open = true; input?.focus(); } }}
+    onclick={() => {
+      if (!disabled && !full) {
+        open = true;
+        input?.focus();
+      }
+    }}
   >
     {#each lockedItems as item (item.id)}
       {@const c = tint(item)}
-      <span class="inline-flex items-center gap-1 pl-2 pr-2 py-1 rounded-md text-xs font-medium" style="background:{c.bg};color:{c.text}" title={lockedHint}>
+      <span
+        class="inline-flex items-center gap-1 pl-2 pr-2 py-1 rounded-md text-xs font-medium"
+        style="background:{c.bg};color:{c.text}"
+        title={lockedHint}
+      >
         <Lock class="w-3 h-3 opacity-70" />{item.name}
       </span>
     {/each}
     {#each selectedItems as item (item.id)}
       {@const c = tint(item)}
-      <span class="inline-flex items-center gap-1 max-w-full pl-2 pr-1 py-1 rounded-md text-xs font-medium" style="background:{c.bg};color:{c.text}">
+      <span
+        class="inline-flex items-center gap-1 max-w-full pl-2 pr-1 py-1 rounded-md text-xs font-medium"
+        style="background:{c.bg};color:{c.text}"
+      >
         {#if item.icon}<item.icon class="w-3 h-3 shrink-0 opacity-70" />{/if}<span class="truncate">{item.name}</span>
-        <button type="button" class="p-0.5 rounded hover:bg-black/20 cursor-pointer" onclick={() => remove(item.id)} aria-label="Remove {item.name}">
+        <button
+          type="button"
+          class="p-0.5 rounded hover:bg-black/20 cursor-pointer"
+          onclick={() => remove(item.id)}
+          aria-label="Remove {item.name}"
+        >
           <X class="w-3 h-3" />
         </button>
       </span>
@@ -123,14 +162,18 @@
         placeholder={compact ? '' : placeholder}
         aria-label={label}
         {disabled}
-        class="bg-transparent text-sm text-zinc-200 placeholder-zinc-500 outline-none {compact ? 'w-0 min-w-0 flex-none p-0' : 'flex-1 min-w-[5rem]'}"
+        class="bg-transparent text-sm text-zinc-200 placeholder-zinc-500 outline-none {compact
+          ? 'w-0 min-w-0 flex-none p-0'
+          : 'flex-1 min-w-[5rem]'}"
       />
     {/if}
   </div>
   {#if full}<p class="mt-1.5 text-xs text-zinc-500">Limit reached ({max}). Remove one to pick another.</p>{/if}
 
   {#if open && !disabled && !full}
-    <div class="absolute top-full left-0 right-0 mt-1 z-40 max-h-56 overflow-y-auto rounded-lg bg-zinc-800 border border-zinc-700/60 shadow-lg shadow-black/30">
+    <div
+      class="absolute top-full left-0 right-0 mt-1 z-40 max-h-56 overflow-y-auto rounded-lg bg-zinc-800 border border-zinc-700/60 shadow-lg shadow-black/30"
+    >
       {#each matches as item (item.id)}
         {@const c = tint(item)}
         <button
@@ -138,7 +181,9 @@
           disabled={item.disabled}
           aria-disabled={item.disabled}
           title={item.tooltip}
-          class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm {item.disabled ? 'cursor-not-allowed opacity-60' : 'text-zinc-200 hover:bg-zinc-700/50 cursor-pointer'}"
+          class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm {item.disabled
+            ? 'cursor-not-allowed opacity-60'
+            : 'text-zinc-200 hover:bg-zinc-700/50 cursor-pointer'}"
           onclick={() => add(item.id)}
         >
           {#if item.color}

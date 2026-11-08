@@ -19,7 +19,6 @@
 
   const SIZE = 256;
 
-
   let profile: BotProfile | null = $state(null);
   let nickname = $state('');
   // undefined: the avatar stays as it is; null: back to the default one; text: a new image (a data URI).
@@ -36,7 +35,9 @@
   const nicknameChanged = $derived(!!saved && nickname.trim() !== (saved.nickname ?? ''));
   const dirty = $derived(nicknameChanged || avatar !== undefined);
   const shownName = $derived(nickname.trim() || saved?.global_name || bot.name);
-  const shownAvatar = $derived(avatar === undefined ? (saved?.avatar_url ?? null) : avatar === null ? (saved?.global_avatar_url ?? null) : avatar);
+  const shownAvatar = $derived(
+    avatar === undefined ? (saved?.avatar_url ?? null) : avatar === null ? (saved?.global_avatar_url ?? null) : avatar,
+  );
   const canRemoveAvatar = $derived(avatar === undefined ? !!saved?.has_guild_avatar : avatar !== null);
 
   function sync(next: BotProfile) {
@@ -81,7 +82,12 @@
     if (!profile || saving) return;
     saving = true;
     try {
-      sync(await api.updateBotProfile(guildId, { ...(nicknameChanged ? { nickname: nickname.trim() || null } : {}), ...(avatar !== undefined ? { avatar } : {}) }));
+      sync(
+        await api.updateBotProfile(guildId, {
+          ...(nicknameChanged ? { nickname: nickname.trim() || null } : {}),
+          ...(avatar !== undefined ? { avatar } : {}),
+        }),
+      );
       toast('success', 'Bot profile saved', 'This is how the bot looks in this server now.');
     } catch (e: any) {
       toast('error', e.message);
@@ -110,7 +116,10 @@
         <div>
           <label for="bot-nickname" class={label}>Nickname</label>
           <Input id="bot-nickname" bind:value={nickname} maxlength={32} placeholder={profile.global_name} disabled={!canEditName} />
-          <p class="mt-1.5 text-xs text-zinc-500">Only in this server. Empty uses the bot's own name, <span class="text-zinc-300">{profile.global_name}</span>. Needs the Change Nickname permission.</p>
+          <p class="mt-1.5 text-xs text-zinc-500">
+            Only in this server. Empty uses the bot's own name, <span class="text-zinc-300">{profile.global_name}</span>. Needs the Change
+            Nickname permission.
+          </p>
         </div>
 
         <div>
@@ -122,18 +131,27 @@
               <span class="h-14 w-14 rounded-full bg-[#5865F2]" aria-hidden="true"></span>
             {/if}
             <input bind:this={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange={pick} />
-            <Button variant="secondary" disabled={!canEditAvatar || reading} onclick={() => picker?.click()}><Upload class="h-3.5 w-3.5" />Upload avatar</Button>
+            <Button variant="secondary" disabled={!canEditAvatar || reading} onclick={() => picker?.click()}
+              ><Upload class="h-3.5 w-3.5" />Upload avatar</Button
+            >
             {#if canRemoveAvatar}
-              <Button variant="ghost" disabled={!canEditAvatar} onclick={() => (avatar = avatar === undefined ? null : undefined)}><RotateCcw class="h-3.5 w-3.5" />{avatar === undefined ? 'Use the default avatar' : 'Undo'}</Button>
+              <Button variant="ghost" disabled={!canEditAvatar} onclick={() => (avatar = avatar === undefined ? null : undefined)}
+                ><RotateCcw class="h-3.5 w-3.5" />{avatar === undefined ? 'Use the default avatar' : 'Undo'}</Button
+              >
             {/if}
           </div>
-          <p class="mt-1.5 text-xs text-zinc-500">Only in this server. The image is cropped to a square. Discord limits how often an avatar can change.</p>
+          <p class="mt-1.5 text-xs text-zinc-500">
+            Only in this server. The image is cropped to a square. Discord limits how often an avatar can change.
+          </p>
         </div>
       </div>
 
       <div class="min-w-0 space-y-2">
         <span class={label}>Preview</span>
-        <div class="flex items-start gap-2.5 rounded-xl bg-[#313338] px-3 py-3 ring-1 ring-zinc-800" aria-label="Preview of a message from the bot">
+        <div
+          class="flex items-start gap-2.5 rounded-xl bg-[#313338] px-3 py-3 ring-1 ring-zinc-800"
+          aria-label="Preview of a message from the bot"
+        >
           {#if shownAvatar}
             <img src={shownAvatar} alt="" class="h-8 w-8 shrink-0 rounded-full" />
           {:else}

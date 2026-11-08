@@ -6,6 +6,7 @@
   import { api, type BingoEntry } from '$lib/api/endpoints';
   import { answersOf, MAIN_COUNT } from '$lib/modules/bingo/board';
   import { td, th } from '$lib/ui';
+  import { toast } from '$lib/stores/toast.svelte';
   import { Check, X } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
@@ -75,7 +76,7 @@
         <thead>
           <tr class="border-b border-zinc-800/60">
             <th class="{th} w-16 text-right">Pos</th>
-            <th class="{th}">Member</th>
+            <th class={th}>Member</th>
             {#each Array(12) as _, index}
               <th class="{th} w-9 text-center {index >= MAIN_COUNT ? 'text-rose-400' : ''}">{index + 1}</th>
             {/each}
@@ -84,16 +85,21 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-zinc-800/30">
-          {#each entries as entry, index (entry.id)}
+          {#each entries as entry (entry.id)}
             <tr>
               <td class="{td} w-16 text-center text-zinc-400">{entry.position ?? '-'}</td>
-              <td class="{td}">
+              <td class={td}>
                 <p class="truncate text-xs font-semibold text-zinc-100">{entry.user_name || 'Unknown member'}</p>
                 <p class="truncate font-mono text-[11px] text-zinc-500" title={entry.user_id}>{entry.user_id}</p>
               </td>
               {#each answers(entry) as answer, position (position)}
                 <td class="{td} w-9 text-center"
-                  ><span class="inline-flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-semibold {cellClass(entry, position)}">{answer || '-'}</span></td
+                  ><span
+                    class="inline-flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-semibold {cellClass(
+                      entry,
+                      position,
+                    )}">{answer || '-'}</span
+                  ></td
                 >
               {/each}
               <td class="{td} w-24 text-right font-semibold text-zinc-100">{entry.final_score.toLocaleString('en-US')}</td>

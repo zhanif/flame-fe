@@ -14,5 +14,9 @@
     ? 'bg-emerald-500/80 ring-emerald-500/50'
     : 'bg-zinc-800 ring-zinc-700 hover:ring-zinc-600'}"
 >
-  <span class="absolute left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-150 {on ? 'translate-x-4' : 'translate-x-0'}"></span>
+  <span
+    class="absolute left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-150 {on
+      ? 'translate-x-4'
+      : 'translate-x-0'}"
+  ></span>
 </button>

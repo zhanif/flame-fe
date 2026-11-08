@@ -6,7 +6,7 @@
   import PageHeaderSkeleton from '$lib/components/PageHeaderSkeleton.svelte';
   import { api } from '$lib/api/endpoints';
   import { bot } from '$lib/stores/bot.svelte';
-  import { type GuildPage, router } from '$lib/stores/router.svelte';
+  import { router } from '$lib/stores/router.svelte';
   import { session } from '$lib/stores/session.svelte';
   import { MODULE_VIEWS } from '$lib/modules/views';
   import { MODULE_PAGES, NAV_ORDER, PAGES, providePageTone, SECTIONS } from '$lib/nav';
@@ -50,7 +50,11 @@
   });
   $effect(() => {
     const id = guildId;
-    if (available) api.botProfile(id).then(profile => bot.useGuild(id, { name: profile.name, avatar_url: profile.avatar_url })).catch(() => {});
+    if (available)
+      api
+        .botProfile(id)
+        .then(profile => bot.useGuild(id, { name: profile.name, avatar_url: profile.avatar_url }))
+        .catch(() => {});
   });
 
   const moduleId = $derived(router.moduleId);
@@ -79,7 +83,10 @@
     </div>
 
     <div class="px-3 pt-4 pb-2 shrink-0">
-      <button onclick={() => router.home()} class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/70 text-left cursor-pointer ring-1 ring-zinc-700/40 hover:ring-orange-500/30 transition">
+      <button
+        onclick={() => router.home()}
+        class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800/70 text-left cursor-pointer ring-1 ring-zinc-700/40 hover:ring-orange-500/30 transition"
+      >
         <ArrowLeft class="w-4 h-4 text-zinc-500 group-hover:text-orange-400 transition-colors" />
         {#if guild}
           <span class="text-sm font-semibold text-zinc-200 truncate">{guild.name}</span>
@@ -119,7 +126,9 @@
               <button
                 onclick={() => router.module(guildId, entry.id)}
                 title={entry.enabled ? undefined : 'Turned off'}
-                class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {entry.enabled ? '' : 'opacity-50'} {active
+                class="group w-full h-10 flex items-center gap-3 px-3 rounded-xl text-left text-sm font-medium transition cursor-pointer {entry.enabled
+                  ? ''
+                  : 'opacity-50'} {active
                   ? 'bg-zinc-800 text-zinc-100 ring-1 ring-zinc-700'
                   : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'}"
               >
@@ -167,7 +176,12 @@
           {/if}
         </div>
       {:else if !guild || !guild.bot_present}
-        <EmptyState fill kind="server" title="This server isn't available" description="The bot isn't in it, or you don't have access to manage it." />
+        <EmptyState
+          fill
+          kind="server"
+          title="This server isn't available"
+          description="The bot isn't in it, or you don't have access to manage it."
+        />
       {:else if moduleOpening}
         <div aria-hidden="true">
           <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />

@@ -14,8 +14,8 @@
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import Modal from '$lib/components/Modal.svelte';
-import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
-import Select from '$lib/components/Select.svelte';
+  import RowMenu from '$lib/components/RowMenu.svelte';
+  import Select from '$lib/components/Select.svelte';
   import Textarea from '$lib/components/Textarea.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
@@ -40,25 +40,39 @@ import Select from '$lib/components/Select.svelte';
       title: 'How an image is checked',
       steps: [
         { text: 'An image posted in the watched channel goes on the watchlist as a pending detection. Each row here is one image.' },
-        { text: 'A background reader takes the pending images one at a time, shrinks each and sends it to a text recognition service (OCR.space), which returns the text it sees. If the service says it is busy, reading pauses for an hour and the images wait.' },
-        { text: 'The text is compared with the blocklist. No match: the image is marked safe and its stored link is dropped. A match is flagged and reported in the report channel, where a moderator can delete the message or ignore it with a reason.' },
-        { text: 'An image that cannot be read is tried again later, a little longer each time, and fails with its reason if it never works. A message can also be read by hand with the Scan Text command.' },
+        {
+          text: 'A background reader takes the pending images one at a time, shrinks each and sends it to a text recognition service (OCR.space), which returns the text it sees. If the service says it is busy, reading pauses for an hour and the images wait.',
+        },
+        {
+          text: 'The text is compared with the blocklist. No match: the image is marked safe and its stored link is dropped. A match is flagged and reported in the report channel, where a moderator can delete the message or ignore it with a reason.',
+        },
+        {
+          text: 'An image that cannot be read is tried again later, a little longer each time, and fails with its reason if it never works. A message can also be read by hand with the Scan Text command.',
+        },
       ],
     },
     terms: {
       title: 'How the blocklist is used',
       steps: [
         { text: 'The text read from an image is split into lines, and each line is compared with every term in this list.' },
-        { text: 'A line matches when it is close enough to a term. Small differences still count, so a misspelled or partly unreadable word is caught. How close is the similarity set in the Settings tab.' },
-        { text: 'One matching term is enough to flag the image. The list belongs to this server only; Restore defaults adds back the default terms that were removed, without touching the ones you added.' },
+        {
+          text: 'A line matches when it is close enough to a term. Small differences still count, so a misspelled or partly unreadable word is caught. How close is the similarity set in the Settings tab.',
+        },
+        {
+          text: 'One matching term is enough to flag the image. The list belongs to this server only; Restore defaults adds back the default terms that were removed, without touching the ones you added.',
+        },
       ],
     },
     settings: {
       title: 'How these settings apply',
       steps: [
-        { text: 'The watched channel decides which images are read: only the ones posted there from now on. Images posted before it was set, or elsewhere, are never read.' },
+        {
+          text: 'The watched channel decides which images are read: only the ones posted there from now on. Images posted before it was set, or elsewhere, are never read.',
+        },
         { text: 'The report channel is where a flagged image is posted, with buttons to view it, delete the message or ignore it.' },
-        { text: 'The similarity decides how close a line of text must be to a term to count as a match: lower catches more, but flags more harmless images too.' },
+        {
+          text: 'The similarity decides how close a line of text must be to a term to count as a match: lower catches more, but flags more harmless images too.',
+        },
       ],
     },
   };
@@ -233,7 +247,11 @@ import Select from '$lib/components/Select.svelte';
     try {
       const res = await api.ocrDetection.restoreDefaults(guildId);
       showTerms(res);
-      toast('success', res.restored ? `Restored ${res.restored} default terms` : 'Nothing to restore', res.restored ? undefined : 'Every default term is already on the list.');
+      toast(
+        'success',
+        res.restored ? `Restored ${res.restored} default terms` : 'Nothing to restore',
+        res.restored ? undefined : 'Every default term is already on the list.',
+      );
     } catch (e: any) {
       toast('error', e.message);
     } finally {
@@ -254,7 +272,11 @@ import Select from '$lib/components/Select.svelte';
   };
 
   onMount(async () => {
-    const [loadedConfig, channelList, termList] = await Promise.allSettled([api.ocrDetection.config(guildId), api.channels(guildId), api.ocrDetection.terms(guildId)]);
+    const [loadedConfig, channelList, termList] = await Promise.allSettled([
+      api.ocrDetection.config(guildId),
+      api.channels(guildId),
+      api.ocrDetection.terms(guildId),
+    ]);
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (termList.status === 'fulfilled') showTerms(termList.value);
     if (loadedConfig.status === 'fulfilled') apply(loadedConfig.value);
@@ -292,7 +314,10 @@ import Select from '$lib/components/Select.svelte';
         <div class="space-y-5" aria-hidden="true">
           {#each Array(5) as _}
             <div class="flex items-center justify-between gap-8">
-              <div class="space-y-2"><div class="h-3.5 w-32 rounded bg-zinc-700/40 animate-pulse"></div><div class="h-2.5 w-64 rounded bg-zinc-800/40 animate-pulse"></div></div>
+              <div class="space-y-2">
+                <div class="h-3.5 w-32 rounded bg-zinc-700/40 animate-pulse"></div>
+                <div class="h-2.5 w-64 rounded bg-zinc-800/40 animate-pulse"></div>
+              </div>
               <div class="h-9 w-56 rounded-lg bg-zinc-800/40 animate-pulse"></div>
             </div>
           {/each}
@@ -312,12 +337,33 @@ import Select from '$lib/components/Select.svelte';
           </div>
         </SettingRow>
 
-        <SettingRow title="Watched channels" hint="Images posted here are read (jpg, png and webp). A forum covers its threads. Up to {config.limits.max_targets} at the moment.">
-          <ChannelsPicker {channels} selected={targets} onchange={next => (targets = next)} max={config.limits.max_targets} disabled={!isAdmin} label="Watched channels" />
+        <SettingRow
+          title="Watched channels"
+          hint="Images posted here are read (jpg, png and webp). A forum covers its threads. Up to {config.limits
+            .max_targets} at the moment."
+        >
+          <ChannelsPicker
+            {channels}
+            selected={targets}
+            onchange={next => (targets = next)}
+            max={config.limits.max_targets}
+            disabled={!isAdmin}
+            label="Watched channels"
+          />
         </SettingRow>
 
-        <SettingRow title="Report channel" hint="Where a match is reported, with buttons to delete the message, ignore it or time out the user.">
-          <ChannelPicker {channels} bind:value={reportChannel} none="No channel" label="Report channel" disabled={!isAdmin} class="w-full" />
+        <SettingRow
+          title="Report channel"
+          hint="Where a match is reported, with buttons to delete the message, ignore it or time out the user."
+        >
+          <ChannelPicker
+            {channels}
+            bind:value={reportChannel}
+            none="No channel"
+            label="Report channel"
+            disabled={!isAdmin}
+            class="w-full"
+          />
         </SettingRow>
 
         <SettingRow
@@ -326,7 +372,16 @@ import Select from '$lib/components/Select.svelte';
           error={!!thresholdError}
         >
           <div class="sm:flex sm:justify-end">
-            <Input bind:value={threshold} inputmode="decimal" maxlength={5} placeholder="0.78" oninput={restrictTo(onlyDecimal, v => (threshold = v))} aria-label="Similarity" disabled={!isAdmin} class="w-full sm:w-32" />
+            <Input
+              bind:value={threshold}
+              inputmode="decimal"
+              maxlength={5}
+              placeholder="0.78"
+              oninput={restrictTo(onlyDecimal, v => (threshold = v))}
+              aria-label="Similarity"
+              disabled={!isAdmin}
+              class="w-full sm:w-32"
+            />
           </div>
         </SettingRow>
 
@@ -341,7 +396,9 @@ import Select from '$lib/components/Select.svelte';
     <Card>
       <SectionTitle icon={ListX} title="Blocklist" class="mb-1" />
       <p class="mb-4 text-xs leading-relaxed text-zinc-500">
-        One term per line. A word matches when it contains the term or is similar enough (see Similarity). A line between slashes, like <span class="font-mono text-zinc-300">/\bass\b/</span>, is a regular expression tested as written.
+        One term per line. A word matches when it contains the term or is similar enough (see Similarity). A line between slashes, like <span
+          class="font-mono text-zinc-300">/\bass\b/</span
+        >, is a regular expression tested as written.
       </p>
       {#if !terms}
         <div class="h-80 w-full rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
@@ -354,7 +411,12 @@ import Select from '$lib/components/Select.svelte';
           {#if isAdmin}
             <div class="flex items-center gap-2">
               <Button variant="ghost" onclick={() => (termsText = savedText)} disabled={!termsDirty || savingTerms}>Discard</Button>
-              <Button variant="secondary" onclick={restoreDefaults} disabled={termsDirty || restoring} title={termsDirty ? 'Save or discard your changes first' : 'Add back the default terms that were removed'}>
+              <Button
+                variant="secondary"
+                onclick={restoreDefaults}
+                disabled={termsDirty || restoring}
+                title={termsDirty ? 'Save or discard your changes first' : 'Add back the default terms that were removed'}
+              >
                 <RotateCcw class="w-3.5 h-3.5" />Restore defaults
               </Button>
               <SaveButton onclick={saveTerms} disabled={!termsDirty || !!termsError} saving={savingTerms} />
@@ -380,11 +442,17 @@ import Select from '$lib/components/Select.svelte';
         class="w-48"
       />
       {#if pending > 0}
-        <p class="text-xs text-zinc-500">{pending} image{pending === 1 ? ' is' : 's are'} waiting to be read. Images are read one at a time.</p>
+        <p class="text-xs text-zinc-500">
+          {pending} image{pending === 1 ? ' is' : 's are'} waiting to be read. Images are read one at a time.
+        </p>
       {/if}
     </div>
     {#if loaded && total === 0 && !statusFilter}
-      <EmptyState kind="log" title="No detections yet" description="Images in the watched channel are listed here while they wait to be read, and when they match the blocklist." />
+      <EmptyState
+        kind="log"
+        title="No detections yet"
+        description="Images in the watched channel are listed here while they wait to be read, and when they match the blocklist."
+      />
     {:else}
       <Card flush>
         {#if !loaded}
@@ -414,7 +482,9 @@ import Select from '$lib/components/Select.svelte';
               {#each items as item, i (item.id)}
                 <tr class="hover:bg-zinc-800/30 transition-colors">
                   <td class="{cell} text-zinc-500">{(page - 1) * limit + i + 1}</td>
-                  <td class={cell}>{#if item.author}<ActorCell actor={item.author} />{/if}</td>
+                  <td class={cell}
+                    >{#if item.author}<ActorCell actor={item.author} />{/if}</td
+                  >
                   <td class={cell}><ChannelChip channel={channelOf(item.channel_id)} /></td>
                   <td class={cell}>
                     <div class="flex flex-wrap gap-1">
@@ -422,7 +492,11 @@ import Select from '$lib/components/Select.svelte';
                     </div>
                   </td>
                   <td class={cell}>
-                    <Badge tone={item.status === 'handled' && item.handled_action === 'deleted' ? 'danger' : statusTone[item.status]}>{item.status === 'handled' && item.handled_action ? actionText[item.handled_action] : statusLabel[item.status]}</Badge>
+                    <Badge tone={item.status === 'handled' && item.handled_action === 'deleted' ? 'danger' : statusTone[item.status]}
+                      >{item.status === 'handled' && item.handled_action
+                        ? actionText[item.handled_action]
+                        : statusLabel[item.status]}</Badge
+                    >
                     {#if item.error}
                       <p class="mt-0.5 text-xs text-zinc-500 truncate" title={item.error}>{item.error}</p>
                     {/if}
@@ -430,13 +504,30 @@ import Select from '$lib/components/Select.svelte';
                   <td class="{cell} text-zinc-500 whitespace-nowrap">{when(item.created_at)}</td>
                   <td class="{cell} text-right">
                     {#if item.status === 'flagged'}
-                      <RowMenu label="Actions for this detection" items={[
-                        { label: 'Preview', icon: Eye, onclick: () => (previewItem = item) },
-                        { label: 'Delete Message', icon: Trash2, danger: true, disabled: working, onclick: () => (deleting = item) },
-                        { label: 'Ignore', icon: X, disabled: working, onclick: () => { ignoring = item; reason = ''; } },
-                      ]} />
+                      <RowMenu
+                        label="Actions for this detection"
+                        items={[
+                          { label: 'Preview', icon: Eye, onclick: () => (previewItem = item) },
+                          { label: 'Delete Message', icon: Trash2, danger: true, disabled: working, onclick: () => (deleting = item) },
+                          {
+                            label: 'Ignore',
+                            icon: X,
+                            disabled: working,
+                            onclick: () => {
+                              ignoring = item;
+                              reason = '';
+                            },
+                          },
+                        ]}
+                      />
                     {:else}
-                      <Button variant="ghost" size="icon" aria-label="View details" title="View details" onclick={() => (previewItem = item)}><ScrollText class="w-3.5 h-3.5" /></Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="View details"
+                        title="View details"
+                        onclick={() => (previewItem = item)}><ScrollText class="w-3.5 h-3.5" /></Button
+                      >
                     {/if}
                   </td>
                 </tr>
@@ -451,89 +542,98 @@ import Select from '$lib/components/Select.svelte';
 </div>
 
 <Modal show={!!previewItem} onClose={() => (previewItem = null)}>
-    {#if previewItem}
-      {@const item = previewItem}
-      <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
-        <ScrollText class="w-4 h-4 shrink-0 text-blue-400" />Detection log
-      </h3>
+  {#if previewItem}
+    {@const item = previewItem}
+    <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+      <ScrollText class="w-4 h-4 shrink-0 text-blue-400" />Detection log
+    </h3>
 
-      <div class="mt-5 space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <Badge tone={item.status === 'handled' && item.handled_action === 'deleted' ? 'danger' : statusTone[item.status]}>{item.status === 'handled' && item.handled_action ? actionText[item.handled_action] : statusLabel[item.status]}</Badge>
-          <a href={`https://discord.com/channels/${guildId}/${item.channel_id}/${item.message_id}`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors">
-            Jump to message<ExternalLink class="w-3 h-3" />
-          </a>
-        </div>
+    <div class="mt-5 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <Badge tone={item.status === 'handled' && item.handled_action === 'deleted' ? 'danger' : statusTone[item.status]}
+          >{item.status === 'handled' && item.handled_action ? actionText[item.handled_action] : statusLabel[item.status]}</Badge
+        >
+        <a
+          href={`https://discord.com/channels/${guildId}/${item.channel_id}/${item.message_id}`}
+          target="_blank"
+          rel="noreferrer"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors"
+        >
+          Jump to message<ExternalLink class="w-3 h-3" />
+        </a>
+      </div>
 
+      <div>
+        <span class={label}>Author</span>
+        {#if item.author}<ActorCell actor={item.author} />{/if}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <span class={label}>Author</span>
-          {#if item.author}<ActorCell actor={item.author} />{/if}
+          <span class={label}>Channel</span>
+          <ChannelChip channel={channelOf(item.channel_id)} />
         </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <span class={label}>Channel</span>
-            <ChannelChip channel={channelOf(item.channel_id)} />
-          </div>
-          <div>
-            <span class={label}>Detected</span>
-            <p class="text-sm text-zinc-200">{when(item.created_at)}</p>
-          </div>
-          {#if item.matched_terms.length}
-            <div>
-              <span class={label}>Matched</span>
-              <div class="flex flex-wrap gap-1 mt-1">
-                {#each item.matched_terms as term (term)}<Badge tone="danger">{term}</Badge>{/each}
-              </div>
-            </div>
-          {/if}
-          {#if item.status === 'handled' && item.handled_action}
-            <div>
-              <span class={label}>Handled</span>
-              <Badge tone={item.handled_action === 'deleted' ? 'danger' : 'neutral'}>{actionText[item.handled_action]}</Badge>
-            </div>
-          {/if}
+        <div>
+          <span class={label}>Detected</span>
+          <p class="text-sm text-zinc-200">{when(item.created_at)}</p>
         </div>
-
-        {#if item.attachment_url}
+        {#if item.matched_terms.length}
           <div>
-            <span class={label}>Image</span>
-            <div class="mt-1 max-h-[40vh] overflow-auto rounded-xl bg-zinc-950/60 p-2 ring-1 ring-zinc-800">
-              <img src={item.attachment_url} alt={item.attachment_name} class="mx-auto max-h-[36vh] w-auto rounded-lg object-contain" />
+            <span class={label}>Matched</span>
+            <div class="flex flex-wrap gap-1 mt-1">
+              {#each item.matched_terms as term (term)}<Badge tone="danger">{term}</Badge>{/each}
             </div>
-          </div>
-        {:else if item.status === 'handled'}
-          <div>
-            <span class={label}>Reason</span>
-            <p class="text-sm leading-relaxed text-zinc-300">{item.handled_reason ?? 'No reason provided'}</p>
-          </div>
-        {:else}
-          <div>
-            <span class={label}>Image</span>
-            <p class="text-sm text-zinc-500">The image link is no longer kept.</p>
           </div>
         {/if}
-
-        {#if item.error}
+        {#if item.status === 'handled' && item.handled_action}
           <div>
-            <span class={label}>Error</span>
-            <p class="text-sm leading-relaxed text-zinc-300">{item.error}</p>
+            <span class={label}>Handled</span>
+            <Badge tone={item.handled_action === 'deleted' ? 'danger' : 'neutral'}>{actionText[item.handled_action]}</Badge>
           </div>
         {/if}
       </div>
 
-      <div class="flex justify-end gap-2 mt-6">
-        <Button variant="ghost" onclick={() => (previewItem = null)}>Close</Button>
-      </div>
-    {/if}
-  </Modal>
+      {#if item.attachment_url}
+        <div>
+          <span class={label}>Image</span>
+          <div class="mt-1 max-h-[40vh] overflow-auto rounded-xl bg-zinc-950/60 p-2 ring-1 ring-zinc-800">
+            <img src={item.attachment_url} alt={item.attachment_name} class="mx-auto max-h-[36vh] w-auto rounded-lg object-contain" />
+          </div>
+        </div>
+      {:else if item.status === 'handled'}
+        <div>
+          <span class={label}>Reason</span>
+          <p class="text-sm leading-relaxed text-zinc-300">{item.handled_reason ?? 'No reason provided'}</p>
+        </div>
+      {:else}
+        <div>
+          <span class={label}>Image</span>
+          <p class="text-sm text-zinc-500">The image link is no longer kept.</p>
+        </div>
+      {/if}
+
+      {#if item.error}
+        <div>
+          <span class={label}>Error</span>
+          <p class="text-sm leading-relaxed text-zinc-300">{item.error}</p>
+        </div>
+      {/if}
+    </div>
+
+    <div class="flex justify-end gap-2 mt-6">
+      <Button variant="ghost" onclick={() => (previewItem = null)}>Close</Button>
+    </div>
+  {/if}
+</Modal>
 
 <Modal show={!!deleting} onClose={() => !working && (deleting = null)}>
   {#if deleting}
     <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
       <ScrollText class="w-4 h-4 shrink-0 text-red-400" />Delete this message?
     </h3>
-    <p class="text-xs text-zinc-400 mt-3 leading-relaxed">The message by {deleting.author?.name ?? deleting.author_id} is removed from Discord. This cannot be undone.</p>
+    <p class="text-xs text-zinc-400 mt-3 leading-relaxed">
+      The message by {deleting.author?.name ?? 'this member'} is removed from Discord. This cannot be undone.
+    </p>
     <div class="flex justify-end gap-2 mt-5">
       <Button variant="ghost" onclick={() => (deleting = null)} disabled={working}>Cancel</Button>
       <Button variant="danger" onclick={() => deleteMessage(deleting!)} disabled={working}>{working ? 'Deleting…' : 'Delete'}</Button>
@@ -546,7 +646,9 @@ import Select from '$lib/components/Select.svelte';
     <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
       <ScrollText class="w-4 h-4 shrink-0 text-zinc-400" />Ignore this report?
     </h3>
-    <p class="text-xs text-zinc-400 mt-3 leading-relaxed">The image is marked fine. Give a reason; it is kept with the report and in the audit log.</p>
+    <p class="text-xs text-zinc-400 mt-3 leading-relaxed">
+      The image is marked fine. Give a reason; it is kept with the report and in the audit log.
+    </p>
     <div class="mt-3">
       <span class={label}>Reason</span>
       <Textarea bind:value={reason} maxlength={300} rows={3} aria-label="Reason" />

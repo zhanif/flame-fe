@@ -25,11 +25,39 @@
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
-  import { api, type AntiTamperLog, type AntiTamperRules, type ChannelPermissions, type DiscordChannel, type DiscordRole, type OverwriteDetail, type RoleExemption } from '$lib/api/endpoints';
+  import {
+    api,
+    type AntiTamperLog,
+    type AntiTamperRules,
+    type ChannelPermissions,
+    type DiscordChannel,
+    type DiscordRole,
+    type OverwriteDetail,
+    type RoleExemption,
+  } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
-  import { Check, ExternalLink, Eye, Hash, Info, ListChecks, Lock, Megaphone, Plus, Radar, RefreshCw, ScrollText, Settings, Shield, ShieldAlert, ShieldCheck, Trash2, TriangleAlert, UserCheck, X } from '@lucide/svelte';
+  import {
+    Check,
+    ExternalLink,
+    Hash,
+    Info,
+    ListChecks,
+    Lock,
+    Megaphone,
+    Plus,
+    Radar,
+    RefreshCw,
+    ScrollText,
+    Settings,
+    ShieldAlert,
+    ShieldCheck,
+    Trash2,
+    TriangleAlert,
+    UserCheck,
+    X,
+  } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -95,15 +123,21 @@
     logs: {
       title: 'What the logs show',
       steps: [
-        { text: 'Every time the bot catches someone holding a protected role or changing a protected channel, it is listed here, newest first.' },
-        { text: 'Put back: the role was taken back, or the permissions were restored. Failed: the bot tried and could not, usually a missing permission, and the reason says which. Unverified: a channel changed but the audit log did not say who, so nothing was changed.' },
+        {
+          text: 'Every time the bot catches someone holding a protected role or changing a protected channel, it is listed here, newest first.',
+        },
+        {
+          text: 'Put back: the role was taken back, or the permissions were restored. Failed: the bot tried and could not, usually a missing permission, and the reason says which. Unverified: a channel changed but the audit log did not say who, so nothing was changed.',
+        },
         { text: 'Setting changes (adding a role, an exception) are in the audit log, not here.' },
       ],
     },
     settings: {
       title: 'How reports work',
       steps: [
-        { text: 'The report channel gets a message for each detection: who held the role or changed the channel, who gave the role, and what the bot did.' },
+        {
+          text: 'The report channel gets a message for each detection: who held the role or changed the channel, who gave the role, and what the bot did.',
+        },
         { text: 'Without one, nothing is posted. Detections are still listed in the Logs tab and the audit log.' },
       ],
     },
@@ -166,7 +200,10 @@
     busy = false;
   }
   const saveChannel = () =>
-    change(() => api.antiTamper.setReportChannel(guildId, reportChannel || null), reportChannel ? 'Report channel saved' : 'Reporting stopped');
+    change(
+      () => api.antiTamper.setReportChannel(guildId, reportChannel || null),
+      reportChannel ? 'Report channel saved' : 'Reporting stopped',
+    );
 
   // The switches: one per protected role or channel, and one per kind for the whole server (Settings).
   let switching = $state(false);
@@ -242,11 +279,7 @@
         addingLocal = false;
       },
     },
-    ...(isAdmin
-      ? [
-          { label: 'Stop protecting', icon: Trash2, danger: true, onclick: () => (removeChannelTarget = channelId) },
-        ]
-      : []),
+    ...(isAdmin ? [{ label: 'Stop protecting', icon: Trash2, danger: true, onclick: () => (removeChannelTarget = channelId) }] : []),
   ];
 
   // The logs: loaded the first time the tab is opened.
@@ -292,7 +325,11 @@
   let logTarget: AntiTamperLog | null = $state(null);
 
   onMount(async () => {
-    const [loaded, roleList, channelList] = await Promise.allSettled([api.antiTamper.rules(guildId), api.roles(guildId), api.channels(guildId)]);
+    const [loaded, roleList, channelList] = await Promise.allSettled([
+      api.antiTamper.rules(guildId),
+      api.roles(guildId),
+      api.channels(guildId),
+    ]);
     if (roleList.status === 'fulfilled') roles = roleList.value;
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (loaded.status === 'fulfilled') apply(loaded.value);
@@ -320,7 +357,13 @@
 {/snippet}
 
 <!-- The exceptions of one protected role or channel, opened under its row. -->
-{#snippet accordion(title: string, exceptions: RoleExemption[], rowHint: string, add: (target: Pick<RoleExemption, 'target_type' | 'target_id'>) => Promise<boolean>, remove: (target: RoleExemption) => Promise<unknown>)}
+{#snippet accordion(
+  title: string,
+  exceptions: RoleExemption[],
+  rowHint: string,
+  add: (target: Pick<RoleExemption, 'target_type' | 'target_id'>) => Promise<boolean>,
+  remove: (target: RoleExemption) => Promise<unknown>,
+)}
   <div class="border-t border-zinc-800/40 bg-zinc-800/10 p-5" transition:slide={{ duration: 220, easing: cubicOut }}>
     <div class="mb-4 flex items-center justify-between gap-3">
       <SectionTitle icon={UserCheck} {title} />
@@ -338,11 +381,16 @@
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <SectionTitle icon={ShieldCheck} title="Protected permissions" />
       {#if details?.same}
-        <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/25"><Check class="h-3.5 w-3.5" />In sync</span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/25"
+          ><Check class="h-3.5 w-3.5" />In sync</span
+        >
       {/if}
       {#if details && !details.same && isAdmin}
         <div class="flex gap-2">
-          <Button variant="secondary" size="sm" onclick={() => (lockTarget = channelId)}><ListChecks class="h-3.5 w-3.5" />Update rules</Button>
+          <Button variant="secondary" size="sm" onclick={() => (lockTarget = channelId)}
+            ><ListChecks class="h-3.5 w-3.5" />Update rules</Button
+          >
           <Button variant="primary" size="sm" onclick={() => (restoreTarget = channelId)}><RefreshCw class="h-3.5 w-3.5" />Sync</Button>
         </div>
       {/if}
@@ -355,7 +403,10 @@
           <div class="min-w-0">
             <p class="text-sm font-medium text-orange-400">Changed since it was protected</p>
             <p class="mt-0.5 text-xs text-zinc-400">Red rows are different now.</p>
-            <p class="mt-0.5 text-xs text-zinc-500"><span class="text-zinc-400">Sync</span> puts the protected permissions back. <span class="text-zinc-400">Update rules</span> makes the current ones the protected ones.</p>
+            <p class="mt-0.5 text-xs text-zinc-500">
+              <span class="text-zinc-400">Sync</span> puts the protected permissions back. <span class="text-zinc-400">Update rules</span> makes
+              the current ones the protected ones.
+            </p>
           </div>
         </div>
       </div>
@@ -363,7 +414,9 @@
 
     {#if detailsLoading}
       <div class="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]" aria-hidden="true">
-        <div class="space-y-2">{#each [0, 1, 2] as n (n)}<div class="h-10 animate-pulse rounded-lg bg-zinc-800/40"></div>{/each}</div>
+        <div class="space-y-2">
+          {#each [0, 1, 2] as n (n)}<div class="h-10 animate-pulse rounded-lg bg-zinc-800/40"></div>{/each}
+        </div>
         <div class="h-40 animate-pulse rounded-xl bg-zinc-800/40"></div>
       </div>
     {:else if targets.length === 0}
@@ -378,7 +431,10 @@
               <button
                 type="button"
                 onclick={() => (pickedOverwrite = overwrite.id)}
-                class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-orange-500/50 {selectedTarget?.overwrite.id === overwrite.id ? 'bg-zinc-700/50' : 'hover:bg-zinc-800/60'}"
+                class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-orange-500/50 {selectedTarget
+                  ?.overwrite.id === overwrite.id
+                  ? 'bg-zinc-700/50'
+                  : 'hover:bg-zinc-800/60'}"
               >
                 <span class="min-w-0">
                   {#if overwrite.type === 'member' && overwrite.user}
@@ -386,10 +442,19 @@
                   {:else if overwrite.type === 'member'}
                     <span class="block truncate font-mono text-xs text-zinc-400">{overwrite.id}</span>
                   {:else}
-                    <RoleChip role={roleOf(overwrite.id) ?? { id: overwrite.id, name: overwrite.name ?? 'Role', color: overwrite.color ?? '#000000', problem: null, access: 'everyone' }} />
+                    <RoleChip
+                      role={roleOf(overwrite.id) ?? {
+                        id: overwrite.id,
+                        name: overwrite.name ?? 'Role',
+                        color: overwrite.color ?? '#000000',
+                        problem: null,
+                        access: 'everyone',
+                      }}
+                    />
                   {/if}
                 </span>
-                {#if target.differs}<span class="h-2 w-2 shrink-0 rounded-full bg-red-400" title="Different from the protected permissions"></span>{/if}
+                {#if target.differs}<span class="h-2 w-2 shrink-0 rounded-full bg-red-400" title="Different from the protected permissions"
+                  ></span>{/if}
               </button>
             </li>
           {/each}
@@ -411,12 +476,20 @@
                   <tr class={differs ? 'bg-red-500/[0.07]' : ''}>
                     <td class="px-5 py-2 text-xs {differs ? 'text-red-300' : 'text-zinc-200'}">
                       {row.name}
-                      <span class="ml-1.5 text-zinc-500">{row.saved === 'allow' ? 'Allowed' : row.saved === 'deny' ? 'Denied' : 'Not set'}</span>
+                      <span class="ml-1.5 text-zinc-500"
+                        >{row.saved === 'allow' ? 'Allowed' : row.saved === 'deny' ? 'Denied' : 'Not set'}</span
+                      >
                     </td>
                     <td class="px-5 py-2 text-center"><Check class="mx-auto h-4 w-4 text-emerald-400" aria-label="Protected" /></td>
                     <td class="px-5 py-2 text-center">
-                      {#if row.now === 'allow'}<Check class="mx-auto h-4 w-4 {differs ? 'text-red-400' : 'text-emerald-400'}" aria-label="Allowed currently" />
-                      {:else if row.now === 'deny'}<X class="mx-auto h-4 w-4 {differs ? 'text-red-400' : 'text-zinc-400'}" aria-label="Denied currently" />{/if}
+                      {#if row.now === 'allow'}<Check
+                          class="mx-auto h-4 w-4 {differs ? 'text-red-400' : 'text-emerald-400'}"
+                          aria-label="Allowed currently"
+                        />
+                      {:else if row.now === 'deny'}<X
+                          class="mx-auto h-4 w-4 {differs ? 'text-red-400' : 'text-zinc-400'}"
+                          aria-label="Denied currently"
+                        />{/if}
                     </td>
                   </tr>
                 {:else}
@@ -477,9 +550,13 @@
   {/if}
 
   {#if view === 'roles' && rolesOff}
-    <p class="rounded-xl bg-zinc-800 px-4 py-3 text-xs text-zinc-300">Protection of roles is off for the whole server, so nothing below is enforced. Turn it on in Settings.</p>
+    <p class="rounded-xl bg-zinc-800 px-4 py-3 text-xs text-zinc-300">
+      Protection of roles is off for the whole server, so nothing below is enforced. Turn it on in Settings.
+    </p>
   {:else if view === 'channels' && channelsOff}
-    <p class="rounded-xl bg-zinc-800 px-4 py-3 text-xs text-zinc-300">Protection of channels is off for the whole server, so nothing below is enforced. Turn it on in Settings.</p>
+    <p class="rounded-xl bg-zinc-800 px-4 py-3 text-xs text-zinc-300">
+      Protection of channels is off for the whole server, so nothing below is enforced. Turn it on in Settings.
+    </p>
   {/if}
 
   {#if view === 'settings'}
@@ -497,7 +574,11 @@
                 on={!!item.on}
                 disabled={!isAdmin || switching}
                 label={item.title}
-                onclick={() => flip(() => api.antiTamper.setProtection(guildId, item.kind, !item.on), item.on ? `${item.title} is off` : `${item.title} is on`)}
+                onclick={() =>
+                  flip(
+                    () => api.antiTamper.setProtection(guildId, item.kind, !item.on),
+                    item.on ? `${item.title} is off` : `${item.title} is on`,
+                  )}
               />
             {:else}
               <div class="h-5 w-9 shrink-0 rounded-full bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
@@ -509,9 +590,20 @@
     <Card>
       <SectionTitle icon={Megaphone} title="Report channel" class="mb-5" />
       <span class={label}>Channel</span>
-      <p class="mb-2.5 text-xs text-zinc-500">Where the bot says who got a protected role, who changed a protected channel, and what it did. Pick Not reported to stay silent; the Logs tab and the audit log still record everything.</p>
+      <p class="mb-2.5 text-xs text-zinc-500">
+        Where the bot says who got a protected role, who changed a protected channel, and what it did. Pick Not reported to stay silent; the
+        Logs tab and the audit log still record everything.
+      </p>
       {#if rules}
-        <ChannelPicker {channels} bind:value={reportChannel} onchange={saveChannel} none="Not reported" label="Report channel" disabled={!isAdmin} class="w-full sm:w-80" />
+        <ChannelPicker
+          {channels}
+          bind:value={reportChannel}
+          onchange={saveChannel}
+          none="Not reported"
+          label="Report channel"
+          disabled={!isAdmin}
+          class="w-full sm:w-80"
+        />
       {:else}
         <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
       {/if}
@@ -519,13 +611,18 @@
     <Card>
       <SectionTitle icon={Radar} title="Sweep" class="mb-5" />
       <p class="mb-4 text-xs text-zinc-500">
-        Sweep is locked for now. Discord cannot list the members of a role, so a sweep would have to load every member of the server first. Roles are still enforced as members change.
+        Sweep is locked for now. Discord cannot list the members of a role, so a sweep would have to load every member of the server first.
+        Roles are still enforced as members change.
       </p>
       <Button variant="secondary" disabled title="Locked for now"><Lock class="w-3.5 h-3.5" />Sweep now</Button>
     </Card>
   {:else if view === 'logs'}
     {#if logsLoaded && logTotal === 0}
-      <EmptyState kind="log" title="Nothing detected yet" description="When someone holds a protected role or changes a protected channel, it is listed here." />
+      <EmptyState
+        kind="log"
+        title="Nothing detected yet"
+        description="When someone holds a protected role or changes a protected channel, it is listed here."
+      />
     {:else}
       <Card flush>
         {#if !logsLoaded}
@@ -554,16 +651,22 @@
                 <tr class="hover:bg-zinc-800/30 transition-colors">
                   <td class="{cell} h-16 text-zinc-500">{(logPage - 1) * logLimit + i + 1}</td>
                   <td class="{cell} h-16 text-zinc-500 whitespace-nowrap">{when(log.created_at)}</td>
-                  <td class="{cell} h-16"><Badge tone={log.kind === 'role' ? 'accent' : 'info'}>{log.kind === 'role' ? 'Role' : 'Channel'}</Badge></td>
+                  <td class="{cell} h-16"
+                    ><Badge tone={log.kind === 'role' ? 'accent' : 'info'}>{log.kind === 'role' ? 'Role' : 'Channel'}</Badge></td
+                  >
                   <td class="{cell} h-16">
                     {#if log.kind === 'channel' && log.channel_id}
                       <ChannelChip channel={channelOf(log.channel_id)} />
                     {:else}
-                      <div class="flex flex-wrap gap-1">{#each log.role_ids as id (id)}<RoleChip role={roleOf(id)} missing="Deleted role" />{/each}</div>
+                      <div class="flex flex-wrap gap-1">
+                        {#each log.role_ids as id (id)}<RoleChip role={roleOf(id)} missing="Deleted role" />{/each}
+                      </div>
                     {/if}
                   </td>
                   <td class="{cell} h-16">
-                    {#if log.kind === 'role' ? log.member : log.by}<ActorCell actor={(log.kind === 'role' ? log.member : log.by)!} />{:else}<span class="text-zinc-600">-</span>{/if}
+                    {#if log.kind === 'role' ? log.member : log.by}<ActorCell
+                        actor={(log.kind === 'role' ? log.member : log.by)!}
+                      />{:else}<span class="text-zinc-600">-</span>{/if}
                   </td>
                   <td class="{cell} h-16"><Badge tone={RESULT[log.result][0]}>{RESULT[log.result][1]}</Badge></td>
                   <td class="{cell} h-16 text-right">
@@ -614,12 +717,22 @@
       <div transition:slide={{ duration: 220, easing: cubicOut }}>
         <Card>
           <SectionTitle icon={Plus} title="Protect a channel" class="mb-1" />
-          <p class="mb-4 text-xs text-zinc-500">The permissions the channel has right now are saved. When someone who is not an exception changes them, they are put back.</p>
+          <p class="mb-4 text-xs text-zinc-500">
+            The permissions the channel has right now are saved. When someone who is not an exception changes them, they are put back.
+          </p>
           <div class="flex flex-col sm:flex-row sm:items-end gap-3">
             <div class="w-full sm:w-80">
               <span class={label}>Channel</span>
               {#if rules}
-                <ChannelPicker all manageable channels={channels.filter(c => !takenChannels.includes(c.id))} bind:value={pickedChannel} none="Pick a channel" label="Channel to protect" class="w-full" />
+                <ChannelPicker
+                  all
+                  manageable
+                  channels={channels.filter(c => !takenChannels.includes(c.id))}
+                  bind:value={pickedChannel}
+                  none="Pick a channel"
+                  label="Channel to protect"
+                  class="w-full"
+                />
               {:else}
                 <ControlSkeleton class="w-full" />
               {/if}
@@ -632,11 +745,21 @@
     {/if}
 
     {#if rules && rules.channels.length === 0}
-      <EmptyState kind="modules" title="No protected channels" description="Protect a channel so its permissions are put back when someone who is not an exception changes them." />
+      <EmptyState
+        kind="modules"
+        title="No protected channels"
+        description="Protect a channel so its permissions are put back when someone who is not an exception changes them."
+      />
     {:else}
       <Card flush>
         {#if !rules}
-          <TableSkeleton columns={['w-16', 'flex-1', 'w-40', 'w-32', 'w-16']} headings={['#', 'Channel', 'Permissions', 'Protection', '']} kinds={['bar', 'bar', 'bar', 'toggle', 'action']} rows={4} rowHeight="h-14" />
+          <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-40', 'w-32', 'w-16']}
+            headings={['#', 'Channel', 'Permissions', 'Protection', '']}
+            kinds={['bar', 'bar', 'bar', 'toggle', 'action']}
+            rows={4}
+            rowHeight="h-14"
+          />
         {:else}
           <table class="w-full text-sm">
             <thead>
@@ -644,7 +767,9 @@
                 <th class="{th} w-16">#</th>
                 <th class={th}>Channel</th>
                 <th class="{th} w-40" title="How many permission overrides are kept">Permissions</th>
-                {#if hasLocalChannels}<th class="{th} w-72" title="Who may change only this channel, on top of the global exceptions">Exceptions</th>{/if}
+                {#if hasLocalChannels}<th class="{th} w-72" title="Who may change only this channel, on top of the global exceptions"
+                    >Exceptions</th
+                  >{/if}
                 <th class="{th} w-32" title="Pause the protection of just this channel">Protection</th>
                 <th class="{th} w-16"><span class="sr-only">Actions</span></th>
               </tr>
@@ -656,17 +781,27 @@
                   <td class="{cell} {rule.enabled && !channelsOff ? '' : 'opacity-50'}">
                     <ChannelChip channel={channelOf(rule.channel_id)} />
                     {#if rule.problem}
-                      <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400"><TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}</p>
+                      <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400">
+                        <TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}
+                      </p>
                     {/if}
                   </td>
-                  <td class="{cell} text-xs text-zinc-400 {rule.enabled && !channelsOff ? '' : 'opacity-50'}">{rule.overwrites} {rule.overwrites === 1 ? 'override' : 'overrides'}</td>
-                  {#if hasLocalChannels}<td class="{cell} {rule.enabled && !channelsOff ? '' : 'opacity-50'}">{@render exceptionsCell(rule.exceptions)}</td>{/if}
+                  <td class="{cell} text-xs text-zinc-400 {rule.enabled && !channelsOff ? '' : 'opacity-50'}"
+                    >{rule.overwrites} {rule.overwrites === 1 ? 'override' : 'overrides'}</td
+                  >
+                  {#if hasLocalChannels}<td class="{cell} {rule.enabled && !channelsOff ? '' : 'opacity-50'}"
+                      >{@render exceptionsCell(rule.exceptions)}</td
+                    >{/if}
                   <td class={cell}>
                     <Toggle
                       on={rule.enabled}
                       disabled={!isAdmin || switching}
                       label="{rule.enabled ? 'Pause' : 'Resume'} the protection of {channelOf(rule.channel_id)?.name ?? 'this channel'}"
-                      onclick={() => flip(() => api.antiTamper.setChannelEnabled(guildId, rule.channel_id, !rule.enabled), rule.enabled ? 'Protection paused' : 'Protection on, permissions saved as they are now')}
+                      onclick={() =>
+                        flip(
+                          () => api.antiTamper.setChannelEnabled(guildId, rule.channel_id, !rule.enabled),
+                          rule.enabled ? 'Protection paused' : 'Protection on, permissions saved as they are now',
+                        )}
                     />
                   </td>
                   <td class="{cell} text-right"><RowMenu label="Actions for this channel" items={channelActions(rule.channel_id)} /></td>
@@ -677,13 +812,15 @@
                       {#if channelPanel === 'details'}
                         {@render detailsPanel(rule.channel_id)}
                       {:else}
-                      {@render accordion(
-                        'Exceptions for this channel',
-                        rule.exceptions,
-                        'Only for this channel: the people and roles listed here may change its permissions, on top of the global exceptions. Anyone else has their change undone.',
-                        async target => change(() => api.antiTamper.addChannelException(guildId, rule.channel_id, target), 'Exception added'),
-                        async target => change(() => api.antiTamper.removeChannelException(guildId, rule.channel_id, target), 'Exception removed'),
-                      )}
+                        {@render accordion(
+                          'Exceptions for this channel',
+                          rule.exceptions,
+                          'Only for this channel: the people and roles listed here may change its permissions, on top of the global exceptions. Anyone else has their change undone.',
+                          async target =>
+                            change(() => api.antiTamper.addChannelException(guildId, rule.channel_id, target), 'Exception added'),
+                          async target =>
+                            change(() => api.antiTamper.removeChannelException(guildId, rule.channel_id, target), 'Exception removed'),
+                        )}
                       {/if}
                     </td>
                   </tr>
@@ -734,7 +871,8 @@
               <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
                 <th class="{th} w-16">#</th>
                 <th class={th}>Role</th>
-                {#if hasLocalRoles}<th class="{th} w-72" title="Who may hold only this role, on top of the global exceptions">Exceptions</th>{/if}
+                {#if hasLocalRoles}<th class="{th} w-72" title="Who may hold only this role, on top of the global exceptions">Exceptions</th
+                  >{/if}
                 <th class="{th} w-32" title="Pause the protection of just this role">Protection</th>
                 <th class="{th} {isAdmin ? 'w-24' : 'w-16'}"><span class="sr-only">Actions</span></th>
               </tr>
@@ -747,16 +885,24 @@
                   <td class="{cell} {rule.enabled && !rolesOff ? '' : 'opacity-50'}">
                     <RoleChip {role} />
                     {#if rule.problem}
-                      <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400"><TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}</p>
+                      <p class="mt-0.5 flex items-center gap-1 text-xs text-amber-400">
+                        <TriangleAlert class="w-3 h-3 shrink-0" />{rule.problem}
+                      </p>
                     {/if}
                   </td>
-                  {#if hasLocalRoles}<td class="{cell} {rule.enabled && !rolesOff ? '' : 'opacity-50'}">{@render exceptionsCell(rule.exceptions)}</td>{/if}
+                  {#if hasLocalRoles}<td class="{cell} {rule.enabled && !rolesOff ? '' : 'opacity-50'}"
+                      >{@render exceptionsCell(rule.exceptions)}</td
+                    >{/if}
                   <td class={cell}>
                     <Toggle
                       on={rule.enabled}
                       disabled={!isAdmin || switching}
                       label="{rule.enabled ? 'Pause' : 'Resume'} the protection of {roleOf(rule.role_id)?.name ?? 'this role'}"
-                      onclick={() => flip(() => api.antiTamper.setRoleEnabled(guildId, rule.role_id, !rule.enabled), rule.enabled ? 'Protection paused' : 'Protection on')}
+                      onclick={() =>
+                        flip(
+                          () => api.antiTamper.setRoleEnabled(guildId, rule.role_id, !rule.enabled),
+                          rule.enabled ? 'Protection paused' : 'Protection on',
+                        )}
                     />
                   </td>
                   <td class="{cell} text-right whitespace-nowrap">
@@ -770,7 +916,12 @@
                       <UserCheck class="w-3.5 h-3.5" />
                     </Button>
                     {#if isAdmin}
-                      <Button variant="ghost" size="icon" aria-label="Stop protecting this role" onclick={() => (removeTarget = rule.role_id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Stop protecting this role"
+                        onclick={() => (removeTarget = rule.role_id)}
+                      >
                         <Trash2 class="w-3.5 h-3.5 text-red-400" />
                       </Button>
                     {/if}
@@ -784,7 +935,8 @@
                         rule.exceptions,
                         'Only for this role: the people and roles listed here may hold it, on top of the global exceptions. Anyone else who ends up with it loses it again.',
                         async target => change(() => api.antiTamper.addRoleException(guildId, rule.role_id, target), 'Exception added'),
-                        async target => change(() => api.antiTamper.removeRoleException(guildId, rule.role_id, target), 'Exception removed'),
+                        async target =>
+                          change(() => api.antiTamper.removeRoleException(guildId, rule.role_id, target), 'Exception removed'),
                       )}
                     </td>
                   </tr>
@@ -809,7 +961,12 @@
       <div class="flex items-center justify-between gap-3">
         <Badge tone={RESULT[entry.result][0]}>{RESULT[entry.result][1]}</Badge>
         {#if entry.kind === 'channel' && entry.channel_id}
-          <a href="https://discord.com/channels/{guildId}/{entry.channel_id}" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors">
+          <a
+            href="https://discord.com/channels/{guildId}/{entry.channel_id}"
+            target="_blank"
+            rel="noreferrer"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
             Jump to channel<ExternalLink class="w-3 h-3" />
           </a>
         {/if}
@@ -831,7 +988,9 @@
         {#if entry.kind === 'channel' && entry.channel_id}
           <ChannelChip channel={channelOf(entry.channel_id)} />
         {:else}
-          <div class="flex flex-wrap gap-1">{#each entry.role_ids as id (id)}<RoleChip role={roleOf(id)} missing="Deleted role" />{/each}</div>
+          <div class="flex flex-wrap gap-1">
+            {#each entry.role_ids as id (id)}<RoleChip role={roleOf(id)} missing="Deleted role" />{/each}
+          </div>
         {/if}
       </div>
 
@@ -879,11 +1038,16 @@
   busyLabel="Removing…"
   {busy}
   icon={Trash2}
-  onConfirm={() => confirmed(() => change(() => api.antiTamper.removeRole(guildId, removeTarget!), 'Role is no longer protected'), () => (removeTarget = null))}
+  onConfirm={() =>
+    confirmed(
+      () => change(() => api.antiTamper.removeRole(guildId, removeTarget!), 'Role is no longer protected'),
+      () => (removeTarget = null),
+    )}
   onClose={() => (removeTarget = null)}
 >
   {#if removeTarget}
-    <span class="text-zinc-200">{roleOf(removeTarget)?.name ?? 'This role'}</span> can then be held by anyone again. People who hold it now keep it.
+    <span class="text-zinc-200">{roleOf(removeTarget)?.name ?? 'This role'}</span> can then be held by anyone again. People who hold it now keep
+    it.
   {/if}
 </ConfirmModal>
 
@@ -894,11 +1058,16 @@
   busyLabel="Removing…"
   {busy}
   icon={Trash2}
-  onConfirm={() => confirmed(() => change(() => api.antiTamper.removeChannel(guildId, removeChannelTarget!), 'Channel is no longer protected'), () => (removeChannelTarget = null))}
+  onConfirm={() =>
+    confirmed(
+      () => change(() => api.antiTamper.removeChannel(guildId, removeChannelTarget!), 'Channel is no longer protected'),
+      () => (removeChannelTarget = null),
+    )}
   onClose={() => (removeChannelTarget = null)}
 >
   {#if removeChannelTarget}
-    Changes to the permissions of <span class="text-zinc-200">#{channelOf(removeChannelTarget)?.name ?? 'this channel'}</span> are no longer undone, and its saved permissions and exceptions are deleted.
+    Changes to the permissions of <span class="text-zinc-200">#{channelOf(removeChannelTarget)?.name ?? 'this channel'}</span> are no longer undone,
+    and its saved permissions and exceptions are deleted.
   {/if}
 </ConfirmModal>
 
@@ -914,7 +1083,8 @@
   onClose={() => (restoreTarget = null)}
 >
   {#if restoreTarget}
-    The protected permissions are put back on <span class="text-zinc-200">#{channelOf(restoreTarget)?.name ?? 'this channel'}</span>, replacing what it has now.
+    The protected permissions are put back on <span class="text-zinc-200">#{channelOf(restoreTarget)?.name ?? 'this channel'}</span>,
+    replacing what it has now.
   {/if}
 </ConfirmModal>
 
@@ -930,6 +1100,7 @@
   onClose={() => (lockTarget = null)}
 >
   {#if lockTarget}
-    The permissions <span class="text-zinc-200">#{channelOf(lockTarget)?.name ?? 'this channel'}</span> has right now replace the protected ones. From now on these are the ones the bot puts back.
+    The permissions <span class="text-zinc-200">#{channelOf(lockTarget)?.name ?? 'this channel'}</span> has right now replace the protected ones.
+    From now on these are the ones the bot puts back.
   {/if}
 </ConfirmModal>

@@ -13,7 +13,10 @@
 <Tabs.Root bind:value>
   <Tabs.List class="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-800/50 ring-1 ring-zinc-700/50" aria-label="Views">
     {#each tabs as tab (tab.id)}
-      <Tabs.Trigger value={tab.id} class="tab h-8 px-3 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-pointer outline-none transition-colors">
+      <Tabs.Trigger
+        value={tab.id}
+        class="tab h-8 px-3 rounded-lg text-sm font-medium inline-flex items-center gap-2 cursor-pointer outline-none transition-colors"
+      >
         <tab.icon class="w-4 h-4" />
         {tab.label}
         {#if tab.count === null}

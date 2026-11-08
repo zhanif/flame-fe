@@ -21,7 +21,7 @@
   const radius = $derived(cq(board.style.radius));
   const answered = $derived(answers !== null && answers !== undefined);
   const answerChars = $derived(Array.from({ length: QUESTION_COUNT }, (_, index) => (answers ?? '')[index] ?? ' '));
-  const toneAt = (position: number) => (answered ? ANSWER_TONES[answerChars[position - 1]] ?? null : null);
+  const toneAt = (position: number) => (answered ? (ANSWER_TONES[answerChars[position - 1]] ?? null) : null);
 
   // The questions are measured once the font is in: before that the lines would break at the fallback font's widths.
   let fontsReady = $state(false);
@@ -30,7 +30,7 @@
   });
 
   const lines = $derived.by(() => {
-    fontsReady;
+    void fontsReady;
     return BOARD_POSITIONS.map(position =>
       boardLines.lines(board.questions[position - 1]?.trim() || 'Empty question', cellWidth(position) - CARD.gutter * 2),
     );
@@ -44,7 +44,9 @@
   <div class="relative" style="height:{cq(CARD.header)};margin:0 {cq(CARD.padding)}">
     <p
       class="absolute left-0 max-w-full truncate font-bold"
-      style="top:{board.subtitle ? cq(52) : cq(CARD.header / 2)};transform:translateY(-50%);font-size:{cq(CARD.title)};line-height:1.4;color:{board.style.title_color}"
+      style="top:{board.subtitle ? cq(52) : cq(CARD.header / 2)};transform:translateY(-50%);font-size:{cq(
+        CARD.title,
+      )};line-height:1.4;color:{board.style.title_color}"
     >
       {board.title || 'Bingo'}
     </p>
@@ -60,19 +62,20 @@
 
   <div
     class="grid"
-    style="margin:0 {cq(CARD.padding)};grid-template-columns:repeat(3,minmax(0,1fr)) {cq(CARD.bonusWidth)};grid-auto-rows:{cq(CARD.rowHeight)};gap:{cq(CARD.gap)}"
+    style="margin:0 {cq(CARD.padding)};grid-template-columns:repeat(3,minmax(0,1fr)) {cq(CARD.bonusWidth)};grid-auto-rows:{cq(
+      CARD.rowHeight,
+    )};gap:{cq(CARD.gap)}"
   >
     {#each BOARD_POSITIONS as position, index (position)}
       {@const figure = cellFigure(board, position)}
       {@const tone = toneAt(position)}
       {@const band = tone ? tone.band : cellBand(board.style, position)}
-      <div
-        class="relative overflow-hidden"
-        style="background:{tone ? tone.tile : board.style.tile};border-radius:{radius}"
-      >
+      <div class="relative overflow-hidden" style="background:{tone ? tone.tile : board.style.tile};border-radius:{radius}">
         <div
           class="absolute flex items-center justify-center"
-          style="left:{cq(CARD.gutter)};right:{cq(CARD.gutter)};top:{cq(CARD.inset)};bottom:{cq(figure.position || figure.points ? CARD.strip : CARD.inset)}"
+          style="left:{cq(CARD.gutter)};right:{cq(CARD.gutter)};top:{cq(CARD.inset)};bottom:{cq(
+            figure.position || figure.points ? CARD.strip : CARD.inset,
+          )}"
         >
           <p
             class="w-full text-center font-semibold"
@@ -91,13 +94,14 @@
             {#if figure.position}
               <span
                 class="inline-flex items-center justify-center rounded-md font-semibold"
-                style="min-width:{cq(CARD.chip)};height:{cq(CARD.chip)};padding:0 {cq(7)};background:rgba(0, 0, 0, 0.18);font-size:{cq(17)};font-variant-numeric:tabular-nums"
-              >{figure.position}</span>
+                style="min-width:{cq(CARD.chip)};height:{cq(CARD.chip)};padding:0 {cq(7)};background:rgba(0, 0, 0, 0.18);font-size:{cq(
+                  17,
+                )};font-variant-numeric:tabular-nums">{figure.position}</span
+              >
             {/if}
-            <span
-              class="ml-auto font-semibold"
-              style="font-size:{cq(CARD.figure)};letter-spacing:0.01em;font-variant-numeric:tabular-nums"
-            >{figure.points}</span>
+            <span class="ml-auto font-semibold" style="font-size:{cq(CARD.figure)};letter-spacing:0.01em;font-variant-numeric:tabular-nums"
+              >{figure.points}</span
+            >
           </div>
         {/if}
       </div>

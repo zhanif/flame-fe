@@ -76,7 +76,13 @@
     if (!target || busy) return;
     busy = true;
     try {
-      if (await onAdd({ target_type: isUser ? 'user' : 'role', target_id: target, ...(scoped ? { scope: (scope || 'all') as 'all' | 'roles' | 'channels' } : {}) })) {
+      if (
+        await onAdd({
+          target_type: isUser ? 'user' : 'role',
+          target_id: target,
+          ...(scoped ? { scope: (scope || 'all') as 'all' | 'roles' | 'channels' } : {}),
+        })
+      ) {
         pickedRole = '';
         userId = '';
         scope = '';
@@ -90,47 +96,41 @@
 
 {#if canEdit && adding}
   <div class="pb-5" transition:slide={{ duration: 220, easing: cubicOut }}>
-  <Card>
-    <SectionTitle icon={UserCheck} title="Add an exception" class="mb-1" />
-    <p class="mb-4 text-xs text-zinc-500">{hint}</p>
-    <div class="flex flex-col sm:flex-row sm:items-end gap-3">
-      <div class="w-full sm:w-40">
-        <span class={label}>Type</span>
-        <Select
-          bind:value={kind}
-          options={[{ value: 'user', label: 'User' }]}
-          placeholder="Role"
-          label="Exception type"
-          class="w-full"
-        />
-      </div>
-      <div class="w-full sm:w-80">
-        <span class={label}>{isUser ? 'User id' : 'Role'}</span>
-        {#if isUser}
-          <Input bind:value={userId} placeholder="Discord user id" aria-label="User id" inputmode="numeric" />
-        {:else}
-          <RoleSelect {roles} exclude={takenRoles} bind:value={pickedRole} class="w-full" />
-        {/if}
-      </div>
-      {#if scoped}
-        <div class="w-full sm:w-52">
-          <span class={label}>Applies to</span>
-          <Select
-            bind:value={scope}
-            options={[
-              { value: 'roles', label: 'Protected roles only' },
-              { value: 'channels', label: 'Protected channels only' },
-            ]}
-            placeholder="Roles and channels"
-            label="Applies to"
-            class="w-full"
-          />
+    <Card>
+      <SectionTitle icon={UserCheck} title="Add an exception" class="mb-1" />
+      <p class="mb-4 text-xs text-zinc-500">{hint}</p>
+      <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div class="w-full sm:w-40">
+          <span class={label}>Type</span>
+          <Select bind:value={kind} options={[{ value: 'user', label: 'User' }]} placeholder="Role" label="Exception type" class="w-full" />
         </div>
-      {/if}
-      <Button variant="primary" onclick={add} disabled={!target || busy}><Plus class="w-3.5 h-3.5" />Add</Button>
-      <Button variant="ghost" onclick={() => (adding = false)}>Cancel</Button>
-    </div>
-  </Card>
+        <div class="w-full sm:w-80">
+          <span class={label}>{isUser ? 'User id' : 'Role'}</span>
+          {#if isUser}
+            <Input bind:value={userId} placeholder="Discord user id" aria-label="User id" inputmode="numeric" />
+          {:else}
+            <RoleSelect {roles} exclude={takenRoles} bind:value={pickedRole} class="w-full" />
+          {/if}
+        </div>
+        {#if scoped}
+          <div class="w-full sm:w-52">
+            <span class={label}>Applies to</span>
+            <Select
+              bind:value={scope}
+              options={[
+                { value: 'roles', label: 'Protected roles only' },
+                { value: 'channels', label: 'Protected channels only' },
+              ]}
+              placeholder="Roles and channels"
+              label="Applies to"
+              class="w-full"
+            />
+          </div>
+        {/if}
+        <Button variant="primary" onclick={add} disabled={!target || busy}><Plus class="w-3.5 h-3.5" />Add</Button>
+        <Button variant="ghost" onclick={() => (adding = false)}>Cancel</Button>
+      </div>
+    </Card>
   </div>
 {/if}
 
@@ -164,9 +164,21 @@
                 <RoleChip {role} missing="Deleted role" />
               {/if}
             </td>
-            <td class={cell}><Badge tone={exception.target_type === 'role' ? 'accent' : 'neutral'}>{exception.target_type === 'role' ? 'Role' : 'User'}</Badge></td>
+            <td class={cell}
+              ><Badge tone={exception.target_type === 'role' ? 'accent' : 'neutral'}
+                >{exception.target_type === 'role' ? 'Role' : 'User'}</Badge
+              ></td
+            >
             {#if scoped}
-              <td class={cell}><Badge tone="info">{exception.scope === 'roles' ? 'Protected roles' : exception.scope === 'channels' ? 'Protected channels' : 'Roles and channels'}</Badge></td>
+              <td class={cell}
+                ><Badge tone="info"
+                  >{exception.scope === 'roles'
+                    ? 'Protected roles'
+                    : exception.scope === 'channels'
+                      ? 'Protected channels'
+                      : 'Roles and channels'}</Badge
+                ></td
+              >
             {/if}
             {#if canEdit}
               <td class="{cell} text-right">
@@ -193,6 +205,9 @@
   onClose={() => (removeTarget = null)}
 >
   {#if removeTarget}
-    <span class="text-zinc-200">{nameOf(removeTarget)}</span> will no longer be left alone by this rule, so the rule applies to {removeTarget.target_type === 'user' ? 'them' : 'everyone who holds this role'} again.
+    <span class="text-zinc-200">{nameOf(removeTarget)}</span> will no longer be left alone by this rule, so the rule applies to {removeTarget.target_type ===
+    'user'
+      ? 'them'
+      : 'everyone who holds this role'} again.
   {/if}
 </ConfirmModal>

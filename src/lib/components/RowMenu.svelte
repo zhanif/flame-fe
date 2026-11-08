@@ -29,8 +29,10 @@
     icon?: Component<any>;
   } = $props();
 
-  const ICON_TRIGGER = 'inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 outline-none transition duration-150 cursor-pointer hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-100';
-  const TEXT_TRIGGER = 'inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-800/60 px-3 text-xs font-semibold whitespace-nowrap text-zinc-300 ring-1 ring-zinc-700/60 outline-none transition duration-150 hover:bg-zinc-700/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-700/60 data-[state=open]:text-zinc-100';
+  const ICON_TRIGGER =
+    'inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 outline-none transition duration-150 cursor-pointer hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-800/60 data-[state=open]:text-zinc-100';
+  const TEXT_TRIGGER =
+    'inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-800/60 px-3 text-xs font-semibold whitespace-nowrap text-zinc-300 ring-1 ring-zinc-700/60 outline-none transition duration-150 hover:bg-zinc-700/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-orange-500/50 data-[state=open]:bg-zinc-700/60 data-[state=open]:text-zinc-100';
 </script>
 
 <DropdownMenu.Root>
@@ -55,7 +57,9 @@
           disabled={item.disabled}
           onSelect={item.onclick}
           title={item.hint}
-          class="menu-item flex h-8 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-sm outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 {item.danger ? 'text-red-400' : 'text-zinc-300'}"
+          class="menu-item flex h-8 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-sm outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 {item.danger
+            ? 'text-red-400'
+            : 'text-zinc-300'}"
         >
           {#if item.icon}<item.icon class="h-3.5 w-3.5 shrink-0" />{/if}
           <span class="truncate">{item.label}</span>

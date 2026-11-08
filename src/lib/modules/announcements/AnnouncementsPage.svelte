@@ -22,7 +22,14 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
-  import { api, type AnnouncementEntry, type AnnouncementTemplateEntry, type AnnouncementTemplates, type DiscordChannel, type DiscordRole } from '$lib/api/endpoints';
+  import {
+    api,
+    type AnnouncementEntry,
+    type AnnouncementTemplateEntry,
+    type AnnouncementTemplates,
+    type DiscordChannel,
+    type DiscordRole,
+  } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { caps, label, td, th, toneText } from '$lib/ui';
@@ -31,7 +38,18 @@
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
   import AnnouncementForm from './AnnouncementForm.svelte';
-  import { draftOf, emptyDraft, fieldsOf, fill, hasContent, labelOf, MAX_VARIABLES, variableTypeOf, variablesIn, type Draft } from './draft';
+  import {
+    draftOf,
+    emptyDraft,
+    fieldsOf,
+    fill,
+    hasContent,
+    labelOf,
+    MAX_VARIABLES,
+    variableTypeOf,
+    variablesIn,
+    type Draft,
+  } from './draft';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
 
@@ -46,7 +64,8 @@
   let templates: AnnouncementTemplates | null = $state(null);
 
   const cell = td.replace('h-11', 'h-14');
-  const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const when = (ts: string) =>
+    new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
   const channelOf = (id: string | null) => channels.find(c => c.id === id);
 
   // ---- compose
@@ -67,7 +86,10 @@
   const filled = $derived(fill(draft, values));
   const missing = $derived(vars.filter(name => !values[name]?.trim()));
   const canSend = $derived(hasContent(filled) && !!channelId && !missing.length && !sending);
-  const pings = $derived([...(filled.mention_everyone ? ['@everyone'] : []), ...filled.mention_role_ids.map(id => `@${roles.find(r => r.id === id)?.name ?? 'deleted role'}`)]);
+  const pings = $derived([
+    ...(filled.mention_everyone ? ['@everyone'] : []),
+    ...filled.mention_role_ids.map(id => `@${roles.find(r => r.id === id)?.name ?? 'deleted role'}`),
+  ]);
 
   function useTemplate(template: AnnouncementTemplateEntry) {
     draft = draftOf(template);
@@ -95,7 +117,11 @@
     sending = true;
     try {
       await api.announcements.send(guildId, { ...fieldsOf(filled), channel_id: channelId, template_name: usedTemplate });
-      toast('success', 'Announcement sent', `It is in ${channelOf(channelId) ? `#${channelOf(channelId)!.name}` : 'the channel'} and listed in History.`);
+      toast(
+        'success',
+        'Announcement sent',
+        `It is in ${channelOf(channelId) ? `#${channelOf(channelId)!.name}` : 'the channel'} and listed in History.`,
+      );
       sendAsk = false;
       if (historyLoaded) void loadHistory();
     } catch (e: any) {
@@ -126,7 +152,9 @@
   };
   const useMissing = $derived.by((): string[] => {
     const target: AnnouncementTemplateEntry | null = useTarget;
-    return target ? target.variables.filter(name => !useValues[name]?.trim() || !!invalidOf(target.variable_types?.[name], useValues[name])) : [];
+    return target
+      ? target.variables.filter(name => !useValues[name]?.trim() || !!invalidOf(target.variable_types?.[name], useValues[name]))
+      : [];
   });
   const useMentions = $derived<Mention[]>(
     useDraft
@@ -157,7 +185,10 @@
       target.variables.map(name => {
         const value = (useValues[name] ?? '').trim();
         const type = target.variable_types?.[name];
-        return [name, !value ? '' : type === 'role' ? `<@&${value}>` : type === 'channel' ? `<#${value}>` : type === 'user' ? `<@${value}>` : value];
+        return [
+          name,
+          !value ? '' : type === 'role' ? `<@&${value}>` : type === 'channel' ? `<#${value}>` : type === 'user' ? `<@${value}>` : value,
+        ];
       }),
     );
 
@@ -172,8 +203,16 @@
     if (!target || !useDraft || useSending) return;
     useSending = true;
     try {
-      await api.announcements.send(guildId, { ...fieldsOf(fill(draftOf(target), useSent(target))), channel_id: useChannel, template_name: target.name });
-      toast('success', 'Announcement sent', `It is in ${channelOf(useChannel) ? `#${channelOf(useChannel)!.name}` : 'the channel'} and listed in History.`);
+      await api.announcements.send(guildId, {
+        ...fieldsOf(fill(draftOf(target), useSent(target))),
+        channel_id: useChannel,
+        template_name: target.name,
+      });
+      toast(
+        'success',
+        'Announcement sent',
+        `It is in ${channelOf(useChannel) ? `#${channelOf(useChannel)!.name}` : 'the channel'} and listed in History.`,
+      );
       useTarget = null;
       if (historyLoaded) void loadHistory();
     } catch (e: any) {
@@ -187,7 +226,12 @@
     if (savingAs) return;
     savingAs = true;
     try {
-      templates = await api.announcements.createTemplate(guildId, { ...fieldsOf(draft), name: saveAsName, sub_command_name: saveAsSubCommandName, channel_id: channelId || null });
+      templates = await api.announcements.createTemplate(guildId, {
+        ...fieldsOf(draft),
+        name: saveAsName,
+        sub_command_name: saveAsSubCommandName,
+        channel_id: channelId || null,
+      });
       toast('success', 'Template saved', 'Switch on /announce from the Slash page to send it from Discord.');
       usedTemplate = saveAsName.trim();
       saveAs = false;
@@ -240,10 +284,34 @@
   async function saveTemplate(existing: AnnouncementTemplateEntry | null) {
     if (savingTemplate) return;
     savingTemplate = true;
-    const body = existing ? { ...fieldsOf(editDraft), name: editName, sub_command_name: editSubCommandName, channel_id: editChannel || null, variable_types: editTypes, variable_descriptions: editDescriptions, variable_placeholders: editPlaceholders } : { ...fieldsOf(newDraft), name: newName, sub_command_name: newSubCommandName, channel_id: newChannel || null, variable_types: newTypes, variable_descriptions: newDescriptions, variable_placeholders: newPlaceholders };
+    const body = existing
+      ? {
+          ...fieldsOf(editDraft),
+          name: editName,
+          sub_command_name: editSubCommandName,
+          channel_id: editChannel || null,
+          variable_types: editTypes,
+          variable_descriptions: editDescriptions,
+          variable_placeholders: editPlaceholders,
+        }
+      : {
+          ...fieldsOf(newDraft),
+          name: newName,
+          sub_command_name: newSubCommandName,
+          channel_id: newChannel || null,
+          variable_types: newTypes,
+          variable_descriptions: newDescriptions,
+          variable_placeholders: newPlaceholders,
+        };
     try {
-      templates = existing ? await api.announcements.updateTemplate(guildId, existing.id, body) : await api.announcements.createTemplate(guildId, body);
-      toast('success', existing ? 'Template saved' : 'Template added', existing ? undefined : 'Switch on /announce from the Slash page to send it from Discord.');
+      templates = existing
+        ? await api.announcements.updateTemplate(guildId, existing.id, body)
+        : await api.announcements.createTemplate(guildId, body);
+      toast(
+        'success',
+        existing ? 'Template saved' : 'Template added',
+        existing ? undefined : 'Switch on /announce from the Slash page to send it from Discord.',
+      );
       if (existing) editTemplate = null;
       else {
         addingTemplate = false;
@@ -340,7 +408,11 @@
   }
 
   const entryActions = (entry: AnnouncementEntry): RowMenuItem[] => [
-    { label: 'Open in Discord', icon: ExternalLink, onclick: () => window.open(`https://discord.com/channels/${guildId}/${entry.channel_id}/${entry.message_id}`, '_blank', 'noreferrer') },
+    {
+      label: 'Open in Discord',
+      icon: ExternalLink,
+      onclick: () => window.open(`https://discord.com/channels/${guildId}/${entry.channel_id}/${entry.message_id}`, '_blank', 'noreferrer'),
+    },
     {
       label: 'Edit',
       icon: Pencil,
@@ -353,7 +425,8 @@
     { label: 'Delete', icon: Trash2, danger: true, onclick: () => (deleteTarget = entry) },
   ];
 
-  const snippet = (entry: AnnouncementEntry) => entry.title || entry.body?.replace(/\s+/g, ' ') || entry.content?.replace(/\s+/g, ' ') || '(image only)';
+  const snippet = (entry: AnnouncementEntry) =>
+    entry.title || entry.body?.replace(/\s+/g, ' ') || entry.content?.replace(/\s+/g, ' ') || '(image only)';
 
   // The hint follows the tab: each one explains what is in front of the person, not the whole module.
   const HINTS: Record<string, { title: string; steps: InfoStep[] }> = {
@@ -361,25 +434,40 @@
       title: 'How an announcement is sent',
       steps: [
         { text: 'The message text and the embed are posted by the bot in the channel you pick. The preview is what members will see.' },
-        { text: 'Mentions go in a line above the embed. Only the roles you chose can be pinged, and only an admin can ping @everyone: nothing else in the text can notify anyone.' },
-        { text: 'A {name} in the message, title, body, footer or fields becomes a box to fill in before sending. The same message can be saved as a template to send again.' },
+        {
+          text: 'Mentions go in a line above the embed. Only the roles you chose can be pinged, and only an admin can ping @everyone: nothing else in the text can notify anyone.',
+        },
+        {
+          text: 'A {name} in the message, title, body, footer or fields becomes a box to fill in before sending. The same message can be saved as a template to send again.',
+        },
         { text: 'Every send is recorded in History with its message, so it can be edited or deleted later.' },
       ],
     },
     templates: {
       title: 'How templates work',
       steps: [
-        { text: 'A template is a saved announcement. The {names} in its text are its variables (up to 3), asked for each time it is sent.' },
-        { text: 'Each template is its own subcommand of /announce: type its name directly, there is no picker. Admins manage templates; moderators and admins send them. Switch on the command from the Slash page first.', command: '/announce <sub_command_name>' },
-        { text: 'A template with no variables is sent at once. With variables, the bot answers with a Fill in button that opens a form. It goes to the template\'s channel, or the one you give.' },
+        {
+          text: 'A template is a saved announcement. The {names} in its text are its variables (up to 3), asked for each time it is sent.',
+        },
+        {
+          text: 'Each template is its own subcommand of /announce: type its name directly, there is no picker. Admins manage templates; moderators and admins send them. Switch on the command from the Slash page first.',
+          command: '/announce <sub_command_name>',
+        },
+        {
+          text: "A template with no variables is sent at once. With variables, the bot answers with a Fill in button that opens a form. It goes to the template's channel, or the one you give.",
+        },
       ],
     },
     history: {
       title: 'What History keeps',
       steps: [
-        { text: 'Each announcement sent, from the dashboard or with /announce, is listed with its channel, who sent it and the template it came from.' },
+        {
+          text: 'Each announcement sent, from the dashboard or with /announce, is listed with its channel, who sent it and the template it came from.',
+        },
         { text: 'Editing changes the embed of the message in Discord. It never pings again, so the mentions stay as they were.' },
-        { text: 'Deleting removes the message from Discord and marks the entry deleted. Uninstalling the module deletes the history, not the messages.' },
+        {
+          text: 'Deleting removes the message from Discord and marks the entry deleted. Uninstalling the module deletes the history, not the messages.',
+        },
       ],
     },
   };
@@ -388,7 +476,11 @@
   const hasInfo = $derived(tab !== 'templates');
 
   onMount(async () => {
-    const [roleList, channelList, templateList] = await Promise.allSettled([api.roles(guildId), api.channels(guildId), api.announcements.templates(guildId)]);
+    const [roleList, channelList, templateList] = await Promise.allSettled([
+      api.roles(guildId),
+      api.channels(guildId),
+      api.announcements.templates(guildId),
+    ]);
     if (roleList.status === 'fulfilled') roles = roleList.value;
     if (channelList.status === 'fulfilled') channels = channelList.value;
     if (templateList.status === 'fulfilled') templates = templateList.value;
@@ -414,7 +506,9 @@
       {#if tab === 'templates' && isAdmin}
         {#if templates}
           <span class="text-xs text-zinc-500">{templates.templates.length} of {templates.max_templates} templates</span>
-          <Button variant="primary" disabled={full && !addingTemplate} onclick={() => (addingTemplate = !addingTemplate)}><Plus class="w-3.5 h-3.5" />Add template</Button>
+          <Button variant="primary" disabled={full && !addingTemplate} onclick={() => (addingTemplate = !addingTemplate)}
+            ><Plus class="w-3.5 h-3.5" />Add template</Button
+          >
         {:else}
           <ControlSkeleton class="w-36" h="h-8" />
           <ControlSkeleton class="w-36" h="h-8" />
@@ -455,7 +549,11 @@
       {#if vars.length}
         <div class="mt-5 rounded-xl bg-zinc-800/40 p-4">
           <p class="mb-3 text-xs text-zinc-400">
-            {missing.length === 1 ? '1 value left to fill in' : missing.length ? `${missing.length} values left to fill in` : 'All values filled in'}: they replace the <span class="font-mono">{'{names}'}</span> in the message.
+            {missing.length === 1
+              ? '1 value left to fill in'
+              : missing.length
+                ? `${missing.length} values left to fill in`
+                : 'All values filled in'}: they replace the <span class="font-mono">{'{names}'}</span> in the message.
           </p>
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {#each vars as name (name)}
@@ -467,7 +565,11 @@
           </div>
         </div>
       {:else if usedTemplate && hasContent(filled)}
-        <p class="mt-5 flex items-center gap-2 rounded-xl bg-zinc-800/40 px-4 py-3 text-xs {channelId ? 'text-emerald-400' : 'text-zinc-400'}">
+        <p
+          class="mt-5 flex items-center gap-2 rounded-xl bg-zinc-800/40 px-4 py-3 text-xs {channelId
+            ? 'text-emerald-400'
+            : 'text-zinc-400'}"
+        >
           <Check class="h-4 w-4 shrink-0" />
           {channelId ? 'Nothing to fill in: ready to publish.' : 'Nothing to fill in. Pick a channel to publish.'}
         </p>
@@ -477,11 +579,22 @@
         <Button variant="ghost" onclick={reset}>Reset</Button>
         <div class="flex items-center gap-2">
           {#if isAdmin}
-            <Button variant="secondary" disabled={!hasContent(draft) || full || tooManyVars(draft)} onclick={() => (saveAs = true)} title={full ? 'The template limit is reached' : tooManyVars(draft) ? `A template can have up to ${MAX_VARIABLES} variables` : undefined}>
+            <Button
+              variant="secondary"
+              disabled={!hasContent(draft) || full || tooManyVars(draft)}
+              onclick={() => (saveAs = true)}
+              title={full
+                ? 'The template limit is reached'
+                : tooManyVars(draft)
+                  ? `A template can have up to ${MAX_VARIABLES} variables`
+                  : undefined}
+            >
               <FileText class="h-3.5 w-3.5" />Save as template
             </Button>
           {/if}
-          <Button variant="primary" disabled={!canSend} onclick={() => (sendAsk = true)}><Send class="h-3.5 w-3.5" />Send announcement</Button>
+          <Button variant="primary" disabled={!canSend} onclick={() => (sendAsk = true)}
+            ><Send class="h-3.5 w-3.5" />Send announcement</Button
+          >
         </div>
       </div>
     </Card>
@@ -490,10 +603,30 @@
       <div transition:slide={{ duration: 220, easing: cubicOut }}>
         <Card>
           <SectionTitle icon={Plus} title="Add a template" class="mb-4" />
-          <AnnouncementForm bind:draft={newDraft} bind:channelId={newChannel} bind:name={newName} bind:subCommandName={newSubCommandName} bind:types={newTypes} bind:descriptions={newDescriptions} bind:placeholders={newPlaceholders} showName {roles} {channels} canEveryone={isAdmin} templateHint />
+          <AnnouncementForm
+            bind:draft={newDraft}
+            bind:channelId={newChannel}
+            bind:name={newName}
+            bind:subCommandName={newSubCommandName}
+            bind:types={newTypes}
+            bind:descriptions={newDescriptions}
+            bind:placeholders={newPlaceholders}
+            showName
+            {roles}
+            {channels}
+            canEveryone={isAdmin}
+            templateHint
+          />
           <div class="mt-5 flex justify-end gap-2">
             <Button variant="ghost" onclick={() => (addingTemplate = false)}>Cancel</Button>
-            <SaveButton onclick={() => saveTemplate(null)} disabled={!newName.trim() || !/^[a-z0-9_-]{1,32}$/.test(newSubCommandName.trim()) || !hasContent(newDraft) || tooManyVars(newDraft)} saving={savingTemplate} />
+            <SaveButton
+              onclick={() => saveTemplate(null)}
+              disabled={!newName.trim() ||
+                !/^[a-z0-9_-]{1,32}$/.test(newSubCommandName.trim()) ||
+                !hasContent(newDraft) ||
+                tooManyVars(newDraft)}
+              saving={savingTemplate}
+            />
           </div>
         </Card>
       </div>
@@ -514,7 +647,11 @@
         {/each}
       </div>
     {:else if templates.templates.length === 0}
-      <EmptyState kind="modules" title="No templates yet" description="Save an announcement from the Compose tab, or add one here, to send it again with /announce." />
+      <EmptyState
+        kind="modules"
+        title="No templates yet"
+        description="Save an announcement from the Compose tab, or add one here, to send it again with /announce."
+      />
     {:else}
       <div class="space-y-3">
         {#each templates.templates as template (template.id)}
@@ -522,7 +659,9 @@
             <div class="grid items-center gap-x-8 gap-y-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1fr)_auto]">
               <div class="min-w-0">
                 <p class="truncate text-sm font-semibold text-zinc-100">{template.name}</p>
-                <p class="mt-1 truncate text-xs text-zinc-400">{template.title || template.body?.replace(/\s+/g, ' ') || template.content?.replace(/\s+/g, ' ') || '(image only)'}</p>
+                <p class="mt-1 truncate text-xs text-zinc-400">
+                  {template.title || template.body?.replace(/\s+/g, ' ') || template.content?.replace(/\s+/g, ' ') || '(image only)'}
+                </p>
               </div>
 
               <div class="min-w-0">
@@ -537,8 +676,10 @@
                     {#each template.variables as name (name)}
                       {@const kind = variableTypeOf(template.variable_types?.[name])}
                       <span class="inline-flex items-center gap-1.5 rounded-md bg-zinc-800/70 py-1 pl-2 pr-1.5 ring-1 ring-zinc-700/60">
-                        <span class="font-mono text-xs {toneText.teal}">{'{'}{name}{'}'}</span>
-                        <span class="inline-flex items-center gap-1 rounded bg-zinc-900/60 px-1.5 py-0.5 text-[11px] text-zinc-400"><kind.icon class="h-3 w-3" />{kind.label}</span>
+                        <span class="font-mono text-xs {toneText.teal}">&#123;{name}&#125;</span>
+                        <span class="inline-flex items-center gap-1 rounded bg-zinc-900/60 px-1.5 py-0.5 text-[11px] text-zinc-400"
+                          ><kind.icon class="h-3 w-3" />{kind.label}</span
+                        >
                       </span>
                     {/each}
                   </div>
@@ -552,8 +693,20 @@
                 <div class="flex items-center gap-1">
                   <Button variant="soft" size="sm" onclick={() => openUse(template)}><Send class="h-3.5 w-3.5" />Use</Button>
                   {#if isAdmin}
-                    <Button variant="ghost" size="icon" aria-label="Edit {template.name}" title="Edit" onclick={() => openEditTemplate(template)}><Pencil class="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" aria-label="Remove {template.name}" title="Remove" onclick={() => (removeTemplateTarget = template)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Edit {template.name}"
+                      title="Edit"
+                      onclick={() => openEditTemplate(template)}><Pencil class="h-3.5 w-3.5" /></Button
+                    >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remove {template.name}"
+                      title="Remove"
+                      onclick={() => (removeTemplateTarget = template)}
+                    >
                       <Trash2 class="h-3.5 w-3.5 text-red-400" />
                     </Button>
                   {/if}
@@ -563,10 +716,30 @@
             {#if isAdmin && editTemplate?.id === template.id}
               <div class="mt-5 border-t border-zinc-800/60 pt-5" transition:slide={{ duration: 220, easing: cubicOut }}>
                 <SectionTitle icon={Pencil} title="Edit {template.name}" class="mb-4" />
-                <AnnouncementForm bind:draft={editDraft} bind:channelId={editChannel} bind:name={editName} bind:subCommandName={editSubCommandName} bind:types={editTypes} bind:descriptions={editDescriptions} bind:placeholders={editPlaceholders} showName {roles} {channels} canEveryone={isAdmin} templateHint />
+                <AnnouncementForm
+                  bind:draft={editDraft}
+                  bind:channelId={editChannel}
+                  bind:name={editName}
+                  bind:subCommandName={editSubCommandName}
+                  bind:types={editTypes}
+                  bind:descriptions={editDescriptions}
+                  bind:placeholders={editPlaceholders}
+                  showName
+                  {roles}
+                  {channels}
+                  canEveryone={isAdmin}
+                  templateHint
+                />
                 <div class="mt-5 flex justify-end gap-2">
                   <Button variant="ghost" onclick={() => (editTemplate = null)}>Cancel</Button>
-                  <SaveButton onclick={() => saveTemplate(template)} disabled={!editName.trim() || !/^[a-z0-9_-]{1,32}$/.test(editSubCommandName.trim()) || !hasContent(editDraft) || tooManyVars(editDraft)} saving={savingTemplate} />
+                  <SaveButton
+                    onclick={() => saveTemplate(template)}
+                    disabled={!editName.trim() ||
+                      !/^[a-z0-9_-]{1,32}$/.test(editSubCommandName.trim()) ||
+                      !hasContent(editDraft) ||
+                      tooManyVars(editDraft)}
+                    saving={savingTemplate}
+                  />
                 </div>
               </div>
             {/if}
@@ -610,9 +783,16 @@
                     {#if entry.template_name}<p class="truncate text-xs text-zinc-500">From {entry.template_name}</p>{/if}
                   </td>
                   <td class={cell}><ChannelChip channel={channelOf(entry.channel_id)} /></td>
-                  <td class={cell}>{#if entry.sent_by}<ActorCell actor={entry.sent_by} />{/if}</td>
-                  <td class={cell}><Badge tone={entry.status === 'sent' ? 'success' : 'neutral'}>{entry.status === 'sent' ? 'Sent' : 'Deleted'}</Badge></td>
-                  <td class="{cell} text-right">{#if entry.status === 'sent'}<RowMenu label="Actions for this announcement" items={entryActions(entry)} />{/if}</td>
+                  <td class={cell}
+                    >{#if entry.sent_by}<ActorCell actor={entry.sent_by} />{/if}</td
+                  >
+                  <td class={cell}
+                    ><Badge tone={entry.status === 'sent' ? 'success' : 'neutral'}>{entry.status === 'sent' ? 'Sent' : 'Deleted'}</Badge
+                    ></td
+                  >
+                  <td class="{cell} text-right"
+                    >{#if entry.status === 'sent'}<RowMenu label="Actions for this announcement" items={entryActions(entry)} />{/if}</td
+                  >
                 </tr>
                 {#if editEntry?.id === entry.id}
                   <tr>
@@ -657,15 +837,19 @@
   onClose={() => (sendAsk = false)}
 >
   It is posted in <span class="text-zinc-200">{channelOf(channelId) ? `#${channelOf(channelId)!.name}` : 'the channel'}</span>
-  {#if pings.length}and notifies <span class="text-zinc-200">{pings.join(', ')}</span>{:else}without notifying anyone{/if}. Once sent it is in History, where it can be edited or deleted.
+  {#if pings.length}and notifies <span class="text-zinc-200">{pings.join(', ')}</span>{:else}without notifying anyone{/if}. Once sent it is
+  in History, where it can be edited or deleted.
 </ConfirmModal>
 
 <Modal show={!!useTarget} wide onClose={() => !useSending && (useTarget = null)}>
   {#if useTarget && useDraft}
-    <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100"><Send class="w-4 h-4 shrink-0 {toneText.teal}" />{useTarget.name}</h3>
+    <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+      <Send class="w-4 h-4 shrink-0 {toneText.teal}" />{useTarget.name}
+    </h3>
     <p class="mt-2 text-xs {useMissing.length ? 'text-zinc-400' : useChannel ? 'text-emerald-400' : 'text-zinc-400'}">
       {#if useTarget.variables.length && useMissing.length}
-        Fill in {useMissing.length === 1 ? 'the value' : 'the values'} below. {useMissing.length === 1 ? 'It replaces' : 'They replace'} the <span class="font-mono">{'{names}'}</span> in the message.
+        Fill in {useMissing.length === 1 ? 'the value' : 'the values'} below. {useMissing.length === 1 ? 'It replaces' : 'They replace'} the
+        <span class="font-mono">{'{names}'}</span> in the message.
       {:else if !useChannel}
         {useTarget.variables.length ? 'All values filled in.' : 'Nothing to fill in.'} Pick a channel to publish.
       {:else}
@@ -682,17 +866,38 @@
               <span class="{caps} text-zinc-400">{labelOf(name)}</span>
               <Badge tone="teal"><kind.icon class="h-3 w-3" />{kind.label}</Badge>
             </div>
-            {#if useTarget.variable_descriptions?.[name]}<p class="mb-2 text-xs text-zinc-500">{useTarget.variable_descriptions?.[name]}</p>{/if}
+            {#if useTarget.variable_descriptions?.[name]}<p class="mb-2 text-xs text-zinc-500">
+                {useTarget.variable_descriptions?.[name]}
+              </p>{/if}
             {#if useTarget.variable_types?.[name] === 'role'}
               <RoleSelect {roles} bind:value={() => useValues[name] ?? '', next => (useValues[name] = next)} label={name} class="w-full" />
             {:else if useTarget.variable_types?.[name] === 'channel'}
-              <ChannelPicker {channels} bind:value={() => useValues[name] ?? '', next => (useValues[name] = next)} none="Pick a channel" label={name} class="w-full" />
+              <ChannelPicker
+                {channels}
+                bind:value={() => useValues[name] ?? '', next => (useValues[name] = next)}
+                none="Pick a channel"
+                label={name}
+                class="w-full"
+              />
             {:else}
               <Input
                 bind:value={() => useValues[name] ?? '', next => (useValues[name] = next)}
                 maxlength={200}
-                inputmode={useTarget.variable_types?.[name] === 'number' ? 'decimal' : useTarget.variable_types?.[name] === 'user' ? 'numeric' : useTarget.variable_types?.[name] === 'link' ? 'url' : undefined}
-                placeholder={useTarget.variable_placeholders?.[name] || (useTarget.variable_types?.[name] === 'user' ? 'Member ID' : useTarget.variable_types?.[name] === 'number' ? 'A number' : useTarget.variable_types?.[name] === 'link' ? 'https://example.com' : '')}
+                inputmode={useTarget.variable_types?.[name] === 'number'
+                  ? 'decimal'
+                  : useTarget.variable_types?.[name] === 'user'
+                    ? 'numeric'
+                    : useTarget.variable_types?.[name] === 'link'
+                      ? 'url'
+                      : undefined}
+                placeholder={useTarget.variable_placeholders?.[name] ||
+                  (useTarget.variable_types?.[name] === 'user'
+                    ? 'Member ID'
+                    : useTarget.variable_types?.[name] === 'number'
+                      ? 'A number'
+                      : useTarget.variable_types?.[name] === 'link'
+                        ? 'https://example.com'
+                        : '')}
                 aria-label={name}
               />
               {#if invalidOf(useTarget.variable_types?.[name], useValues[name])}
@@ -706,7 +911,9 @@
 
     <div class="mt-4">
       <span class={label}>Channel</span>
-      <p class="mb-2 text-xs text-zinc-500">{useTarget.channel_id ? "Where it is sent. It starts as the template's channel" : 'Where it is sent'}</p>
+      <p class="mb-2 text-xs text-zinc-500">
+        {useTarget.channel_id ? "Where it is sent. It starts as the template's channel" : 'Where it is sent'}
+      </p>
       <ChannelPicker {channels} bind:value={useChannel} none="Pick a channel" label="Channel" class="w-full" />
     </div>
 
@@ -729,14 +936,20 @@
 
     <div class="mt-5 flex justify-end gap-2">
       <Button variant="ghost" onclick={() => (useTarget = null)} disabled={useSending}>Cancel</Button>
-      <Button variant="primary" disabled={!!useMissing.length || !useChannel || useSending} onclick={sendUse}><Send class="h-3.5 w-3.5" />{useSending ? 'Sending…' : 'Send'}</Button>
+      <Button variant="primary" disabled={!!useMissing.length || !useChannel || useSending} onclick={sendUse}
+        ><Send class="h-3.5 w-3.5" />{useSending ? 'Sending…' : 'Send'}</Button
+      >
     </div>
   {/if}
 </Modal>
 
 <Modal show={saveAs} onClose={() => !savingAs && (saveAs = false)}>
-  <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100"><FileText class="w-4 h-4 shrink-0 {toneText.teal}" />Save as template</h3>
-  <p class="mt-3 text-xs leading-relaxed text-zinc-400">The message is saved as it is written, with its <span class="font-mono">{'{names}'}</span> left in, so they can be filled in each time.</p>
+  <h3 class="flex items-center gap-2 font-display text-base font-bold text-zinc-100">
+    <FileText class="w-4 h-4 shrink-0 {toneText.teal}" />Save as template
+  </h3>
+  <p class="mt-3 text-xs leading-relaxed text-zinc-400">
+    The message is saved as it is written, with its <span class="font-mono">{'{names}'}</span> left in, so they can be filled in each time.
+  </p>
   <div class="mt-3">
     <span class={label}>Name</span>
     <Input bind:value={saveAsName} maxlength={50} placeholder="Weekly update" aria-label="Template name" />
@@ -744,11 +957,17 @@
   <div class="mt-3">
     <span class={label}>Subcommand name</span>
     <Input bind:value={saveAsSubCommandName} maxlength={32} placeholder="weekly-update" aria-label="Subcommand name" />
-    <p class="mt-1.5 text-xs text-zinc-500">Typed as <span class="font-mono {toneText.teal}">/announce {saveAsSubCommandName || 'name'}</span>.</p>
+    <p class="mt-1.5 text-xs text-zinc-500">
+      Typed as <span class="font-mono {toneText.teal}">/announce {saveAsSubCommandName || 'name'}</span>.
+    </p>
   </div>
   <div class="mt-5 flex justify-end gap-2">
     <Button variant="ghost" onclick={() => (saveAs = false)} disabled={savingAs}>Cancel</Button>
-    <SaveButton onclick={saveAsTemplate} disabled={!saveAsName.trim() || !/^[a-z0-9_-]{1,32}$/.test(saveAsSubCommandName.trim()) || tooManyVars(draft)} saving={savingAs} />
+    <SaveButton
+      onclick={saveAsTemplate}
+      disabled={!saveAsName.trim() || !/^[a-z0-9_-]{1,32}$/.test(saveAsSubCommandName.trim()) || tooManyVars(draft)}
+      saving={savingAs}
+    />
   </div>
 </Modal>
 

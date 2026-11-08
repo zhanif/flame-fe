@@ -6,7 +6,10 @@
 </script>
 
 <section class="legal space-y-3 text-sm leading-relaxed text-zinc-300">
-  <h2 class="font-display text-lg font-bold text-zinc-100 pb-2 border-b border-zinc-800/50"><span class="text-zinc-500">{n}.</span> {title}</h2>
+  <h2 class="font-display text-lg font-bold text-zinc-100 pb-2 border-b border-zinc-800/50">
+    <span class="text-zinc-500">{n}.</span>
+    {title}
+  </h2>
   {@render children()}
 </section>
 
