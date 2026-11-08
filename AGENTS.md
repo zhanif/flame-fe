@@ -4,6 +4,8 @@ Dashboard for Flame (product context and the API rules: `../flame-be/AGENTS.md`)
 
 Check with `npx svelte-check`. TypeScript stays on `~6` here because `svelte-check` does not run on TS 7. Do not write tests or run a browser agent unless asked.
 
+Git: commit and push only when the owner asks. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, ... with an optional scope such as `fix(bingo):`) and end with the Co-Authored-By line the harness gives.
+
 ## Layout
 
 | Path | What lives there |
