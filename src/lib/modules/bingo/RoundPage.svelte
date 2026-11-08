@@ -363,13 +363,6 @@
                   Link a design to this round first. Together mode can only be applied once the board is assigned.
                 </p>
               {/if}
-              <div class="flex flex-wrap items-center gap-2">
-                {#each ['off', 'positive', 'negative'] as m (m)}
-                  <Button variant={mode === m ? 'primary' : 'secondary'} onclick={() => (mode = m as BingoTogetherMode)} disabled={blank}>
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </Button>
-                {/each}
-              </div>
               <p class="mt-2 text-xs text-zinc-500">
                 {current.together_mode === 'off'
                   ? 'Nothing is applied while the mode is off.'
@@ -406,22 +399,25 @@
                   <span class="font-medium text-zinc-200">{togetherSuggestion.replace('Suggestion: ', '')}</span>
                 </div>
               </div>
-              <div class="mt-3 flex justify-end gap-2">
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                {#each ['off', 'positive', 'negative'] as m (m)}
+                  <Button variant={mode === m ? 'primary' : 'secondary'} onclick={() => (mode = m as BingoTogetherMode)} disabled={blank}>
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </Button>
+                {/each}
+              </div>
+              <div class="mt-3 flex justify-end">
                 <Button
-                  variant="secondary"
-                  onclick={() => {
+                  variant="primary"
+                  disabled={applying || blank}
+                  onclick={async () => {
                     try {
                       localStorage.setItem(`bingo-thresholds:${roundId}`, JSON.stringify({ upper: upperThreshold, lower: lowerThreshold }));
-                      toast('success', 'Thresholds saved');
-                    } catch (e: any) {
-                      toast('error', e?.message ?? 'Could not save');
-                    }
+                    } catch {}
+                    await setMode(mode);
                   }}
                 >
-                  Save thresholds
-                </Button>
-                <Button variant="secondary" onclick={() => setMode(mode)} disabled={applying || blank || mode === current.together_mode}>
-                  {applying ? 'Applying…' : 'Apply role changes'}
+                  {applying ? 'Saving…' : 'Save changes'}
                 </Button>
               </div>
             </Card>
