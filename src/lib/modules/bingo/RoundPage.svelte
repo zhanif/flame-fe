@@ -369,9 +369,6 @@
                     {m.charAt(0).toUpperCase() + m.slice(1)}
                   </Button>
                 {/each}
-                <Button variant="secondary" onclick={() => setMode(mode)} disabled={applying || blank || mode === current.together_mode}>
-                  {applying ? 'Applying…' : 'Apply'}
-                </Button>
               </div>
               <p class="mt-2 text-xs text-zinc-500">
                 {current.together_mode === 'off'
@@ -409,7 +406,7 @@
                   <span class="font-medium text-zinc-200">{togetherSuggestion.replace('Suggestion: ', '')}</span>
                 </div>
               </div>
-              <div class="mt-3 flex justify-end">
+              <div class="mt-3 flex justify-end gap-2">
                 <Button
                   variant="secondary"
                   onclick={() => {
@@ -422,6 +419,9 @@
                   }}
                 >
                   Save thresholds
+                </Button>
+                <Button variant="secondary" onclick={() => setMode(mode)} disabled={applying || blank || mode === current.together_mode}>
+                  {applying ? 'Applying…' : 'Apply role changes'}
                 </Button>
               </div>
             </Card>
