@@ -32,6 +32,8 @@
   let positive = $state(untrack(() => config.positive_role_id ?? ''));
   let negative = $state(untrack(() => config.negative_role_id ?? ''));
   let announce = $state(untrack(() => config.announce_board));
+  let upperThreshold = $state(untrack(() => config.upper_threshold ?? 0));
+  let lowerThreshold = $state(untrack(() => config.lower_threshold ?? 0));
   let saving = $state(false);
   let rescanning = $state(false);
   let scanned = $state<{ found: number; created: number } | null>(null);
@@ -46,7 +48,9 @@
       newcomer !== (config.newcomer_role_id ?? '') ||
       positive !== (config.positive_role_id ?? '') ||
       negative !== (config.negative_role_id ?? '') ||
-      announce !== config.announce_board,
+      announce !== config.announce_board ||
+      upperThreshold !== (config.upper_threshold ?? 0) ||
+      lowerThreshold !== (config.lower_threshold ?? 0),
   );
 
   onMount(async () => {
@@ -66,6 +70,8 @@
         positive_role_id: positive || null,
         negative_role_id: negative || null,
         announce_board: announce,
+        upper_threshold: upperThreshold,
+        lower_threshold: lowerThreshold,
       });
       onSaved(next);
       toast('success', 'Settings saved', 'New threads in the forum are recognised from now on.');
@@ -132,11 +138,12 @@
         <Toggle on={announce} disabled={!isAdmin} label="Send the board automatically" onclick={() => (announce = !announce)} />
       </div>
     </SettingRow>
-    {#if isAdmin}
-      <div class="flex justify-end pt-4">
-        <SaveButton onclick={save} disabled={!dirty} {saving} />
-      </div>
-    {/if}
+    <SettingRow title="Upper threshold" hint="Total participant score above this suggests the positive together mode.">
+      <Input type="number" bind:value={upperThreshold} disabled={!isAdmin} />
+    </SettingRow>
+    <SettingRow title="Lower threshold" hint="Total participant score below this suggests the negative together mode.">
+      <Input type="number" bind:value={lowerThreshold} disabled={!isAdmin} />
+    </SettingRow>
   </Card>
 
   <Card>
@@ -158,19 +165,12 @@
     </SettingRow>
   </Card>
 
-  <Card>
-    <SectionTitle icon={RefreshCw} title="Threads created before now" class="mb-4" />
-    <SettingRow
-      title="Scan the forum"
-      hint={scanned
-        ? `Last scan: ${scanned.found} threads read, ${scanned.created} rounds created.`
-        : 'Reads the active threads and one page of archived ones, and creates the rounds it missed.'}
-    >
-      <div class="flex justify-end">
-        <Button variant="secondary" onclick={rescan} disabled={!isAdmin || rescanning || !channelId}>
-          <RefreshCw class="h-3.5 w-3.5" />{rescanning ? 'Scanning…' : 'Scan now'}
-        </Button>
-      </div>
-    </SettingRow>
-  </Card>
+  {#if isAdmin}
+    <div class="flex justify-end gap-2">
+      <Button variant="secondary" onclick={rescan} disabled={rescanning || !channelId}>
+        <RefreshCw class="h-3.5 w-3.5" />{rescanning ? 'Scanning…' : 'Scan forum'}
+      </Button>
+      <SaveButton onclick={save} disabled={!dirty} {saving} />
+    </div>
+  {/if}
 </div>

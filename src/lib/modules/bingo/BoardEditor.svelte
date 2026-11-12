@@ -80,6 +80,7 @@
     ...rounds.map(round => ({ value: round.id, label: round.tag, hint: round.thread_name })),
   ]);
   const selectedRound = $derived(rounds.find(round => round.id === roundId) ?? null);
+  const locked = $derived(!!selectedRound && (selectedRound.entries ?? 0) >= 1);
   const previewAnswers = $derived(previewAnswered ? (selectedRound?.correct_answers ?? null) : null);
   const heading = $derived(design?.id ? board.title.trim() || 'Untitled design' : 'New design');
 
@@ -204,13 +205,18 @@
         ><Download class="w-3.5 h-3.5" />{exporting ? 'Exporting…' : 'Export PNG'}</Button
       >
       {#if isAdmin}
-        <SaveButton onclick={save} disabled={!dirty} {saving} />
+        <SaveButton onclick={save} disabled={!dirty || locked} {saving} />
       {/if}
     </div>
   </div>
 
+  {#if locked}
+    <p class="mb-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-400 ring-1 ring-amber-500/25">
+      This board is linked to a round that already has entries, so it is read-only.
+    </p>
+  {/if}
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
-    <div class="space-y-5">
+    <div class="space-y-5 {locked ? 'pointer-events-none opacity-50' : ''}">
       <Card>
         <SectionTitle icon={Palette} title="The board" class="mb-4" />
         <div class="grid gap-4 sm:grid-cols-2">

@@ -9,7 +9,7 @@
   import SegmentedControl from '$lib/components/SegmentedControl.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
 
-  import { api, type BingoDesign, type BingoEntry, type BingoRound, type BingoTogetherMode } from '$lib/api/endpoints';
+  import { api, type BingoConfig, type BingoDesign, type BingoEntry, type BingoRound, type BingoTogetherMode } from '$lib/api/endpoints';
   import BingoAnswersGrid from '$lib/modules/bingo/BingoAnswersGrid.svelte';
   import BingoBoard from '$lib/modules/bingo/BingoBoard.svelte';
   import EntriesTab from '$lib/modules/bingo/EntriesTab.svelte';
@@ -50,6 +50,7 @@
   } = $props();
 
   let round: BingoRound | null = $state(null);
+  let bingoConfig: BingoConfig | null = $state(null);
   let design: BingoDesign | null = $state(null);
   let designs = $state<BingoDesign[]>([]);
   let selectedDesignId = $state('');
@@ -58,12 +59,11 @@
   let answers = $state('');
   let mode = $state<BingoTogetherMode>('off');
   let entries = $state<BingoEntry[]>([]);
-  let upperThreshold = $state(0);
-  let lowerThreshold = $state(0);
   let savingAnswers = $state(false);
   let exporting = $state(false);
   let previewAnswered = $state(false);
   let applying = $state(false);
+  let togetherResult = $state<{ granted: number; removed: number } | null>(null);
   let deleting = $state(false);
   let busy = $state(false);
 
@@ -79,6 +79,9 @@
   const modeLabel: Record<BingoTogetherMode, string> = { off: 'Off', positive: 'Positive', negative: 'Negative' };
   const totalScoreAll = $derived(entries.reduce((sum, e) => sum + (e.final_score ?? 0), 0));
   const totalScoreRanked = $derived(entries.filter(e => e.is_ranked).reduce((sum, e) => sum + (e.final_score ?? 0), 0));
+  const hasChanges = $derived(mode !== current?.together_mode);
+  let upperThreshold = $state(0);
+  let lowerThreshold = $state(0);
   const togetherSuggestion = $derived.by((): string => {
     if (totalScoreRanked > upperThreshold) return 'Suggestion: Positive';
     if (totalScoreRanked < lowerThreshold) return 'Suggestion: Negative';
@@ -87,25 +90,21 @@
 
   async function load() {
     try {
-      const [result, designList, entriesResult] = await Promise.all([
+      const [result, designList, entriesResult, configResult] = await Promise.all([
         api.bingo.round(guildId, roundId),
-        api.bingo.designs(guildId),
+        api.bingo.designs(guildId, { page: 1, limit: 100 }),
         api.bingo.entries(guildId, roundId, { page: 1, limit: 1000 }),
+        api.bingo.config(guildId),
       ]);
       round = result.round;
       design = result.design;
+      bingoConfig = configResult;
+      upperThreshold = configResult.upper_threshold ?? 0;
+      lowerThreshold = configResult.lower_threshold ?? 0;
       answers = result.round.correct_answers ?? '';
       mode = result.round.together_mode;
       designs = designList.designs;
       entries = entriesResult.entries ?? [];
-      try {
-        const saved = localStorage.getItem(`bingo-thresholds:${roundId}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          upperThreshold = parsed.upper ?? 0;
-          lowerThreshold = parsed.lower ?? 0;
-        }
-      } catch {}
     } catch (e: any) {
       toast('error', e.message);
       onBack();
@@ -186,6 +185,7 @@
     applying = true;
     try {
       const result = await api.bingo.together(guildId, current.id, next);
+      togetherResult = { granted: result.granted, removed: result.removed };
       toast(
         'success',
         `Together mode: ${modeLabel[next].toLowerCase()}`,
@@ -347,7 +347,10 @@
                 <Button
                   variant="primary"
                   onclick={saveAnswers}
-                  disabled={savingAnswers || blank || answers.replace(/[^YN-]/g, '').length !== 12}
+                  disabled={savingAnswers ||
+                    blank ||
+                    answers.replace(/[^YN-]/g, '').length !== 12 ||
+                    answers === (current?.correct_answers ?? '')}
                 >
                   <Save class="h-3.5 w-3.5" />{savingAnswers ? 'Saving…' : 'Save answers'}
                 </Button>
@@ -358,6 +361,11 @@
           {#if isAdmin}
             <Card>
               <SectionTitle icon={Users} title="Together mode" class="mb-4" />
+              {#if !bingoConfig?.positive_role_id || !bingoConfig?.negative_role_id}
+                <p class="mb-3 text-xs text-amber-400">
+                  Configure the positive and negative together roles in Settings before using this mode.
+                </p>
+              {/if}
               {#if blank}
                 <p class="mb-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-400 ring-1 ring-amber-500/25">
                   Link a design to this round first. Together mode can only be applied once the board is assigned.
@@ -371,22 +379,6 @@
 
               <div class="mt-4 overflow-hidden rounded-lg border border-zinc-800">
                 <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
-                  <label class="text-zinc-400">Upper threshold</label>
-                  <input
-                    type="number"
-                    bind:value={upperThreshold}
-                    class="w-24 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm tabular-nums text-zinc-100"
-                  />
-                </div>
-                <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
-                  <label class="text-zinc-400">Lower threshold</label>
-                  <input
-                    type="number"
-                    bind:value={lowerThreshold}
-                    class="w-24 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-right text-sm tabular-nums text-zinc-100"
-                  />
-                </div>
-                <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2 text-sm">
                   <span class="text-zinc-400">Total score (all)</span>
                   <span class="font-semibold tabular-nums text-zinc-100">{totalScoreAll.toLocaleString('en-US')}</span>
                 </div>
@@ -398,33 +390,47 @@
                   <span class="text-zinc-400">Suggestion</span>
                   <span class="font-medium text-zinc-200">{togetherSuggestion.replace('Suggestion: ', '')}</span>
                 </div>
+                <div class="flex items-center justify-between border-t border-zinc-800 px-3 py-2 text-sm">
+                  <span class="text-zinc-400">Mode</span>
+                  <div class="inline-flex overflow-hidden rounded-lg border border-zinc-700">
+                    {#each ['negative', 'off', 'positive'] as m, i (m)}
+                      <button
+                        type="button"
+                        class="px-3 py-1.5 text-sm font-medium transition-colors {i > 0 ? 'border-l border-zinc-700' : ''} {mode === m
+                          ? m === 'positive'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : m === 'negative'
+                              ? 'bg-rose-500/20 text-rose-300'
+                              : 'bg-zinc-700 text-white'
+                          : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'} disabled:opacity-40"
+                        onclick={() => (mode = m as BingoTogetherMode)}
+                        disabled={applying ||
+                          blank ||
+                          (m === 'positive' && !bingoConfig?.positive_role_id) ||
+                          (m === 'negative' && !bingoConfig?.negative_role_id)}
+                      >
+                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
               </div>
-              <div class="mt-3 flex border-b border-zinc-800">
-                {#each ['off', 'positive', 'negative'] as m (m)}
-                  <button
-                    type="button"
-                    class="px-4 py-2 text-sm font-medium transition-colors {mode === m
-                      ? 'border-b-2 border-indigo-500 text-zinc-100'
-                      : 'text-zinc-500 hover:text-zinc-300'}"
-                    onclick={() => (mode = m as BingoTogetherMode)}
-                    disabled={blank}
-                  >
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </button>
-                {/each}
-              </div>
+              {#if applying}
+                <p class="mt-2 text-xs text-amber-400">Applying role changes… this may take a moment.</p>
+              {:else if togetherResult}
+                <p class="mt-2 text-xs text-zinc-400">
+                  Last apply: {togetherResult.granted} added, {togetherResult.removed} removed.
+                </p>
+              {/if}
               <div class="mt-3 flex justify-end">
                 <Button
                   variant="primary"
-                  disabled={applying || blank}
+                  disabled={applying || blank || !hasChanges}
                   onclick={async () => {
-                    try {
-                      localStorage.setItem(`bingo-thresholds:${roundId}`, JSON.stringify({ upper: upperThreshold, lower: lowerThreshold }));
-                    } catch {}
                     await setMode(mode);
                   }}
                 >
-                  {applying ? 'Saving…' : 'Save changes'}
+                  <Save class="h-3.5 w-3.5" />{applying ? 'Saving…' : 'Save changes'}
                 </Button>
               </div>
             </Card>

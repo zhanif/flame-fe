@@ -61,6 +61,8 @@
   let quotes: QuoteEntry[] = $state([]);
   let limit = $state(10);
   let total = $state(0);
+  let statusFilter = $state('all');
+  let search = $state('');
   let loading = $state(true);
   let loaded = $state(false);
 
@@ -82,7 +84,7 @@
   async function loadQuotes() {
     loading = true;
     try {
-      const res = await api.quotes(guildId, { page, limit });
+      const res = await api.quotes(guildId, { page, limit, status: statusFilter, search: search || undefined });
       quotes = res.quotes;
       total = res.pagination.total;
       loaded = true;
@@ -148,7 +150,7 @@
 
   // The quotes are read whenever the page (or the size of a page) changes, the browser's Back included.
   $effect(() => {
-    void [page, limit];
+    void [page, limit, statusFilter, search];
     untrack(() => void loadQuotes());
   });
   const goTo = (p: number) => (pageParam.value = p);
@@ -198,6 +200,18 @@
   {:else if loaded && total === 0}
     <EmptyState kind="quote" title="No quotes yet" description="Right-click a message, choose Apps, then Quote to make the first one." />
   {:else}
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <Input placeholder="Search..." bind:value={search} oninput={() => (pageParam.value = 1)} class="w-64" />
+      <select
+        bind:value={statusFilter}
+        onchange={() => (pageParam.value = 1)}
+        class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100"
+      >
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="deleted">Deleted</option>
+      </select>
+    </div>
     <Card flush>
       {#if !loaded}
         <TableSkeleton

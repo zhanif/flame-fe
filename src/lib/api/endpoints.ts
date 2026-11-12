@@ -625,6 +625,8 @@ export interface BingoConfig {
   positive_role_id: string | null;
   negative_role_id: string | null;
   announce_board: boolean;
+  upper_threshold: number | null;
+  lower_threshold: number | null;
   warnings: string[];
   defaults: { board: BingoBoard };
   limits: BingoLimits;
@@ -718,8 +720,10 @@ export const api = {
     for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));
     return apiCall<{ logs: AuditLogEntry[]; pagination: Pagination }>(`/guilds/${guildId}/audit-logs?${params}`);
   },
-  quotes: (guildId: string, query: { page: number; limit: number }) =>
-    apiCall<{ quotes: QuoteEntry[]; pagination: Pagination }>(`/guilds/${guildId}/m/quotes/quotes?page=${query.page}&limit=${query.limit}`),
+  quotes: (guildId: string, query: { page: number; limit: number; status?: string; search?: string }) =>
+    apiCall<{ quotes: QuoteEntry[]; pagination: Pagination }>(
+      `/guilds/${guildId}/m/quotes/quotes?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}${query.search ? `&search=${encodeURIComponent(query.search)}` : ''}`,
+    ),
   deleteQuote: (guildId: string, id: string, reason: string) =>
     apiCall<QuoteDeleteResult>(`/guilds/${guildId}/m/quotes/quotes/${id}`, 'DELETE', { reason }),
   quoteSettings: (guildId: string) => apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`),
@@ -882,7 +886,10 @@ export const api = {
         `/guilds/${guildId}/m/bingo/threads?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
       ),
     round: (guildId: string, id: string) => apiCall<{ round: BingoRound; design: BingoDesign }>(`/guilds/${guildId}/m/bingo/threads/${id}`),
-    designs: (guildId: string) => apiCall<{ designs: BingoDesign[] }>(`/guilds/${guildId}/m/bingo/designs`),
+    designs: (guildId: string, query: { page: number; limit: number }) =>
+      apiCall<{ designs: BingoDesign[]; pagination: Pagination }>(
+        `/guilds/${guildId}/m/bingo/designs?page=${query.page}&limit=${query.limit}`,
+      ),
     design: (guildId: string, id: string) => apiCall<BingoDesign>(`/guilds/${guildId}/m/bingo/designs/${id}`),
     createDesign: (guildId: string, body: { board: BingoBoard; round_id: string | null }) =>
       apiCall<BingoDesign & { rescored: number }>(`/guilds/${guildId}/m/bingo/designs`, 'POST', body),

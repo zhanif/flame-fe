@@ -9,7 +9,8 @@
   import { api, type BingoRound, type BingoRoundStatus } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { td, th } from '$lib/ui';
-  import { Check, PencilRuler, RotateCcw, Trash2 } from '@lucide/svelte';
+  const cell = td.replace('h-11', 'h-14');
+  import { Check, MessageSquare, PencilRuler, RotateCcw, Trash2 } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
   // The rounds of this server: one per thread whose first message carried the tag.
@@ -125,43 +126,49 @@
   {:else}
     <Card flush>
       <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-zinc-800/60">
+            <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
               <th class="{th} w-16">#</th>
               <th class={th}>Tag</th>
               <th class={th}>Thread</th>
               <th class="{th} w-28">Status</th>
               <th class="{th} w-24">Board</th>
               <th class="{th} w-20 text-right">Entries</th>
-              <th class="{th} w-24 text-right">Top score</th>
+              <th class="{th} w-32 text-right">Top score</th>
               <th class="{th} w-12"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-800/30">
             {#each rounds as round, index (round.id)}
-              <tr class="transition hover:bg-zinc-800/20">
-                <td class="{td} w-16 text-zinc-500">{(page - 1) * limit + index + 1}</td>
-                <td class={td}>
+              <tr class="transition hover:bg-zinc-800/30">
+                <td class="{cell} w-16 text-zinc-500">{(page - 1) * limit + index + 1}</td>
+                <td class={cell}>
                   <button
                     type="button"
                     onclick={() => onOpen(round.id)}
                     class="cursor-pointer font-mono text-xs font-semibold text-rose-300 hover:underline">{round.tag}</button
                   >
                 </td>
-                <td class={td}><p class="max-w-[22rem] truncate text-xs text-zinc-300" title={round.thread_name}>{round.thread_name}</p></td
-                >
-                <td class="{td} w-28"><span class="text-xs text-zinc-300">{statusLabel[round.status]}</span></td>
-                <td class="{td} w-24">
+                <td class={cell}>
+                  <span
+                    class="inline-flex max-w-[22rem] items-center gap-1.5 rounded-md bg-zinc-800/70 px-2 py-1 text-xs font-medium text-zinc-200 ring-1 ring-zinc-700/60"
+                  >
+                    <MessageSquare class="h-3 w-3 shrink-0 text-zinc-400" />
+                    <span class="truncate" title={round.thread_name}>{round.thread_name}</span>
+                  </span>
+                </td>
+                <td class="{cell} w-28"><span class="text-xs text-zinc-300">{statusLabel[round.status]}</span></td>
+                <td class="{cell} w-24">
                   <span class="text-xs {round.board_ready ? 'text-zinc-300' : round.has_design ? 'text-amber-400' : 'text-zinc-500'}">
                     {round.board_ready ? 'Ready' : round.has_design ? 'Draft' : 'None'}
                   </span>
                 </td>
-                <td class="{td} w-20 text-right text-zinc-300">{round.entries}</td>
-                <td class="{td} w-24 text-right text-zinc-300"
+                <td class="{cell} w-20 text-right text-zinc-300">{round.entries}</td>
+                <td class="{cell} w-32 text-right text-zinc-300"
                   >{round.top_score === null ? '-' : round.top_score.toLocaleString('en-US')}</td
                 >
-                <td class="{td} w-12 text-right">
+                <td class="{cell} w-12 text-right">
                   <RowMenu
                     items={[
                       { label: 'View round', icon: PencilRuler, onclick: () => onOpen(round.id) },

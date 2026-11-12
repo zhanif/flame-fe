@@ -3,14 +3,15 @@
   import Card from '$lib/components/Card.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import Pagination from '$lib/components/Pagination.svelte';
   import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type BingoConfig, type BingoDesign, type BingoRound } from '$lib/api/endpoints';
   import BoardEditor from '$lib/modules/bingo/BoardEditor.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, td, th } from '$lib/ui';
+  import { untrack } from 'svelte';
   import { Copy, Paintbrush, Trash2 } from '@lucide/svelte';
-  import { onMount } from 'svelte';
 
   // Boards stored for this server. A design lives on its own, whether or not a round exists, and can be assigned
   // to a round without being part of it.
@@ -34,6 +35,9 @@
 
   let designs = $state<BingoDesign[]>([]);
   let rounds = $state<BingoRound[]>([]);
+  let page = $state(1);
+  let limit = $state(10);
+  let total = $state(0);
   let loaded = $state(false);
   let deleting = $state<BingoDesign | null>(null);
   let busy = $state(false);
@@ -74,8 +78,12 @@
 
   async function load() {
     try {
-      const [designList, roundList] = await Promise.all([api.bingo.designs(guildId), api.bingo.rounds(guildId, { page: 1, limit: 100 })]);
+      const [designList, roundList] = await Promise.all([
+        api.bingo.designs(guildId, { page, limit }),
+        api.bingo.rounds(guildId, { page: 1, limit: 100 }),
+      ]);
       designs = designList.designs;
+      total = designList.pagination.total;
       rounds = roundList.rounds;
       loaded = true;
     } catch (e: any) {
@@ -83,7 +91,10 @@
     }
   }
 
-  onMount(load);
+  $effect(() => {
+    void [page, limit];
+    untrack(() => void load());
+  });
 
   function saved(next: BingoDesign) {
     designs = designs.some(design => design.id === next.id)
@@ -91,6 +102,11 @@
       : [next, ...designs];
     if (designId === 'new') onOpen(next.id, next.round_id ?? '');
   }
+
+  const setLimit = (next: number) => {
+    limit = next;
+    page = 1;
+  };
 
   async function remove() {
     if (!deleting) return;
@@ -183,7 +199,7 @@
             <tbody class="divide-y divide-zinc-800/30">
               {#each designs as design, index (design.id)}
                 <tr class="hover:bg-zinc-800/30 transition-colors">
-                  <td class="{cell} text-zinc-500">{index + 1}</td>
+                  <td class="{cell} text-zinc-500">{(page - 1) * limit + index + 1}</td>
                   <td class="{cell} text-zinc-200">
                     <p class="truncate">{titleOf(design)}</p>
                     <p class="truncate text-xs text-zinc-500">{design.board.subtitle.trim() || 'No subtitle'}</p>
@@ -201,6 +217,7 @@
               {/each}
             </tbody>
           </table>
+          <Pagination {page} {limit} {total} onPage={p => (page = p)} onLimit={setLimit} />
         {/if}
       </Card>
     {/if}
