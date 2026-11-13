@@ -4,6 +4,7 @@
   import FormSkeleton from '$lib/components/FormSkeleton.svelte';
   import ModulePageSkeleton from '$lib/components/ModulePageSkeleton.svelte';
   import PageHeaderSkeleton from '$lib/components/PageHeaderSkeleton.svelte';
+  import SettingsSkeleton from '$lib/components/SettingsSkeleton.svelte';
   import { api } from '$lib/api/endpoints';
   import { bot } from '$lib/stores/bot.svelte';
   import { router } from '$lib/stores/router.svelte';
@@ -173,6 +174,8 @@
           <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
           {#if moduleId}
             <ModulePageSkeleton module={moduleId} {guildId} />
+          {:else if page === 'settings'}
+            <SettingsSkeleton />
           {:else}
             <Card>
               <FormSkeleton fields={2} />
@@ -191,6 +194,8 @@
           <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
           {#if moduleId}
             <ModulePageSkeleton module={moduleId} {guildId} />
+          {:else if page === 'settings'}
+            <SettingsSkeleton />
           {:else}
             <Card>
               <FormSkeleton fields={2} />

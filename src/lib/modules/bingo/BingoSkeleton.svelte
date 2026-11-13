@@ -170,6 +170,9 @@
           </div>
         </Card>
         <div class="h-2.5 w-3/4 rounded bg-zinc-800/30 animate-pulse"></div>
+        <div class="mt-2">
+          <ControlSkeleton class="w-full" h="h-9" />
+        </div>
       </div>
     </div>
   {:else}

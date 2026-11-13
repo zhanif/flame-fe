@@ -15,7 +15,7 @@
   import { api, type BingoBoard as Board, type BingoDesign, type BingoLimits, type BingoRound } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, label } from '$lib/ui';
-  import { ArrowLeft, Coins, Download, Eye, EyeOff, Palette, Plus, Shuffle, Trophy } from '@lucide/svelte';
+  import { ArrowLeft, ArrowRight, Coins, Download, Eye, EyeOff, Palette, Plus, Shuffle, Trophy } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
   // A board stored on its own. It can be assigned to a round, but nothing forces it: a design exists whether or
@@ -31,6 +31,7 @@
     onSaved,
     onCancel,
     backLabel = 'Back to designs',
+    onViewRound,
   }: {
     guildId: string;
     design: BingoDesign | null;
@@ -41,6 +42,7 @@
     isAdmin: boolean;
     onSaved: (design: BingoDesign) => void;
     onCancel: () => void;
+    onViewRound?: (roundId: string) => void;
     backLabel?: string;
   } = $props();
 
@@ -210,11 +212,6 @@
     </div>
   </div>
 
-  {#if locked}
-    <p class="mb-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-400 ring-1 ring-amber-500/25">
-      This board is linked to a round that already has entries, so it is read-only.
-    </p>
-  {/if}
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,30rem)]">
     <div class="space-y-5 {locked ? 'pointer-events-none opacity-50' : ''}">
       <Card>
@@ -403,6 +400,16 @@
           ? 'Green is Y, red is N, gray is a skipped bonus. The bands turn gray in this preview.'
           : 'Numbers are the board position, points are what the question is worth.'}
       </p>
+      {#if locked}
+        <p class="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-400 ring-1 ring-amber-500/25">
+          This board is linked to a round that already has entries, so it is read-only.
+        </p>
+        <div class="mt-2">
+          <Button variant="secondary" class="w-full" onclick={() => onViewRound?.(roundId)}>
+            <ArrowRight class="h-3.5 w-3.5" />View Round Detail
+          </Button>
+        </div>
+      {/if}
     </div>
   </div>
 </div>

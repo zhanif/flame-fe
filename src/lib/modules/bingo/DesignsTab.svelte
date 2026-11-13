@@ -24,6 +24,7 @@
     initialRoundId,
     onOpen,
     onClose,
+    onViewRound,
   }: {
     guildId: string;
     config: BingoConfig;
@@ -32,6 +33,7 @@
     initialRoundId: string;
     onOpen: (designId: string, roundId?: string) => void;
     onClose: () => void;
+    onViewRound?: (roundId: string) => void;
   } = $props();
 
   let designs = $state<BingoDesign[]>([]);
@@ -153,6 +155,7 @@
         onSaved={saved}
         onCancel={onClose}
         backLabel={initialRoundId ? 'Back to round' : 'Back to designs'}
+        {onViewRound}
       />
     {/key}
   {:else if missing}

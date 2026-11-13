@@ -411,18 +411,59 @@
     {
       label: 'Open in Discord',
       icon: ExternalLink,
-      onclick: () => window.open(`https://discord.com/channels/${guildId}/${entry.channel_id}/${entry.message_id}`, '_blank', 'noreferrer'),
+      onclick: async () => {
+        try {
+          const fresh = await api.announcements.get(guildId, entry.id);
+          if (fresh.status !== 'sent') {
+            toast('error', 'The specified announcement was deleted in Discord');
+            await loadHistory();
+            return;
+          }
+        } catch (e: any) {
+          toast('error', e.message);
+          return;
+        }
+        window.open(`https://discord.com/channels/${guildId}/${entry.channel_id}/${entry.message_id}`, '_blank', 'noreferrer');
+      },
     },
     {
       label: 'Edit',
       icon: Pencil,
-      onclick: () => {
+      onclick: async () => {
         if (editEntry?.id === entry.id) return void (editEntry = null);
-        editEntry = entry;
-        editEntryDraft = draftOf(entry);
+        try {
+          const fresh = await api.announcements.get(guildId, entry.id);
+          if (fresh.status !== 'sent') {
+            toast('error', 'The specified announcement was deleted in Discord');
+            await loadHistory();
+            return;
+          }
+          editEntry = fresh;
+          editEntryDraft = draftOf(fresh);
+        } catch (e: any) {
+          toast('error', e.message);
+        }
       },
     },
-    { label: 'Delete', icon: Trash2, danger: true, onclick: () => (deleteTarget = entry) },
+    {
+      label: 'Delete',
+      icon: Trash2,
+      danger: true,
+      onclick: async () => {
+        try {
+          const fresh = await api.announcements.get(guildId, entry.id);
+          if (fresh.status !== 'sent') {
+            toast('error', 'The specified announcement was deleted in Discord');
+            await loadHistory();
+            return;
+          }
+        } catch (e: any) {
+          toast('error', e.message);
+          return;
+        }
+        deleteTarget = entry;
+      },
+    },
   ];
 
   const snippet = (entry: AnnouncementEntry) =>

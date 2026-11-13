@@ -8,15 +8,18 @@ export interface BotInfo {
   invite_url: string;
 }
 
-/** How the bot looks in one server: its nickname and avatar there, and the ones it has everywhere else. */
+/** How the bot looks in one server: its nickname, avatar and background there, and the ones it has everywhere else. */
 export interface BotProfile {
-  /** Setting the bot's own avatar in a server is a premium feature; the nickname is not. */
+  /** Setting the bot's own avatar and background in a server is a premium feature; the nickname is not. */
   premium: boolean;
   /** What members see: the server nickname when set, else the bot's own name. */
   name: string;
   nickname: string | null;
   avatar_url: string;
   has_guild_avatar: boolean;
+  /** The background behind the bot on its profile in this server, or null when it has none. */
+  background_url: string | null;
+  has_guild_background: boolean;
   global_name: string;
   global_avatar_url: string;
 }
@@ -710,7 +713,7 @@ export const api = {
 
   settings: (guildId: string) => apiCall<GuildSettings>(`/guilds/${guildId}/settings`),
   botProfile: (guildId: string) => apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`),
-  updateBotProfile: (guildId: string, patch: { nickname?: string | null; avatar?: string | null }) =>
+  updateBotProfile: (guildId: string, patch: { nickname?: string | null; avatar?: string | null; background?: string | null }) =>
     apiCall<BotProfile>(`/guilds/${guildId}/bot-profile`, 'PUT', patch),
   updateSettings: (guildId: string, patch: Partial<GuildSettings>) => apiCall<GuildSettings>(`/guilds/${guildId}/settings`, 'PUT', patch),
   roles: (guildId: string) => apiCall<DiscordRole[]>(`/guilds/${guildId}/roles`),
@@ -853,6 +856,7 @@ export const api = {
       apiCall<{ announcements: AnnouncementEntry[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/announcements/announcements?page=${query.page}&limit=${query.limit}`,
       ),
+    get: (guildId: string, id: string) => apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements/${id}`),
     send: (guildId: string, body: Record<string, unknown>) =>
       apiCall<AnnouncementEntry>(`/guilds/${guildId}/m/announcements/announcements`, 'POST', body),
     edit: (guildId: string, id: string, body: Record<string, unknown>) =>

@@ -128,6 +128,7 @@
         initialRoundId={forParam.value}
         onOpen={openDesign}
         onClose={closeDesign}
+        onViewRound={openRound}
       />
     {:else}
       <BingoSkeleton view="design" />
@@ -163,7 +164,16 @@
     {:else if tab === 'settings'}
       <SettingsTab {guildId} {config} {isAdmin} onSaved={next => (config = next)} />
     {:else if tab === 'designs'}
-      <DesignsTab {guildId} {config} {isAdmin} designId="" initialRoundId="" onOpen={openDesign} onClose={closeDesign} />
+      <DesignsTab
+        {guildId}
+        {config}
+        {isAdmin}
+        designId=""
+        initialRoundId=""
+        onOpen={openDesign}
+        onClose={closeDesign}
+        onViewRound={openRound}
+      />
     {:else}
       <ThreadsTab {guildId} {isAdmin} onOpen={openRound} />
     {/if}

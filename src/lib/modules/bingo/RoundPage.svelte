@@ -501,7 +501,7 @@
                   disabled={busy || (current?.entries ?? 0) > 0}
                   onclick={() => onOpenDesign(current.design_id ?? '', current.id)}
                 >
-                  <PencilRuler class="h-3.5 w-3.5" />{current.design_id ? 'Restyle design' : 'Create design'}
+                  <PencilRuler class="h-3.5 w-3.5" />{current.design_id ? 'View Design Detail' : 'Create design'}
                 </Button>
                 <Button variant="secondary" class="w-full" disabled={busy || (current?.entries ?? 0) > 0} onclick={unlinkDesign}>
                   <X class="h-3.5 w-3.5" />Unlink design
