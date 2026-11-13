@@ -368,10 +368,12 @@
                   Link a design to this round first. Together mode can only be applied once the board is assigned.
                 </p>
               {/if}
-              <p class="mt-2 text-xs text-zinc-500">
-                {current.together_mode === 'off'
-                  ? 'Nothing is applied while the mode is off.'
-                  : `The ${current.together_mode} role is applied to the ranked participants.`}
+              <p class="mt-2 rounded-xl bg-sky-500/10 px-4 py-3 text-xs text-sky-300 ring-1 ring-sky-500/25">
+                {mode === 'off'
+                  ? 'Nothing is applied while the mode is off, both roles are taken away from everyone.'
+                  : mode === 'positive'
+                    ? 'The positive role will be given to all participants.'
+                    : 'The negative role will be given to all participants.'}
               </p>
 
               <div class="mt-4 overflow-hidden rounded-lg border border-zinc-800">
@@ -498,7 +500,7 @@
                 <Button
                   variant="secondary"
                   class="w-full"
-                  disabled={busy || (current?.entries ?? 0) > 0}
+                  disabled={busy}
                   onclick={() => onOpenDesign(current.design_id ?? '', current.id)}
                 >
                   <PencilRuler class="h-3.5 w-3.5" />{current.design_id ? 'View Design Detail' : 'Create design'}
