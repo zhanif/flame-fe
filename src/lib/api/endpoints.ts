@@ -521,7 +521,8 @@ export interface ChatCompletionTest {
 /** How many answers one member got today, with the name and avatar to show. */
 export interface ChatCompletionMemberUsage {
   user: UserProfile;
-  count: number;
+  today: number;
+  all_time: number;
 }
 
 /** The Statistic tab: today's answers for this server, and per member. */

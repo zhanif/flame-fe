@@ -1,13 +1,12 @@
 <script lang="ts">
   import Button from '$lib/components/Button.svelte';
-  import Card from '$lib/components/Card.svelte';
-  import FormSkeleton from '$lib/components/FormSkeleton.svelte';
   import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import { api, type BingoConfig } from '$lib/api/endpoints';
   import DesignsTab from '$lib/modules/bingo/DesignsTab.svelte';
+  import BingoSkeleton from '$lib/modules/bingo/BingoSkeleton.svelte';
   import RoundPage from '$lib/modules/bingo/RoundPage.svelte';
   import SettingsTab from '$lib/modules/bingo/SettingsTab.svelte';
   import ThreadsTab from '$lib/modules/bingo/ThreadsTab.svelte';
@@ -111,20 +110,28 @@
 <PageHeader module="bingo" description="Bingo rounds in a forum thread" />
 
 <div class="space-y-5">
-  {#if roundParam.value && config}
-    {#key roundParam.value}
-      <RoundPage {guildId} roundId={roundParam.value} {isAdmin} onBack={closeRound} onOpenDesign={openDesign} />
-    {/key}
-  {:else if designParam.value && config}
-    <DesignsTab
-      {guildId}
-      {config}
-      {isAdmin}
-      designId={designParam.value}
-      initialRoundId={forParam.value}
-      onOpen={openDesign}
-      onClose={closeDesign}
-    />
+  {#if roundParam.value}
+    {#if config}
+      {#key roundParam.value}
+        <RoundPage {guildId} roundId={roundParam.value} {isAdmin} onBack={closeRound} onOpenDesign={openDesign} />
+      {/key}
+    {:else}
+      <BingoSkeleton view="round" />
+    {/if}
+  {:else if designParam.value}
+    {#if config}
+      <DesignsTab
+        {guildId}
+        {config}
+        {isAdmin}
+        designId={designParam.value}
+        initialRoundId={forParam.value}
+        onOpen={openDesign}
+        onClose={closeDesign}
+      />
+    {:else}
+      <BingoSkeleton view="design" />
+    {/if}
   {:else}
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <Tabs
@@ -152,7 +159,7 @@
     {/if}
 
     {#if !config}
-      <Card><FormSkeleton fields={3} /></Card>
+      <BingoSkeleton view={tab === 'settings' ? 'settings' : tab === 'designs' ? 'designs' : 'threads'} />
     {:else if tab === 'settings'}
       <SettingsTab {guildId} {config} {isAdmin} onSaved={next => (config = next)} />
     {:else if tab === 'designs'}

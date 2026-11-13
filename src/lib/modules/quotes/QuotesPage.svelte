@@ -12,13 +12,14 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
+  import Select from '$lib/components/Select.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type DiscordChannel, type QuoteEntry } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlNumber, urlParam } from '$lib/url-param';
   import { label, td, th } from '$lib/ui';
-  import { Info, Megaphone, Quote, ScrollText, Settings, Trash2 } from '@lucide/svelte';
+  import { Info, Megaphone, Quote, ScrollText, Search, Settings, Trash2 } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -61,7 +62,7 @@
   let quotes: QuoteEntry[] = $state([]);
   let limit = $state(10);
   let total = $state(0);
-  let statusFilter = $state('all');
+  let statusFilter = $state('');
   let search = $state('');
   let loading = $state(true);
   let loaded = $state(false);
@@ -197,85 +198,105 @@
         <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
       {/if}
     </Card>
-  {:else if loaded && total === 0}
-    <EmptyState kind="quote" title="No quotes yet" description="Right-click a message, choose Apps, then Quote to make the first one." />
   {:else}
-    <div class="mb-3 flex flex-wrap items-center gap-2">
-      <Input placeholder="Search..." bind:value={search} oninput={() => (pageParam.value = 1)} class="w-64" />
-      <select
+    <div class="mb-3 flex items-center gap-2">
+      <Select
         bind:value={statusFilter}
         onchange={() => (pageParam.value = 1)}
-        class="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm text-zinc-100"
-      >
-        <option value="all">All</option>
-        <option value="active">Active</option>
-        <option value="deleted">Deleted</option>
-      </select>
+        placeholder="All"
+        label="Status"
+        defaulted
+        options={[
+          { value: 'active', label: 'Active' },
+          { value: 'deleted', label: 'Deleted' },
+        ]}
+        class="w-36 shrink-0"
+      />
+      <Input
+        placeholder="Search..."
+        icon={Search}
+        bind:value={search}
+        oninput={() => (pageParam.value = 1)}
+        class="min-w-0 flex-1 sm:flex-none sm:w-64"
+      />
     </div>
-    <Card flush>
-      {#if !loaded}
-        <TableSkeleton
-          columns={['w-16', 'flex-1', 'w-64', 'w-64', 'w-36', 'w-36', 'w-16']}
-          headings={['#', 'Quote', 'Author', 'Quoted by', 'Quoted', 'Status', '']}
-          kinds={['bar', 'bar', 'actor', 'actor', 'bar', 'pill', 'action']}
-          rows={5}
-          rowHeight="h-14"
-        />
+
+    {#if loaded && total === 0}
+      {#if statusFilter || search.trim()}
+        <EmptyState kind="search" title="No quotes match" description="Try another search or another status." />
       {:else}
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
-              <th class="{th} w-16">#</th>
-              <th class={th}>Quote</th>
-              <th class="{th} w-64">Author</th>
-              <th class="{th} w-64">Quoted by</th>
-              <th class="{th} w-36">Quoted</th>
-              <th class="{th} w-36">Status</th>
-              <th class="{th} w-16"><span class="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-800/30">
-            {#each quotes as quote (quote.id)}
-              <tr class="hover:bg-zinc-800/30 transition-colors">
-                <td class="{cell} text-zinc-500">{quote.number}</td>
-                <td class="{cell} text-zinc-200"><span class="line-clamp-2">{quote.content}</span></td>
-                <td class={cell}
-                  >{#if quote.author}<ActorCell actor={quote.author} />{/if}</td
-                >
-                <td class={cell}
-                  >{#if quote.creator}<ActorCell actor={quote.creator} />{/if}</td
-                >
-                <td class="{cell} text-zinc-500 whitespace-nowrap">{when(quote.created_at)}</td>
-                <td class={cell}>
-                  {#if quote.deleted}
-                    <Badge tone="danger">Deleted</Badge>
-                  {:else}
-                    <Badge tone={quote.published ? 'success' : 'neutral'}>{quote.published ? 'Published' : 'Not published'}</Badge>
-                  {/if}
-                </td>
-                <td class="{cell} text-right">
-                  {#if quote.deleted}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Deletion log of quote {quote.number}"
-                      onclick={() => (logTarget = quote)}
-                    >
-                      <ScrollText class="w-3.5 h-3.5" />
-                    </Button>
-                  {:else}
-                    <Button variant="ghost" size="icon" aria-label="Delete quote {quote.number}" onclick={() => openDelete(quote)}>
-                      <Trash2 class="w-3.5 h-3.5 text-red-400" />
-                    </Button>
-                  {/if}
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-        <Pagination {page} {limit} {total} onPage={goTo} onLimit={setLimit} disabled={loading} />
+        <EmptyState
+          kind="quote"
+          title="No quotes yet"
+          description="Right-click a message, choose Apps, then Quote to make the first one."
+        />
       {/if}
-    </Card>
+    {:else}
+      <Card flush>
+        {#if !loaded}
+          <TableSkeleton
+            columns={['w-16', 'flex-1', 'w-64', 'w-64', 'w-36', 'w-36', 'w-16']}
+            headings={['#', 'Quote', 'Author', 'Quoted by', 'Quoted', 'Status', '']}
+            kinds={['bar', 'bar', 'actor', 'actor', 'bar', 'pill', 'action']}
+            rows={5}
+            rowHeight="h-14"
+          />
+        {:else}
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
+                <th class="{th} w-16">#</th>
+                <th class={th}>Quote</th>
+                <th class="{th} w-64">Author</th>
+                <th class="{th} w-64">Quoted by</th>
+                <th class="{th} w-36">Quoted</th>
+                <th class="{th} w-36">Status</th>
+                <th class="{th} w-16"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800/30">
+              {#each quotes as quote (quote.id)}
+                <tr class="hover:bg-zinc-800/30 transition-colors">
+                  <td class="{cell} text-zinc-500">{quote.number}</td>
+                  <td class="{cell} text-zinc-200"><span class="line-clamp-2">{quote.content}</span></td>
+                  <td class={cell}
+                    >{#if quote.author}<ActorCell actor={quote.author} />{/if}</td
+                  >
+                  <td class={cell}
+                    >{#if quote.creator}<ActorCell actor={quote.creator} />{/if}</td
+                  >
+                  <td class="{cell} text-zinc-500 whitespace-nowrap">{when(quote.created_at)}</td>
+                  <td class={cell}>
+                    {#if quote.deleted}
+                      <Badge tone="danger">Deleted</Badge>
+                    {:else}
+                      <Badge tone={quote.published ? 'success' : 'neutral'}>{quote.published ? 'Published' : 'Not published'}</Badge>
+                    {/if}
+                  </td>
+                  <td class="{cell} text-right">
+                    {#if quote.deleted}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Deletion log of quote {quote.number}"
+                        onclick={() => (logTarget = quote)}
+                      >
+                        <ScrollText class="w-3.5 h-3.5" />
+                      </Button>
+                    {:else}
+                      <Button variant="ghost" size="icon" aria-label="Delete quote {quote.number}" onclick={() => openDelete(quote)}>
+                        <Trash2 class="w-3.5 h-3.5 text-red-400" />
+                      </Button>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+          <Pagination {page} {limit} {total} onPage={goTo} onLimit={setLimit} disabled={loading} />
+        {/if}
+      </Card>
+    {/if}
   {/if}
 </div>
 

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import ChatCompletionSkeleton from '$lib/modules/chat-completion/ChatCompletionSkeleton.svelte';
+  import BingoSkeleton from '$lib/modules/bingo/BingoSkeleton.svelte';
+  import { urlParam } from '$lib/url-param';
   import Card from './Card.svelte';
   import ControlSkeleton from './ControlSkeleton.svelte';
   import TableSkeleton from './TableSkeleton.svelte';
@@ -17,7 +20,17 @@
     'ocr-detection': [36, 32],
     'role-colors': [],
     announcements: [28, 32, 28],
+    'chat-completion': [32, 24, 32, 28],
+    bingo: [28, 28, 32],
   };
+
+  // Bingo opens a round or a design by address, and its tabs are otherwise the body's shape.
+  const bingoView = $derived.by<'threads' | 'designs' | 'settings' | 'round' | 'design'>(() => {
+    if (urlParam('round').value) return 'round';
+    if (urlParam('design').value) return 'design';
+    const tab = urlParam('tab', 'threads').value;
+    return tab === 'settings' || tab === 'designs' ? tab : 'threads';
+  });
 
   // The number of panels the last visit had, so a reload shows as many.
   const panelCount = $derived.by(() => {
@@ -69,6 +82,30 @@
         </Card>
       {/each}
     </div>
+  {:else if module === 'chat-completion'}
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-800/50 ring-1 ring-zinc-700/50">
+        {#each TABS[module] ?? [28, 28] as width, n (n)}
+          <div class="h-8 w-{width} rounded-lg bg-zinc-700/30 animate-pulse"></div>
+        {/each}
+      </div>
+      <ControlSkeleton class="w-32" h="h-8" />
+    </div>
+    <ChatCompletionSkeleton />
+  {:else if module === 'bingo'}
+    {#if bingoView === 'round' || bingoView === 'design'}
+      <BingoSkeleton view={bingoView} />
+    {:else}
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-800/50 ring-1 ring-zinc-700/50">
+          {#each TABS[module] ?? [28, 28] as width, n (n)}
+            <div class="h-8 w-{width} rounded-lg bg-zinc-700/30 animate-pulse"></div>
+          {/each}
+        </div>
+        <ControlSkeleton class="w-32" h="h-8" />
+      </div>
+      <BingoSkeleton view={bingoView} />
+    {/if}
   {:else}
     <div class="flex items-center justify-between gap-3 flex-wrap">
       {#if (TABS[module] ?? [28, 28]).length}

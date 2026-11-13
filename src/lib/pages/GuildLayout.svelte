@@ -59,6 +59,10 @@
 
   const moduleId = $derived(router.moduleId);
   const moduleOpening = $derived(!!moduleId && moduleCatalog.loading);
+
+  // The Dashboard draws its own skeletons (the server card and the module grids) while the server list is still
+  // loading, so it is not swapped for the generic page skeleton and then mounted a second time.
+  const dashboardPending = $derived(corePage === 'dashboard' && !moduleId && !guild && session.guildsLoading);
   const activeModule = $derived(
     moduleId && MODULE_VIEWS[moduleId] && moduleCatalog.entries.some(m => m.id === moduleId && m.installed) ? moduleId : null,
   );
@@ -164,7 +168,7 @@
 
   <main class="flex-1 min-w-0 p-5">
     <div>
-      {#if !guild && session.guildsLoading}
+      {#if !guild && session.guildsLoading && !dashboardPending}
         <div aria-hidden="true">
           <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
           {#if moduleId}
@@ -175,7 +179,7 @@
             </Card>
           {/if}
         </div>
-      {:else if !guild || !guild.bot_present}
+      {:else if (!guild || !guild.bot_present) && !dashboardPending}
         <EmptyState
           fill
           kind="server"

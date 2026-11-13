@@ -4,7 +4,6 @@
   import Button from '$lib/components/Button.svelte';
   import Card from '$lib/components/Card.svelte';
   import ChannelsPicker from '$lib/components/ChannelsPicker.svelte';
-  import FormSkeleton from '$lib/components/FormSkeleton.svelte';
   import InfoPanel, { type InfoStep } from '$lib/components/InfoPanel.svelte';
   import Input from '$lib/components/Input.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -27,6 +26,7 @@
     type DiscordChannel,
   } from '$lib/api/endpoints';
   import LineChart from '$lib/modules/chat-completion/LineChart.svelte';
+  import ChatCompletionSkeleton from '$lib/modules/chat-completion/ChatCompletionSkeleton.svelte';
   import { onlyDecimal, onlyDigits, restrictTo } from '$lib/number-input';
   import { toast } from '$lib/stores/toast.svelte';
   import { td, th } from '$lib/ui';
@@ -87,7 +87,7 @@
   let tested: ChatCompletionTest | null = $state(null);
   let stats: ChatCompletionStats | null = $state(null);
   let statsLoading = $state(false);
-  let statsRange = $state('day');
+  let statsRange = $state('month');
   let todayStats: ChatCompletionStats | null = $state(null);
   let memberQuery = $state('');
 
@@ -354,10 +354,7 @@
   const meter = (used: number, max: number) => Math.min(100, Math.round((used / Math.max(max, 1)) * 100));
   // A bar is empty when a limit is off, instead of looking used up.
   const share = (used: number, max: number) => (max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0);
-  const memberTop = $derived((stats as ChatCompletionStats | null)?.members?.[0]?.count ?? 0);
-  // Each member's bar is against their own daily limit, or against the busiest member while the key of the server's own has no limit.
-  const memberBar = (count: number) => share(count, stats && stats.member_daily_limit > 0 ? stats.member_daily_limit : memberTop || 1);
-  const todayMemberTop = $derived((todayStats as ChatCompletionStats | null)?.members?.[0]?.count ?? 0);
+  const todayMemberTop = $derived(Math.max(0, ...((todayStats as ChatCompletionStats | null)?.members ?? []).map(m => m.today)));
   const todayMemberBar = (count: number) =>
     share(count, todayStats && todayStats.member_daily_limit > 0 ? todayStats.member_daily_limit : todayMemberTop || 1);
   const filteredMembers = $derived.by(() => {
@@ -378,7 +375,7 @@
           text: "Answers today is this server against its daily limit. Shared Server Limit is Flame's own service against what it gives every server together, and only shows while Flame answers.",
         },
         {
-          text: 'The table lists each member who was answered today, most first. A member is bound by their own daily limit, and the server by its own.',
+          text: 'The table lists each member the bot has answered, with today against all time. A member is bound by their own daily limit, and the server by its own.',
         },
       ],
     },
@@ -445,17 +442,11 @@
   <InfoPanel show={info} title={hint.title} tone="vermilion" steps={hint.steps} />
   {#if view}<WarningBanner warnings={view.warnings} />{/if}
 
-  {#if !view || !form || !limits}
-    <Card>
-      <FormSkeleton fields={4} hint />
-    </Card>
+  {#if !view || !form || !limits || (tab === 'statistics' && (!todayStats || !stats))}
+    <ChatCompletionSkeleton />
   {:else}
     {#if tab === 'statistics'}
-      {#if !todayStats}
-        <Card>
-          <FormSkeleton fields={3} hint />
-        </Card>
-      {:else}
+      {#if todayStats && stats}
         <Card>
           <SectionTitle icon={BarChart3} title="Today" class="mb-5" />
           <div class="grid gap-4 sm:grid-cols-2 {todayStats.shared ? 'lg:grid-cols-3' : ''}">
@@ -524,34 +515,41 @@
         </Card>
 
         <Card>
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <SectionTitle icon={BarChart3} title="Answers over time" class="mb-0" />
+            <Select
+              bind:value={statsRange}
+              empty={false}
+              options={[
+                { value: 'day', label: 'Today' },
+                { value: 'week', label: 'This Week' },
+                { value: 'month', label: 'This Month' },
+                { value: 'year', label: 'This Year' },
+                { value: 'all', label: 'All time' },
+              ]}
+              label="Range"
+              class="w-32"
+            />
+          </div>
+          {#if stats.series.length === 0}
+            <p class="py-6 text-center text-sm text-zinc-500">No answers in this range yet.</p>
+          {:else}
+            <LineChart labels={stats.series.map(s => s.label)} data={stats.series.map(s => s.count)} />
+          {/if}
+        </Card>
+
+        <Card>
           <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
             <SectionTitle icon={Users} title="Member usage" class="mb-0" />
-            <div class="flex items-center gap-2 flex-nowrap">
-              <Input bind:value={memberQuery} placeholder="Find a member" aria-label="Find a member" class="w-36" />
-              <Select
-                bind:value={statsRange}
-                empty={false}
-                options={[
-                  { value: 'day', label: 'Today' },
-                  { value: 'week', label: '1 Week' },
-                  { value: 'month', label: '1 Month' },
-                  { value: 'year', label: '1 Year' },
-                  { value: 'all', label: 'All time' },
-                ]}
-                label="Range"
-                class="w-28"
-              />
-            </div>
+            <Input bind:value={memberQuery} placeholder="Find a member" aria-label="Find a member" class="w-36" />
           </div>
-          {#if !stats}
-            <FormSkeleton fields={3} hint />
-          {:else if filteredMembers.length === 0}
+          {#if filteredMembers.length === 0}
             <div class="flex flex-col items-center justify-center px-5 py-10 text-center">
               <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800/60 ring-1 ring-zinc-700/60">
                 <Users class="h-5 w-5 text-zinc-500" />
               </div>
               <h3 class="text-sm font-semibold text-zinc-300">
-                {stats.members.length === 0 ? 'No answers in this range' : 'No member matches'}
+                {stats.members.length === 0 ? 'No answers yet' : 'No member matches'}
               </h3>
               <p class="mt-1.5 max-w-md text-xs leading-relaxed text-zinc-500">
                 {stats.members.length === 0
@@ -560,35 +558,21 @@
               </p>
             </div>
           {:else}
-            {#if stats.series.length > 0}
-              <div class="mb-4 rounded-xl bg-zinc-800/30 p-3 ring-1 ring-zinc-800/60">
-                <LineChart labels={stats.series.map(s => s.label)} data={stats.series.map(s => s.count)} />
-              </div>
-            {/if}
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
                     <th class={th}>Member</th>
-                    <th class="{th} w-24 text-right">Answers</th>
-                    <th class={th}>Usage</th>
+                    <th class="{th} w-36 whitespace-nowrap text-right">Today Usage</th>
+                    <th class="{th} w-36 whitespace-nowrap text-right">All Time Usage</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-800/30">
                   {#each filteredMembers as entry (entry.user.id)}
                     <tr class="hover:bg-zinc-800/30 transition-colors">
                       <td class={td}><ActorCell actor={entry.user} /></td>
-                      <td class="{td} text-right font-semibold text-zinc-200">{entry.count}</td>
-                      <td class={td}>
-                        <div class="flex items-center gap-3">
-                          <div class="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-zinc-800">
-                            <div class="h-full rounded-full bg-vermilion-400" style="width:{memberBar(entry.count)}%"></div>
-                          </div>
-                          <span class="w-24 shrink-0 text-right text-xs text-zinc-500"
-                            >{stats.member_daily_limit > 0 ? `of ${stats.member_daily_limit}` : 'no limit'}</span
-                          >
-                        </div>
-                      </td>
+                      <td class="{td} text-right font-semibold text-zinc-200">{entry.today}</td>
+                      <td class="{td} text-right font-semibold text-zinc-200">{entry.all_time}</td>
                     </tr>
                   {/each}
                 </tbody>

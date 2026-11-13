@@ -4,7 +4,6 @@
   import Card from '$lib/components/Card.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  import FormSkeleton from '$lib/components/FormSkeleton.svelte';
   import RowMenu from '$lib/components/RowMenu.svelte';
   import SegmentedControl from '$lib/components/SegmentedControl.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
@@ -12,6 +11,7 @@
   import { api, type BingoConfig, type BingoDesign, type BingoEntry, type BingoRound, type BingoTogetherMode } from '$lib/api/endpoints';
   import BingoAnswersGrid from '$lib/modules/bingo/BingoAnswersGrid.svelte';
   import BingoBoard from '$lib/modules/bingo/BingoBoard.svelte';
+  import BingoSkeleton from '$lib/modules/bingo/BingoSkeleton.svelte';
   import EntriesTab from '$lib/modules/bingo/EntriesTab.svelte';
   import { boardExporter } from '$lib/modules/bingo/board-export';
   import { missingQuestions, QUESTION_COUNT } from '$lib/modules/bingo/board';
@@ -277,10 +277,7 @@
 </ConfirmModal>
 
 {#if !current || !board}
-  <div class="space-y-5" aria-hidden="true">
-    <div class="h-9 w-64 rounded-lg bg-zinc-800/40 animate-pulse"></div>
-    <Card><FormSkeleton fields={4} grid hint /></Card>
-  </div>
+  <BingoSkeleton view="round" />
 {:else}
   <div class="space-y-5">
     <div class="flex flex-wrap items-start justify-between gap-3">

@@ -7,15 +7,14 @@
   import Modal from '$lib/components/Modal.svelte';
   import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
-  import Toggle from '$lib/components/Toggle.svelte';
   import { api, type ModuleEntry } from '$lib/api/endpoints';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlParam } from '$lib/url-param';
   import { MODULE_PAGES } from '$lib/nav';
-  import { toneFor, toneText } from '$lib/ui';
-  import { ArrowUpRight, Blocks, ChevronDown, MessageSquare, Package, ScrollText, Search, Terminal, Trash2 } from '@lucide/svelte';
-  import { slide } from 'svelte/transition';
+  import { MODULE_VIEWS } from '$lib/modules/views';
+  import { caps, toneFor, toneText } from '$lib/ui';
+  import { ArrowUpRight, Blocks, Package, Power, PowerOff, ScrollText, Search, Terminal, Trash2 } from '@lucide/svelte';
 
   let {
     guildId,
@@ -28,8 +27,6 @@
   let busyId = $state<string | null>(null);
   let uninstallTarget = $state<ModuleEntry | null>(null);
   let disableTarget = $state<ModuleEntry | null>(null);
-  // The commands of a module are behind a disclosure: only the ones a person opens are shown.
-  let showCommands = $state<Record<string, boolean>>({});
   // The search lives in the address (`?q=`), like the rest of where a page is inside itself.
   const queryParam = urlParam('q');
   const query = $derived(queryParam.value);
@@ -46,25 +43,31 @@
   // The module's own color (its page color when it has one), the same everywhere it shows.
   const toneOf = (id: string) => MODULE_PAGES[id]?.tone ?? toneFor(id);
 
-  // What is not installed yet comes first (that is what a visitor is here to find), each group by name.
-  const filtered = $derived.by(() => {
-    const q = query.trim().toLowerCase();
-    const matching = q
-      ? modules.filter(
-          m =>
-            m.name.toLowerCase().includes(q) ||
-            m.description.toLowerCase().includes(q) ||
-            m.commands.some(c => c.name.toLowerCase().includes(q)),
-        )
-      : modules;
-    return [...matching].sort((a, b) => Number(a.installed) - Number(b.installed) || a.name.localeCompare(b.name));
-  });
+  const installed = $derived(modules.filter(m => m.installed));
+  const available = $derived(modules.filter(m => !m.installed));
 
-  // Everyone with access can open a module; the Slash page, the audit log and uninstalling are for admins.
+  const matches = (m: ModuleEntry) => {
+    const q = query.trim().toLowerCase();
+    return (
+      !q ||
+      m.name.toLowerCase().includes(q) ||
+      m.description.toLowerCase().includes(q) ||
+      m.commands.some(c => c.name.toLowerCase().includes(q))
+    );
+  };
+
+  const shownInstalled = $derived(installed.filter(matches).sort((a, b) => a.name.localeCompare(b.name)));
+  const shownAvailable = $derived(available.filter(matches).sort((a, b) => a.name.localeCompare(b.name)));
+  const noMatch = $derived(query.trim() !== '' && shownInstalled.length === 0 && (!isAdmin || shownAvailable.length === 0));
+
+  // Everyone with access can open a module; changing its state, the Slash page, the audit log and uninstalling are for admins.
   const menuOf = (m: ModuleEntry): RowMenuItem[] => [
-    { label: 'Open', icon: ArrowUpRight, onclick: () => router.module(guildId, m.id) },
+    ...(MODULE_VIEWS[m.id] ? [{ label: 'Open', icon: ArrowUpRight, onclick: () => router.module(guildId, m.id) }] : []),
     ...(isAdmin
       ? [
+          m.enabled
+            ? { label: 'Turn off', icon: PowerOff, onclick: () => (disableTarget = m) }
+            : { label: 'Turn on', icon: Power, onclick: () => setEnabled(m) },
           { label: 'Slash commands', icon: Terminal, onclick: () => router.guild(guildId, 'slash', { module: m.id }) },
           { label: 'Audit logs', icon: ScrollText, onclick: () => router.guild(guildId, 'audit', { module: m.id }) },
           { label: 'Uninstall', icon: Trash2, danger: true, onclick: () => (uninstallTarget = m) },
@@ -135,91 +138,117 @@
   </div>
 
   {#if loading}
-    <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))" aria-hidden="true">
-      {#each Array(4) as _}
-        <Card class="flex flex-col">
-          <div class="flex items-center gap-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5">
+    <!-- One group while the catalog loads: the installed grid, its cards shaped like the real ones. -->
+    <div aria-hidden="true">
+      <div class="mb-3 h-3 w-20 rounded bg-zinc-800/40 animate-pulse"></div>
+      <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
+        {#each Array(4) as _}
+          <Card class="flex flex-col">
+            <div class="flex items-center gap-2.5">
               <div class="h-[18px] w-[18px] shrink-0 rounded bg-zinc-700/40 animate-pulse"></div>
-              <div class="h-4 w-1/3 rounded bg-zinc-700/40 animate-pulse"></div>
+              <div class="h-3.5 w-24 rounded bg-zinc-700/40 animate-pulse"></div>
+              <div class="min-w-0 flex-1"></div>
+              <div class="h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-700/40 animate-pulse"></div>
+              <div class="h-7 w-7 shrink-0 rounded-lg bg-zinc-700/30 animate-pulse"></div>
             </div>
-            <div class="h-5 w-9 rounded-full bg-zinc-700/30 animate-pulse"></div>
-            <div class="h-7 w-7 rounded-lg bg-zinc-700/30 animate-pulse"></div>
-          </div>
-          <div class="mt-3 space-y-2">
-            <div class="h-3 w-full rounded bg-zinc-700/30 animate-pulse"></div>
-            <div class="h-3 w-5/6 rounded bg-zinc-700/30 animate-pulse"></div>
-            <div class="h-3 w-2/3 rounded bg-zinc-700/30 animate-pulse"></div>
-          </div>
-          <div class="mt-3 h-3 w-20 rounded bg-zinc-700/30 animate-pulse"></div>
-        </Card>
-      {/each}
+            <div class="mt-2 space-y-2">
+              <div class="h-3 w-full rounded bg-zinc-700/30 animate-pulse"></div>
+              <div class="h-3 w-2/3 rounded bg-zinc-700/30 animate-pulse"></div>
+            </div>
+          </Card>
+        {/each}
+      </div>
     </div>
   {:else if modules.length === 0}
     <EmptyState kind="modules" title="No modules available yet" description="Modules added to Flame will show up here, ready to install." />
-  {:else if filtered.length === 0}
+  {:else if !isAdmin && installed.length === 0}
+    <EmptyState kind="modules" title="No modules installed yet" description="An admin of this server can install the modules it needs." />
+  {:else if noMatch}
     <EmptyState kind="search" title="No modules match “{query}”" description="Try another name or command." />
   {:else}
-    <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
-      {#each filtered as m (m.id)}
-        {@const Icon = MODULE_PAGES[m.id]?.icon ?? Blocks}
-        {@const dimmed = m.installed && !m.enabled}
-        <Card class="flex flex-col">
-          <div class="flex items-center gap-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2.5 transition-opacity {dimmed ? 'opacity-50' : ''}">
-              <Icon class="h-[18px] w-[18px] shrink-0 {toneText[toneOf(m.id)]}" />
-              <h4 class="min-w-0 truncate font-display text-sm font-bold text-zinc-100">{m.name}</h4>
-            </div>
-            {#if m.installed}
-              <Toggle
-                on={m.enabled}
-                disabled={!isAdmin || busyId === m.id}
-                label="{m.enabled ? 'Turn off' : 'Turn on'} {m.name}"
-                onclick={() => (m.enabled ? (disableTarget = m) : setEnabled(m))}
-              />
-              <RowMenu label="Actions for {m.name}" items={menuOf(m)} />
-            {:else}
-              <Button
-                variant="soft"
-                size="sm"
-                onclick={() => install(m)}
-                disabled={!isAdmin || busyId === m.id}
-                title={isAdmin ? undefined : 'Admins only'}
-              >
-                {busyId === m.id ? 'Installing…' : 'Install'}
-              </Button>
-            {/if}
+    <div class="space-y-8">
+      {#if shownInstalled.length > 0}
+        <div>
+          <div class="mb-3 flex items-baseline justify-between gap-3">
+            <p class="{caps} text-zinc-500">Installed</p>
+            <p class="text-xs text-zinc-500">{installed.length} of {modules.length}</p>
           </div>
+          <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
+            {#each shownInstalled as m (m.id)}
+              {@const Icon = MODULE_PAGES[m.id]?.icon ?? Blocks}
+              {@const openable = !!MODULE_VIEWS[m.id]}
+              <!-- The whole card is the link (a stretched anchor), so a click anywhere opens the module; only the menu sits above it. -->
+              <Card class="relative flex flex-col {openable ? 'transition-colors duration-150 hover:border-orange-500/30' : ''}">
+                {#if openable}
+                  <a
+                    class="absolute inset-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-500/50"
+                    href="#/guild/{guildId}/m/{m.id}"
+                    aria-label="Open {m.name}"
+                    title={m.description}
+                  ></a>
+                {/if}
+                <div class="flex items-center gap-2.5">
+                  <Icon
+                    class="h-[18px] w-[18px] shrink-0 transition-opacity duration-200 {toneText[toneOf(m.id)]} {m.enabled
+                      ? ''
+                      : 'opacity-50'}"
+                  />
+                  <span
+                    class="min-w-0 flex-1 truncate font-display text-sm font-bold transition-colors duration-200 {m.enabled
+                      ? 'text-zinc-100'
+                      : 'text-zinc-400'}">{m.name}</span
+                  >
+                  <div class="relative z-10 flex items-center gap-2.5">
+                    <span
+                      class="h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-200 {m.enabled
+                        ? 'bg-emerald-400'
+                        : 'bg-zinc-600'}"
+                      role="img"
+                      aria-label={m.enabled ? 'On' : 'Off'}
+                      title={m.enabled ? 'On' : 'Off'}
+                    ></span>
+                    <RowMenu label="Actions for {m.name}" items={menuOf(m)} />
+                  </div>
+                </div>
 
-          <p class="mt-3 flex-1 text-xs leading-relaxed text-zinc-400 transition-opacity {dimmed ? 'opacity-50' : ''}">{m.description}</p>
+                <p
+                  class="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed transition-colors duration-200 {m.enabled
+                    ? 'text-zinc-400'
+                    : 'text-zinc-500'}"
+                  title={m.description}
+                >
+                  {m.description}
+                </p>
+              </Card>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
-          {#if m.commands.length}
-            <button
-              type="button"
-              class="mt-3 flex w-fit cursor-pointer items-center gap-1 text-xs text-zinc-500 outline-none transition hover:text-zinc-300 focus-visible:text-zinc-300"
-              aria-expanded={!!showCommands[m.id]}
-              onclick={() => (showCommands[m.id] = !showCommands[m.id])}
-            >
-              {m.commands.length}
-              {m.commands.length === 1 ? 'command' : 'commands'}
-              <ChevronDown class="h-3.5 w-3.5 transition-transform {showCommands[m.id] ? 'rotate-180' : ''}" />
-            </button>
-            {#if showCommands[m.id]}
-              <div class="mt-2 flex flex-wrap gap-1" transition:slide={{ duration: 160 }}>
-                {#each m.commands as command (command.name)}
-                  <span class="inline-flex items-center gap-1 rounded-md bg-zinc-800/60 px-1.5 py-0.5 font-mono text-xs text-zinc-300">
-                    <!-- A slash command is typed as /name; a message command lives in the right-click menu, so it gets an arrow instead. -->
-                    {#if command.kind === 'slash'}<span class={toneText[toneOf(m.id)]}>/</span>{:else}<MessageSquare
-                        class="h-3 w-3 {toneText[toneOf(m.id)]}"
-                        aria-label="Message menu command"
-                      />{/if}{command.name}
-                  </span>
-                {/each}
-              </div>
-            {/if}
-          {/if}
-        </Card>
-      {/each}
+      {#if isAdmin && shownAvailable.length > 0}
+        <div>
+          <div class="mb-3 flex items-baseline justify-between gap-3">
+            <p class="{caps} text-zinc-500">Available</p>
+            <p class="text-xs text-zinc-500">{available.length} to install</p>
+          </div>
+          <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
+            {#each shownAvailable as m (m.id)}
+              {@const Icon = MODULE_PAGES[m.id]?.icon ?? Blocks}
+              <Card class="flex flex-col">
+                <div class="flex items-center gap-2.5">
+                  <Icon class="h-[18px] w-[18px] shrink-0 {toneText[toneOf(m.id)]}" />
+                  <h4 class="min-w-0 flex-1 truncate font-display text-sm font-bold text-zinc-100">{m.name}</h4>
+                  <Button variant="soft" size="sm" onclick={() => install(m)} disabled={!isAdmin || busyId === m.id}>
+                    {busyId === m.id ? 'Installing…' : 'Install'}
+                  </Button>
+                </div>
+
+                <p class="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-zinc-400" title={m.description}>{m.description}</p>
+              </Card>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </section>

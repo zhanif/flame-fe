@@ -86,9 +86,9 @@ Every table follows these rules; do not build a one-off table.
 6. The matching `TableSkeleton` lists the same columns, `#` included.
 7. Empty state: no card, no table header. Use `EmptyState` (`kind`: server / commands / log / search / modules, a gray title and a gray hint: always the illustration, a title AND a hint, never a bare title). It is centered on both axes in the space left under the top bar. Add a new illustration to `EmptyArt` when a new `kind` is needed; never write a bare "No X yet" line.
 
-## Module cards and on/off
+## Modules on the dashboard
 
-`ModulesSection` is a grid of calm cards: the module's colored icon and name, a `Toggle` (on/off, admins only; turning off asks first, turning on does not) and a `RowMenu` (Open, Slash commands, Audit logs, Uninstall; moderators only see Open). The description sits under it and the commands are behind a "n commands" disclosure. No badges, no On/Off text. A module that is off is dimmed (icon, name, description) and, on its own page, shows a sky "Turned off" strip under the top bar and hides its `WarningBanner`s. Slash and Audit open filtered to the module through the URL (`router.guild(id, 'slash', { module })`).
+`ModulesSection` is two calm grids, each under an all-caps label. **Installed** cards hold the module's colored icon and name (a button that opens its page), a small status dot (emerald when on, gray when off; the name and description dim when off) and a `RowMenu` (Open, Turn on/off, Slash commands, Audit logs, Uninstall; moderators only see Open), with the description under them, clamped to two lines and shown in full as a `title` tooltip so every card stays the same height. The on/off switch is not on the card: a switch on every card is noise, so state is a dot and the action lives in the menu (turning off asks first, turning on does not). **Available** cards are the discovery grid: icon, name, description and a soft Install button, shown to admins only. Search (`?q=`) filters both grids. A module that is off stays dimmed in the sidebar, and on its own page it shows a sky "Turned off" strip under the top bar and hides its `WarningBanner`s. Slash and Audit open filtered to the module through the URL (`router.guild(id, 'slash', { module })`).
 
 ## Module pages with roles and exceptions
 

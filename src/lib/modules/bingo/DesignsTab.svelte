@@ -8,6 +8,7 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type BingoConfig, type BingoDesign, type BingoRound } from '$lib/api/endpoints';
   import BoardEditor from '$lib/modules/bingo/BoardEditor.svelte';
+  import BingoSkeleton from '$lib/modules/bingo/BingoSkeleton.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, td, th } from '$lib/ui';
   import { untrack } from 'svelte';
@@ -52,7 +53,7 @@
   const cell = td.replace('h-11', 'h-14');
 
   const actions = (design: BingoDesign): RowMenuItem[] => [
-    { label: 'Restyle', icon: Paintbrush, onclick: () => onOpen(design.id, design.round_id ?? '') },
+    { label: 'Restyle', icon: Paintbrush, onclick: () => onOpen(design.id) },
     ...(isAdmin
       ? [
           { label: 'Duplicate', icon: Copy, onclick: () => duplicate(design) },
@@ -100,7 +101,7 @@
     designs = designs.some(design => design.id === next.id)
       ? designs.map(design => (design.id === next.id ? next : design))
       : [next, ...designs];
-    if (designId === 'new') onOpen(next.id, next.round_id ?? '');
+    if (designId === 'new') onOpen(next.id);
   }
 
   const setLimit = (next: number) => {
@@ -160,12 +161,7 @@
       <div class="mt-4 flex justify-end"><Button variant="secondary" onclick={onClose}>Back to designs</Button></div>
     </Card>
   {:else}
-    <Card>
-      <div class="space-y-2" aria-hidden="true">
-        <div class="h-9 w-64 rounded-lg bg-zinc-800/40 animate-pulse"></div>
-        <div class="h-28 rounded-xl bg-zinc-800/30 animate-pulse"></div>
-      </div>
-    </Card>
+    <BingoSkeleton view="design" />
   {/if}
 {:else}
   <div class="space-y-5">
