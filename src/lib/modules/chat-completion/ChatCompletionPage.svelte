@@ -436,10 +436,21 @@
         { id: 'service', label: 'Service', icon: Server },
       ]}
     />
-    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    <div class="flex items-center gap-2">
+      {#if tab === 'statistics'}
+        {#if isAdmin && dirty}
+          <SaveButton onclick={save} disabled={invalid} {saving} />
+        {/if}
+        <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+      {:else if isAdmin}
+        <SaveButton onclick={save} disabled={!dirty || invalid} {saving} />
+      {/if}
+    </div>
   </div>
 
-  <InfoPanel show={info} title={hint.title} tone="vermilion" steps={hint.steps} />
+  {#if tab === 'statistics'}
+    <InfoPanel show={info} title={hint.title} tone="vermilion" steps={hint.steps} />
+  {/if}
   {#if view}<WarningBanner warnings={view.warnings} />{/if}
 
   {#if !view || !form || !limits || (tab === 'statistics' && (!todayStats || !stats))}
@@ -820,12 +831,6 @@
           </SettingRow>
         {/each}
       </Card>
-    {/if}
-
-    {#if isAdmin && (tab !== 'statistics' || dirty)}
-      <div class="flex justify-end">
-        <SaveButton onclick={save} disabled={!dirty || invalid} {saving} />
-      </div>
     {/if}
   {/if}
 </div>

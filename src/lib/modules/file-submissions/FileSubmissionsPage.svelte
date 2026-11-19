@@ -38,7 +38,20 @@
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, label, td, th, toneText } from '$lib/ui';
   import { urlParam } from '$lib/url-param';
-  import { Check, ChevronRight, Eye, Grid3x3, Infinity as InfinityIcon, Info, Pencil, Plus, Settings, Trash2, X } from '@lucide/svelte';
+  import {
+    Check,
+    ChevronRight,
+    Eye,
+    Grid3x3,
+    ImageOff,
+    Infinity as InfinityIcon,
+    Info,
+    Pencil,
+    Plus,
+    Settings,
+    Trash2,
+    X,
+  } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -144,13 +157,17 @@
   const isImage = (type: string | null) => !!type?.startsWith('image/');
   const isVideo = (type: string | null) => !!type?.startsWith('video/');
   const isAudio = (type: string | null) => !!type?.startsWith('audio/');
-  const STATUS_TONE = { pending: 'warning', approved: 'success', rejected: 'danger' } as const;
+  const STATUS_TONE = { pending: 'warning', approved: 'success', rejected: 'danger', deleted: 'neutral' } as const;
+  const noteOf = (row: FileSubmissionRow) => row.reason ?? (row.status === 'deleted' ? 'Failed to fetch the message' : null);
   const rejectNeedsReason = $derived(opened?.require_reject_reason ?? true);
   // What the skeletons expect: the rounds list already says how many entries a round has (and per status), a
   // direct link falls back to what the last visit showed.
   const entryRows = $derived.by(() => {
     const known = groups.find(g => g.tag === openTag && (!openId || g.collection_id === openId));
-    if (known) return Math.max(1, Math.min(limit, urlStatus ? known[urlStatus as 'pending' | 'approved' | 'rejected'] : known.total));
+    if (known) {
+      const count = urlStatus === 'pending' || urlStatus === 'approved' || urlStatus === 'rejected' ? known[urlStatus] : known.total;
+      return Math.max(1, Math.min(limit, count));
+    }
     return Math.min(limit, recall(`rows:${openId}|${openTag}|${urlStatus}`, 3));
   });
   const groupRows = $derived(Math.min(groupLimit, recall(`groups:${openId ?? 'all'}`, 3)));
@@ -317,6 +334,9 @@
   }
 
   const replaceRow = (updated: FileSubmissionRow) => (rows = rows.map(r => (r.id === updated.id ? updated : r)));
+  const reloadRows = () => {
+    if (openId && openTag) void loadRows(openId, openTag, urlStatus, page, limit);
+  };
 
   async function approve(row: FileSubmissionRow) {
     if (working) return;
@@ -326,6 +346,7 @@
       toast('success', 'Entry approved');
     } catch (e: any) {
       toast('error', e.message);
+      reloadRows();
     } finally {
       working = false;
     }
@@ -340,6 +361,7 @@
       rejecting = null;
     } catch (e: any) {
       toast('error', e.message);
+      reloadRows();
     } finally {
       working = false;
     }
@@ -353,6 +375,7 @@
       toast('success', 'Upvotes saved');
     } catch (e: any) {
       toast('error', e.message);
+      reloadRows();
     } finally {
       working = false;
     }
@@ -360,8 +383,12 @@
 
   const entryActions = (row: FileSubmissionRow): RowMenuItem[] => [
     { label: 'Preview', icon: Eye, onclick: () => showPreview(row) },
-    { label: 'Approve', icon: Check, disabled: working || row.status === 'approved', onclick: () => approve(row) },
-    { label: 'Reject', icon: X, danger: true, disabled: working, onclick: () => startReject(row) },
+    ...(row.status === 'deleted'
+      ? []
+      : [
+          { label: 'Approve', icon: Check, disabled: working || row.status === 'approved', onclick: () => approve(row) },
+          { label: 'Reject', icon: X, danger: true, disabled: working, onclick: () => startReject(row) },
+        ]),
   ];
   const startReject = (row: FileSubmissionRow) => {
     reason = '';
@@ -372,9 +399,26 @@
     closePreview();
     startReject(row);
   };
-  const showPreview = (row: FileSubmissionRow) => {
-    upvotes = row.upvotes === null ? '' : String(row.upvotes);
-    go({ e: row.id });
+  // Opening an entry checks it against Discord: if its message is gone it is marked deleted instead.
+  const showPreview = async (row: FileSubmissionRow) => {
+    if (working) return;
+    working = true;
+    try {
+      const fresh = await api.fileSubmissions.submission(guildId, row.id);
+      replaceRow(fresh);
+      if (fresh.status === 'deleted') {
+        toast('error', 'That entry was deleted in Discord');
+        reloadRows();
+        return;
+      }
+      upvotes = fresh.upvotes === null ? '' : String(fresh.upvotes);
+      go({ e: fresh.id });
+    } catch (e: any) {
+      toast('error', e.message);
+      reloadRows();
+    } finally {
+      working = false;
+    }
   };
 
   onMount(async () => {
@@ -613,6 +657,7 @@
           { value: 'pending', label: 'Pending' },
           { value: 'approved', label: 'Approved' },
           { value: 'rejected', label: 'Rejected' },
+          { value: 'deleted', label: 'Deleted' },
         ]}
         placeholder="All statuses"
         label="Status"
@@ -669,7 +714,12 @@
                           {/if}
                         </button>
                       {:else}
-                        <span class="text-zinc-500">Gone</span>
+                        <span
+                          title="Preview unavailable"
+                          class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-zinc-800/50 text-zinc-600 ring-1 ring-zinc-800"
+                        >
+                          <ImageOff class="h-5 w-5" />
+                        </span>
                       {/each}
                       {#if row.files.length > 3}<span class="text-xs text-zinc-500">+{row.files.length - 3}</span>{/if}
                     </div>
@@ -684,8 +734,8 @@
                   <td class={cell}><Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge></td>
                   <td class="{cell} text-zinc-300">{row.upvotes === null ? '-' : row.upvotes}</td>
                   <td class="{cell} text-zinc-400">
-                    {#if row.reason}<p class="line-clamp-2 text-xs leading-relaxed" title={row.reason}>{row.reason}</p>{/if}
-                    {#if !row.reason}<span class="text-zinc-600">-</span>{/if}
+                    {#if noteOf(row)}<p class="line-clamp-2 text-xs leading-relaxed" title={noteOf(row) ?? ''}>{noteOf(row)}</p>{/if}
+                    {#if !noteOf(row)}<span class="text-zinc-600">-</span>{/if}
                   </td>
                   <td class="{cell} text-right"><RowMenu label="Actions for this entry" items={entryActions(row)} /></td>
                 </tr>
@@ -931,7 +981,10 @@
             >
           {/if}
         {:else}
-          <p class="px-3 py-10 text-center text-xs text-zinc-500">The message with the files is gone from the box.</p>
+          <div class="flex flex-col items-center gap-2 px-3 py-10 text-zinc-600">
+            <ImageOff class="h-8 w-8" />
+            <p class="text-center text-xs">The message with the files is gone from the box.</p>
+          </div>
         {/each}
       </div>
 
@@ -941,10 +994,16 @@
             <span class="text-zinc-500">Submitted</span>
             <span class="text-zinc-200">{short(previewRow.created_at)}</span>
           </div>
-          {#if previewRow.status !== 'pending' && previewRow.reviewed_at}
+          {#if (previewRow.status === 'approved' || previewRow.status === 'rejected') && previewRow.reviewed_at}
             <div class="flex items-center justify-between gap-3 py-2">
               <span class="text-zinc-500">{previewRow.status === 'approved' ? 'Approved' : 'Rejected'}</span>
               <span class="text-zinc-200">{short(previewRow.reviewed_at)}</span>
+            </div>
+          {/if}
+          {#if previewRow.status === 'deleted'}
+            <div class="flex items-center justify-between gap-3 py-2">
+              <span class="text-zinc-500">Deleted</span>
+              <span class="text-zinc-200">{previewRow.deleted_at ? short(previewRow.deleted_at) : 'In Discord'}</span>
             </div>
           {/if}
         </div>
@@ -957,7 +1016,7 @@
             </p>{/if}
         </div>
 
-        {#if previewRow.status !== 'pending'}
+        {#if previewRow.status === 'approved' || previewRow.status === 'rejected'}
           <div>
             <p class="{caps} mb-1.5 text-zinc-500">{previewRow.status === 'approved' ? 'Approved by' : 'Rejected by'}</p>
             {#if previewRow.reviewer}<ActorCell actor={previewRow.reviewer} />{:else}<p class="text-zinc-500">A moderator</p>{/if}
@@ -968,6 +1027,14 @@
               <p class="rounded-lg bg-zinc-800/60 px-2.5 py-2 leading-relaxed text-zinc-300">{previewRow.reason}</p>
             </div>
           {/if}
+        {/if}
+        {#if previewRow.status === 'deleted'}
+          <div>
+            <p class="{caps} mb-1.5 text-zinc-500">Deleted</p>
+            <p class="rounded-lg bg-zinc-800/60 px-2.5 py-2 leading-relaxed text-zinc-400">
+              Failed to fetch the message. This entry can no longer be reviewed.
+            </p>
+          </div>
         {/if}
 
         {#if previewRow.status === 'approved' && opened?.allow_upvotes}
@@ -992,11 +1059,14 @@
 
     <div class="mt-5 flex items-center justify-between gap-2 border-t border-zinc-800/60 pt-4">
       <Button variant="ghost" onclick={closePreview}>Close</Button>
-      <div class="flex gap-2">
-        <Button variant="danger" disabled={working} onclick={() => rejectFromPreview(previewRow)}>Reject</Button>
-        <Button variant="success" disabled={working || previewRow.status === 'approved'} onclick={() => approve(previewRow)}>Approve</Button
-        >
-      </div>
+      {#if previewRow.status !== 'deleted'}
+        <div class="flex gap-2">
+          <Button variant="danger" disabled={working} onclick={() => rejectFromPreview(previewRow)}>Reject</Button>
+          <Button variant="success" disabled={working || previewRow.status === 'approved'} onclick={() => approve(previewRow)}
+            >Approve</Button
+          >
+        </div>
+      {/if}
     </div>
   {/if}
 </Modal>

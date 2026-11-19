@@ -12,7 +12,9 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Pagination from '$lib/components/Pagination.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import Select from '$lib/components/Select.svelte';
+  import SettingRow from '$lib/components/SettingRow.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type DiscordChannel, type QuoteEntry } from '$lib/api/endpoints';
@@ -74,9 +76,14 @@
 
   let channels: DiscordChannel[] = $state([]);
   let publishChannel = $state('');
-  let savedChannel = '';
+  let savedChannel = $state('');
+  let dailyLimit = $state(3);
+  let savedDailyLimit = $state(3);
+  let savingSettings = $state(false);
   let settingsLoaded = $state(false);
   let warnings: string[] = $state([]);
+
+  const dirty = $derived(publishChannel !== savedChannel || Number(dailyLimit) !== savedDailyLimit);
 
   const cell = td.replace('h-11', 'h-14');
 
@@ -123,19 +130,33 @@
     }
   }
 
-  async function saveChannel() {
+  async function saveSettings() {
+    if (savingSettings) return;
+    const limit = Number(dailyLimit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      toast('error', 'The daily limit must be a whole number from 1 to 100');
+      return;
+    }
+
+    savingSettings = true;
     try {
-      const saved = await api.updateQuoteSettings(guildId, publishChannel || null);
-      savedChannel = publishChannel = saved.publish_channel_id ?? '';
-      warnings = saved.warnings;
-      toast(
-        'success',
-        savedChannel ? 'Publish channel saved' : 'Publishing stopped',
-        savedChannel ? 'New quotes will be posted there.' : 'Quotes are no longer posted to a channel.',
-      );
+      if (publishChannel !== savedChannel) {
+        const saved = await api.updateQuoteSettings(guildId, publishChannel || null);
+        savedChannel = publishChannel = saved.publish_channel_id ?? '';
+        warnings = saved.warnings;
+      }
+      if (limit !== savedDailyLimit) {
+        const saved = await api.updateQuoteDailyLimit(guildId, limit);
+        savedDailyLimit = dailyLimit = saved.daily_limit;
+        warnings = saved.warnings;
+      }
+      toast('success', 'Settings saved');
     } catch (e: any) {
       publishChannel = savedChannel;
+      dailyLimit = savedDailyLimit;
       toast('error', e.message);
+    } finally {
+      savingSettings = false;
     }
   }
 
@@ -144,6 +165,7 @@
     if (list.status === 'fulfilled') channels = list.value;
     if (settings.status === 'fulfilled') {
       savedChannel = publishChannel = settings.value.publish_channel_id ?? '';
+      savedDailyLimit = dailyLimit = settings.value.daily_limit;
       warnings = settings.value.warnings;
     }
     settingsLoaded = true;
@@ -172,30 +194,63 @@
         { id: 'settings', label: 'Settings', icon: Settings },
       ]}
     />
-    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    {#if tab === 'settings'}
+      <SaveButton onclick={saveSettings} disabled={!isAdmin || !dirty} saving={savingSettings} />
+    {:else}
+      <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    {/if}
   </div>
 
-  <InfoPanel show={info} title={hint.title} tone="cyan" steps={hint.steps} />
+  {#if tab !== 'settings'}
+    <InfoPanel show={info} title={hint.title} tone="cyan" steps={hint.steps} />
+  {/if}
 
   <WarningBanner {warnings} />
 
   {#if tab === 'settings'}
     <Card>
-      <SectionTitle icon={Megaphone} title="Publishing" class="mb-5" />
-      <span class={label}>Publish channel</span>
-      <p class="mb-2.5 text-xs text-zinc-500">Where new quotes are posted. Pick Not published to stop posting them.</p>
-      {#if settingsLoaded}
-        <ChannelPicker
-          {channels}
-          bind:value={publishChannel}
-          onchange={saveChannel}
-          none="Not published"
-          label="Publish channel"
-          disabled={!isAdmin}
-          class="w-full sm:w-80"
-        />
+      <SectionTitle icon={Megaphone} title="Settings" class="mb-5" />
+      {#if !settingsLoaded}
+        <div class="space-y-5" aria-hidden="true">
+          {#each Array(2) as _}
+            <div class="flex items-center justify-between gap-8">
+              <div class="space-y-2">
+                <div class="h-3.5 w-32 rounded bg-zinc-700/40 animate-pulse"></div>
+                <div class="h-2.5 w-64 rounded bg-zinc-800/40 animate-pulse"></div>
+              </div>
+              <div class="h-9 w-56 rounded-lg bg-zinc-800/40 animate-pulse"></div>
+            </div>
+          {/each}
+        </div>
       {:else}
-        <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
+        <SettingRow title="Publish channel" hint="Where new quotes are posted. Pick Not published to stop posting them.">
+          <ChannelPicker
+            {channels}
+            bind:value={publishChannel}
+            none="Not published"
+            label="Publish channel"
+            disabled={!isAdmin}
+            class="w-full"
+          />
+        </SettingRow>
+
+        <SettingRow
+          title="Daily limit per member"
+          hint="How many quotes one member can create each day. The day follows the server's timezone."
+          chips={['1 to 100', 'Default 3']}
+        >
+          <div class="sm:flex sm:justify-end">
+            <Input
+              type="number"
+              min="1"
+              max="100"
+              bind:value={dailyLimit}
+              disabled={!isAdmin}
+              aria-label="Daily limit per member"
+              class="w-32"
+            />
+          </div>
+        </SettingRow>
       {/if}
     </Card>
   {:else}

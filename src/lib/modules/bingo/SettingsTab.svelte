@@ -21,7 +21,20 @@
     config,
     isAdmin,
     onSaved,
-  }: { guildId: string; config: BingoConfig; isAdmin: boolean; onSaved: (config: BingoConfig) => void } = $props();
+    saving = $bindable(false),
+    rescanning = $bindable(false),
+    dirty = $bindable(false),
+    canRescan = $bindable(false),
+  }: {
+    guildId: string;
+    config: BingoConfig;
+    isAdmin: boolean;
+    onSaved: (config: BingoConfig) => void;
+    saving?: boolean;
+    rescanning?: boolean;
+    dirty?: boolean;
+    canRescan?: boolean;
+  } = $props();
 
   let channels: DiscordChannel[] = $state([]);
   let roles: DiscordRole[] = $state([]);
@@ -34,15 +47,14 @@
   let announce = $state(untrack(() => config.announce_board));
   let upperThreshold = $state(untrack(() => config.upper_threshold ?? 0));
   let lowerThreshold = $state(untrack(() => config.lower_threshold ?? 0));
-  let saving = $state(false);
-  let rescanning = $state(false);
   let scanned = $state<{ found: number; created: number } | null>(null);
   let sample = $state('');
   let tested = $state<{ match: string | null; index: number | null } | null>(null);
   let testing = $state(false);
 
-  const dirty = $derived(
-    channelId !== (config.channel_id ?? '') ||
+  $effect(() => {
+    dirty =
+      channelId !== (config.channel_id ?? '') ||
       regex !== (config.tag_regex ?? '') ||
       participant !== (config.participant_role_id ?? '') ||
       newcomer !== (config.newcomer_role_id ?? '') ||
@@ -50,8 +62,12 @@
       negative !== (config.negative_role_id ?? '') ||
       announce !== config.announce_board ||
       upperThreshold !== (config.upper_threshold ?? 0) ||
-      lowerThreshold !== (config.lower_threshold ?? 0),
-  );
+      lowerThreshold !== (config.lower_threshold ?? 0);
+  });
+
+  $effect(() => {
+    canRescan = !!channelId && !rescanning;
+  });
 
   onMount(async () => {
     const [channelList, roleList] = await Promise.allSettled([api.channels(guildId), api.roles(guildId)]);
@@ -59,7 +75,7 @@
     if (roleList.status === 'fulfilled') roles = roleList.value;
   });
 
-  async function save() {
+  export async function save() {
     saving = true;
     try {
       const next = await api.bingo.saveConfig(guildId, {
@@ -93,7 +109,7 @@
     }
   }
 
-  async function rescan() {
+  export async function rescan() {
     rescanning = true;
     try {
       scanned = await api.bingo.rescan(guildId);
@@ -164,13 +180,4 @@
       <RoleSelect {roles} bind:value={negative} none="No role" label="Negative together role" manageable disabled={!isAdmin} />
     </SettingRow>
   </Card>
-
-  {#if isAdmin}
-    <div class="flex justify-end gap-2">
-      <Button variant="secondary" onclick={rescan} disabled={rescanning || !channelId}>
-        <RefreshCw class="h-3.5 w-3.5" />{rescanning ? 'Scanning…' : 'Scan forum'}
-      </Button>
-      <SaveButton onclick={save} disabled={!dirty} {saving} />
-    </div>
-  {/if}
 </div>

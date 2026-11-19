@@ -249,10 +249,18 @@
         { id: 'settings', label: 'Settings', icon: Settings },
       ]}
     />
-    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    {#if tab === 'settings'}
+      {#if isAdmin}
+        <SaveButton onclick={save} disabled={!dirty || !!ttlError || kinds.length === 0} {saving} />
+      {/if}
+    {:else}
+      <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    {/if}
   </div>
 
-  <InfoPanel show={info} title={hint.title} tone="green" steps={hint.steps} />
+  {#if tab !== 'settings'}
+    <InfoPanel show={info} title={hint.title} tone="green" steps={hint.steps} />
+  {/if}
 
   {#if config}<WarningBanner warnings={config.warnings} />{/if}
 
@@ -362,12 +370,6 @@
             />
           </div>
         </SettingRow>
-
-        {#if isAdmin}
-          <div class="flex justify-end pt-5">
-            <SaveButton onclick={save} disabled={!dirty || !!ttlError || kinds.length === 0} {saving} />
-          </div>
-        {/if}
       {/if}
     </Card>
   {:else if loaded && total === 0 && !statusFilter}

@@ -300,10 +300,31 @@
         { id: 'settings', label: 'Settings', icon: Settings },
       ]}
     />
-    <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+    <div class="flex items-center gap-2 flex-wrap">
+      {#if tab === 'detections'}
+        <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+      {:else if tab === 'settings'}
+        <SaveButton onclick={save} disabled={!dirty || !!thresholdError} {saving} />
+      {:else if tab === 'terms'}
+        {#if isAdmin}
+          <Button variant="ghost" onclick={() => (termsText = savedText)} disabled={!termsDirty || savingTerms}>Discard</Button>
+          <Button
+            variant="secondary"
+            onclick={restoreDefaults}
+            disabled={termsDirty || restoring}
+            title={termsDirty ? 'Save or discard your changes first' : 'Add back the default terms that were removed'}
+          >
+            <RotateCcw class="w-3.5 h-3.5" />Restore defaults
+          </Button>
+        {/if}
+        <SaveButton onclick={saveTerms} disabled={!termsDirty || !!termsError} saving={savingTerms} />
+      {/if}
+    </div>
   </div>
 
-  <InfoPanel show={info} title={hint.title} tone="blue" steps={hint.steps} />
+  {#if tab === 'detections'}
+    <InfoPanel show={info} title={hint.title} tone="blue" steps={hint.steps} />
+  {/if}
 
   {#if config}<WarningBanner warnings={config.warnings} />{/if}
 
@@ -384,12 +405,6 @@
             />
           </div>
         </SettingRow>
-
-        {#if isAdmin}
-          <div class="flex justify-end pt-5">
-            <SaveButton onclick={save} disabled={!dirty || !!thresholdError} {saving} />
-          </div>
-        {/if}
       {/if}
     </Card>
   {:else if tab === 'terms'}
@@ -408,20 +423,6 @@
           <p class="text-xs {termsError ? 'text-red-400' : 'text-zinc-500'}">
             {termsError ?? `${termCount} term${termCount === 1 ? '' : 's'}${termsDirty ? ', not saved yet' : ''}`}
           </p>
-          {#if isAdmin}
-            <div class="flex items-center gap-2">
-              <Button variant="ghost" onclick={() => (termsText = savedText)} disabled={!termsDirty || savingTerms}>Discard</Button>
-              <Button
-                variant="secondary"
-                onclick={restoreDefaults}
-                disabled={termsDirty || restoring}
-                title={termsDirty ? 'Save or discard your changes first' : 'Add back the default terms that were removed'}
-              >
-                <RotateCcw class="w-3.5 h-3.5" />Restore defaults
-              </Button>
-              <SaveButton onclick={saveTerms} disabled={!termsDirty || !!termsError} saving={savingTerms} />
-            </div>
-          {/if}
         </div>
       {/if}
     </Card>

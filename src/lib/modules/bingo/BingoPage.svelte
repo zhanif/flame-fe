@@ -12,7 +12,8 @@
   import ThreadsTab from '$lib/modules/bingo/ThreadsTab.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { urlParam } from '$lib/url-param';
-  import { Grid3x3, Info, Palette, Plus, Settings } from '@lucide/svelte';
+  import { Grid3x3, Info, Palette, Plus, RefreshCw, Settings } from '@lucide/svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import { onMount } from 'svelte';
 
   let { guildId, isAdmin }: { guildId: string; isAdmin: boolean } = $props();
@@ -25,6 +26,11 @@
 
   let config: BingoConfig | null = $state(null);
   let info = $state(false);
+  let settingsTab: any = $state(null);
+  let bingoSaving = $state(false);
+  let bingoRescanning = $state(false);
+  let bingoDirty = $state(false);
+  let bingoCanRescan = $state(false);
 
   const HINTS: Record<string, { title: string; steps: InfoStep[] }> = {
     threads: {
@@ -147,13 +153,21 @@
         {#if isAdmin && tab === 'designs'}
           <Button variant="primary" onclick={() => openDesign('new')}><Plus class="w-3.5 h-3.5" />New design</Button>
         {/if}
-        {#if tab !== 'designs'}
+        {#if tab === 'threads'}
           <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
+        {/if}
+        {#if isAdmin && tab === 'settings'}
+          <Button variant="secondary" onclick={() => settingsTab?.rescan()} disabled={!bingoCanRescan || bingoRescanning}>
+            <RefreshCw class="h-3.5 w-3.5" />{bingoRescanning ? 'Scanning…' : 'Scan forum'}
+          </Button>
+          <SaveButton onclick={() => settingsTab?.save()} disabled={!bingoDirty} saving={bingoSaving} />
         {/if}
       </div>
     </div>
 
-    <InfoPanel show={info} title={hint.title} tone="rose" steps={hint.steps} />
+    {#if tab === 'threads'}
+      <InfoPanel show={info} title={hint.title} tone="rose" steps={hint.steps} />
+    {/if}
 
     {#if config}
       <WarningBanner warnings={config.warnings} />
@@ -162,7 +176,16 @@
     {#if !config}
       <BingoSkeleton view={tab === 'settings' ? 'settings' : tab === 'designs' ? 'designs' : 'threads'} />
     {:else if tab === 'settings'}
-      <SettingsTab {guildId} {config} {isAdmin} onSaved={next => (config = next)} />
+      <SettingsTab
+        {guildId}
+        {config}
+        {isAdmin}
+        onSaved={next => (config = next)}
+        bind:saving={bingoSaving}
+        bind:rescanning={bingoRescanning}
+        bind:dirty={bingoDirty}
+        bind:canRescan={bingoCanRescan}
+      />
     {:else if tab === 'designs'}
       <DesignsTab
         {guildId}

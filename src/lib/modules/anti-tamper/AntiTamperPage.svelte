@@ -17,8 +17,10 @@
   import RoleExceptions from '$lib/components/RoleExceptions.svelte';
   import RoleSelect from '$lib/components/RoleSelect.svelte';
   import RowMenu, { type RowMenuItem } from '$lib/components/RowMenu.svelte';
+  import SaveButton from '$lib/components/SaveButton.svelte';
   import SectionTitle from '$lib/components/SectionTitle.svelte';
   import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+  import SettingRow from '$lib/components/SettingRow.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
   import Toggle from '$lib/components/Toggle.svelte';
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
@@ -88,7 +90,14 @@
   const channelPanel = $derived(panelParam.value === 'details' ? 'details' : 'exceptions');
   let addingLocal = $state(false);
   let reportChannel = $state('');
-  let savedChannel = '';
+  let savedChannel = $state('');
+  let rolesEnabled = $state(false);
+  let channelsEnabled = $state(false);
+  let savedRolesEnabled = $state(false);
+  let savedChannelsEnabled = $state(false);
+  const settingsDirty = $derived(
+    rolesEnabled !== savedRolesEnabled || channelsEnabled !== savedChannelsEnabled || reportChannel !== savedChannel,
+  );
 
   const cell = td.replace('h-11', 'h-14');
   const when = (ts: string) => new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -149,6 +158,8 @@
   function apply(next: AntiTamperRules) {
     rules = next;
     savedChannel = reportChannel = next.report_channel_id ?? '';
+    savedRolesEnabled = rolesEnabled = next.roles_enabled;
+    savedChannelsEnabled = channelsEnabled = next.channels_enabled;
   }
 
   /** Runs a change and shows what the server answers; on failure the page keeps what it had. */
@@ -158,7 +169,6 @@
       if (success) toast('success', success);
       return true;
     } catch (e: any) {
-      reportChannel = savedChannel;
       toast('error', e.message);
       return false;
     }
@@ -199,11 +209,35 @@
     if (await action()) close();
     busy = false;
   }
-  const saveChannel = () =>
-    change(
-      () => api.antiTamper.setReportChannel(guildId, reportChannel || null),
-      reportChannel ? 'Report channel saved' : 'Reporting stopped',
-    );
+  // The Settings section is a draft: nothing is sent until Save, and only what changed is.
+  let savingSettings = $state(false);
+  async function saveSettings() {
+    if (savingSettings) return;
+    savingSettings = true;
+    const wanted = { roles: rolesEnabled, channels: channelsEnabled, channel: reportChannel };
+    try {
+      let next: AntiTamperRules | null = null;
+      if (wanted.roles !== savedRolesEnabled) next = await api.antiTamper.setProtection(guildId, 'roles', wanted.roles);
+      if (wanted.channels !== savedChannelsEnabled) next = await api.antiTamper.setProtection(guildId, 'channels', wanted.channels);
+      if (wanted.channel !== savedChannel) next = await api.antiTamper.setReportChannel(guildId, wanted.channel || null);
+      if (next) {
+        rules = next;
+        savedRolesEnabled = rolesEnabled = next.roles_enabled;
+        savedChannelsEnabled = channelsEnabled = next.channels_enabled;
+        savedChannel = reportChannel = next.report_channel_id ?? '';
+      }
+      toast('success', 'Settings saved');
+    } catch (e: any) {
+      toast('error', e.message);
+      try {
+        apply(await api.antiTamper.rules(guildId));
+      } catch {
+        // The page keeps the draft; the person can save again.
+      }
+    } finally {
+      savingSettings = false;
+    }
+  }
 
   // The switches: one per protected role or channel, and one per kind for the whole server (Settings).
   let switching = $state(false);
@@ -518,7 +552,11 @@
       ]}
     />
     <div class="flex items-center gap-2">
-      {#if hasInfo}
+      {#if view === 'settings'}
+        {#if isAdmin}
+          <SaveButton onclick={saveSettings} disabled={!settingsDirty} saving={savingSettings} />
+        {/if}
+      {:else if hasInfo}
         <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
       {/if}
       {#if isAdmin && view === 'exceptions'}
@@ -527,7 +565,9 @@
     </div>
   </div>
 
-  <InfoPanel show={info && hasInfo} title={hint.title} tone="red" steps={hint.steps} />
+  {#if view !== 'settings'}
+    <InfoPanel show={info && hasInfo} title={hint.title} tone="red" steps={hint.steps} />
+  {/if}
 
   {#if rules}<WarningBanner warnings={rules.warnings} />{/if}
 
@@ -562,50 +602,59 @@
   {#if view === 'settings'}
     <Card>
       <SectionTitle icon={ShieldAlert} title="Protection" class="mb-5" />
-      <div class="space-y-4">
-        {#each [{ kind: 'roles' as const, title: 'Protect roles', text: 'Take protected roles back from anyone who is not an exception.', on: rules?.roles_enabled }, { kind: 'channels' as const, title: 'Protect channels', text: 'Put the permissions of protected channels back when someone who is not an exception changes them.', on: rules?.channels_enabled }] as item (item.kind)}
-          <div class="flex items-center justify-between gap-6">
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-zinc-200">{item.title}</p>
-              <p class="mt-0.5 text-xs text-zinc-500">{item.text}</p>
-            </div>
-            {#if rules}
-              <Toggle
-                on={!!item.on}
-                disabled={!isAdmin || switching}
-                label={item.title}
-                onclick={() =>
-                  flip(
-                    () => api.antiTamper.setProtection(guildId, item.kind, !item.on),
-                    item.on ? `${item.title} is off` : `${item.title} is on`,
-                  )}
-              />
-            {:else}
-              <div class="h-5 w-9 shrink-0 rounded-full bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </Card>
-    <Card>
-      <SectionTitle icon={Megaphone} title="Report channel" class="mb-5" />
-      <span class={label}>Channel</span>
-      <p class="mb-2.5 text-xs text-zinc-500">
-        Where the bot says who got a protected role, who changed a protected channel, and what it did. Pick Not reported to stay silent; the
-        Logs tab and the audit log still record everything.
-      </p>
       {#if rules}
-        <ChannelPicker
-          {channels}
-          bind:value={reportChannel}
-          onchange={saveChannel}
-          none="Not reported"
-          label="Report channel"
-          disabled={!isAdmin}
-          class="w-full sm:w-80"
-        />
+        <SettingRow title="Protect roles" hint="Take protected roles back from anyone who is not an exception.">
+          <div class="flex items-center gap-3 sm:justify-end">
+            <span class="text-sm text-zinc-300">{rolesEnabled ? 'On' : 'Off'}</span>
+            <Toggle
+              on={rolesEnabled}
+              disabled={!isAdmin || savingSettings}
+              label="Protect roles"
+              onclick={() => (rolesEnabled = !rolesEnabled)}
+            />
+          </div>
+        </SettingRow>
+
+        <SettingRow
+          title="Protect channels"
+          hint="Put the permissions of protected channels back when someone who is not an exception changes them."
+        >
+          <div class="flex items-center gap-3 sm:justify-end">
+            <span class="text-sm text-zinc-300">{channelsEnabled ? 'On' : 'Off'}</span>
+            <Toggle
+              on={channelsEnabled}
+              disabled={!isAdmin || savingSettings}
+              label="Protect channels"
+              onclick={() => (channelsEnabled = !channelsEnabled)}
+            />
+          </div>
+        </SettingRow>
+
+        <SettingRow
+          title="Report channel"
+          hint="Where the bot says who got a protected role, who changed a protected channel, and what it did. Pick Not reported to stay silent; the Logs tab and the audit log still record everything."
+        >
+          <ChannelPicker
+            {channels}
+            bind:value={reportChannel}
+            none="Not reported"
+            label="Report channel"
+            disabled={!isAdmin || savingSettings}
+            class="w-full"
+          />
+        </SettingRow>
       {:else}
-        <div class="h-9 w-full sm:w-80 rounded-lg bg-zinc-800/40 animate-pulse" aria-hidden="true"></div>
+        <div class="space-y-5" aria-hidden="true">
+          {#each Array(3) as _}
+            <div class="flex items-center justify-between gap-8">
+              <div class="space-y-2">
+                <div class="h-3.5 w-32 rounded bg-zinc-700/40 animate-pulse"></div>
+                <div class="h-2.5 w-64 rounded bg-zinc-800/40 animate-pulse"></div>
+              </div>
+              <div class="h-9 w-56 rounded-lg bg-zinc-800/40 animate-pulse"></div>
+            </div>
+          {/each}
+        </div>
       {/if}
     </Card>
     <Card>

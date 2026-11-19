@@ -148,6 +148,7 @@ export interface QuoteDeleteResult {
 
 export interface QuoteSettings {
   publish_channel_id: string | null;
+  daily_limit: number;
   /** What stops quotes from working right now (a missing permission). */
   warnings: string[];
 }
@@ -386,13 +387,14 @@ export interface FileSubmissionRow {
   user?: UserProfile;
   submitted_by?: UserProfile;
   file_count: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'deleted';
   reason: string | null;
   upvotes: number | null;
   reviewer?: UserProfile;
   reviewed_at: string | null;
   files: { url: string; name: string; type: string | null }[];
   created_at: string;
+  deleted_at: string | null;
 }
 
 /** One name and value block of an announcement's embed. */
@@ -452,6 +454,7 @@ export interface AnnouncementEntry extends AnnouncementFields {
   sent_by?: UserProfile;
   created_at: string;
   edited_at: string | null;
+  deleted_at: string | null;
 }
 
 /** `flame`: answers come from the service Flame offers. `own`: from one the server brings. */
@@ -733,6 +736,8 @@ export const api = {
   quoteSettings: (guildId: string) => apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`),
   updateQuoteSettings: (guildId: string, publishChannelId: string | null) =>
     apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`, 'PUT', { publish_channel_id: publishChannelId }),
+  updateQuoteDailyLimit: (guildId: string, dailyLimit: number) =>
+    apiCall<QuoteSettings>(`/guilds/${guildId}/m/quotes/settings`, 'PUT', { daily_limit: dailyLimit }),
   booster: {
     ...roleRules<BoosterRules>('booster'),
     setLogChannel: (guildId: string, channelId: string | null) =>
@@ -837,6 +842,7 @@ export const api = {
       apiCall<{ submissions: FileSubmissionRow[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/file-submissions/submissions?page=${query.page}&limit=${query.limit}&status=${query.status}&collection_id=${query.collectionId}&tag=${encodeURIComponent(query.tag)}`,
       ),
+    submission: (guildId: string, id: string) => apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}`),
     approve: (guildId: string, id: string) =>
       apiCall<FileSubmissionRow>(`/guilds/${guildId}/m/file-submissions/submissions/${id}/approve`, 'POST'),
     reject: (guildId: string, id: string, reason: string) =>

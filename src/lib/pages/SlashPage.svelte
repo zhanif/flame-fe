@@ -237,7 +237,7 @@
   <Card flush>
     {#if !loaded}
       <TableSkeleton
-        columns={['w-16', 'flex-1', 'w-40', 'w-36', '>w-28', 'w-12']}
+        columns={['w-16', 'flex-1', 'w-48', 'w-44', 'w-28', 'w-12']}
         headings={['#', 'Command', 'Module', 'State', 'Live', '']}
         kinds={['bar', 'bar', 'bar', 'pill', 'bar', 'bar']}
         rows={3}
@@ -249,8 +249,8 @@
           <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
             <th class="{th} w-16">#</th>
             <th class={th}>Command</th>
-            <th class="{th} w-40">Module</th>
-            <th class="{th} w-36">State</th>
+            <th class="{th} w-48">Module</th>
+            <th class="{th} w-44">State</th>
             <th class="{th} w-28 text-right">Live</th>
             <th class="{th} w-12" aria-label="Details"></th>
           </tr>
