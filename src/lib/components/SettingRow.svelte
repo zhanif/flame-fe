@@ -4,13 +4,15 @@
   // One setting of a settings card: what it is and what it does on the left, the control on the
   // right. On a narrow screen the control drops under the text. Rows are separated by a thin line.
   // `chips` are the short facts of a setting (its range, its default) as small tags under the hint, so the hint can stay one sentence.
+  // Pass `hintSnippet` instead of `hint` when the hint needs a styled piece (a command pill).
   let {
     title,
     hint,
+    hintSnippet,
     chips = [],
     error = false,
     children,
-  }: { title: string; hint?: string; chips?: string[]; error?: boolean; children: Snippet } = $props();
+  }: { title: string; hint?: string; hintSnippet?: Snippet; chips?: string[]; error?: boolean; children: Snippet } = $props();
 </script>
 
 <div
@@ -18,7 +20,11 @@
 >
   <div class="min-w-0 sm:max-w-md">
     <p class="text-sm font-semibold text-zinc-100">{title}</p>
-    {#if hint}<p class="mt-1 text-xs leading-relaxed {error ? 'text-red-400' : 'text-zinc-500'}">{hint}</p>{/if}
+    {#if hintSnippet}
+      <p class="mt-1 text-xs leading-relaxed {error ? 'text-red-400' : 'text-zinc-500'}">{@render hintSnippet()}</p>
+    {:else if hint}
+      <p class="mt-1 text-xs leading-relaxed {error ? 'text-red-400' : 'text-zinc-500'}">{hint}</p>
+    {/if}
     {#if chips.length}
       <div class="mt-2 flex flex-wrap gap-1.5">
         {#each chips as chip (chip)}<span class="rounded-md bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400 ring-1 ring-zinc-700/60"

@@ -595,12 +595,14 @@ export interface BingoDesign {
 
 export type BingoRoundStatus = 'open' | 'closed' | 'ignored';
 export type BingoTogetherMode = 'off' | 'positive' | 'negative';
+/** `thread`: rounds are threads in a forum. `channel`: one text channel, started and stopped with /bingo-manager. */
+export type BingoMode = 'thread' | 'channel';
 
 export interface BingoRound {
   id: string;
   tag: string;
-  thread_id: string;
-  thread_name: string;
+  channel_id: string;
+  channel_name: string;
   status: BingoRoundStatus;
   together_mode: BingoTogetherMode;
   design_id: string | null;
@@ -625,13 +627,13 @@ export interface BingoLimits {
 }
 
 export interface BingoConfig {
+  mode: BingoMode;
   channel_id: string | null;
   tag_regex: string | null;
   participant_role_id: string | null;
   newcomer_role_id: string | null;
   positive_role_id: string | null;
   negative_role_id: string | null;
-  announce_board: boolean;
   upper_threshold: number | null;
   lower_threshold: number | null;
   warnings: string[];
@@ -897,6 +899,10 @@ export const api = {
         `/guilds/${guildId}/m/bingo/threads?page=${query.page}&limit=${query.limit}${query.status ? `&status=${query.status}` : ''}`,
       ),
     round: (guildId: string, id: string) => apiCall<{ round: BingoRound; design: BingoDesign }>(`/guilds/${guildId}/m/bingo/threads/${id}`),
+    /** The round's board as a base64 PNG, drawn once on the bot and cached for days, so the round view shows
+     *  the exact card Discord gets instead of redrawing it. `answered` gives the board with the correct answers. */
+    card: (guildId: string, id: string, answered = false) =>
+      apiCall<string>(`/guilds/${guildId}/m/bingo/threads/${id}/card${answered ? '?answered=1' : ''}`),
     designs: (guildId: string, query: { page: number; limit: number }) =>
       apiCall<{ designs: BingoDesign[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/bingo/designs?page=${query.page}&limit=${query.limit}`,
@@ -911,7 +917,7 @@ export const api = {
       apiCall<BingoDesign & { rescored: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/design`, 'PUT', { board }),
     postBoard: (guildId: string, id: string) => apiCall<BingoRound>(`/guilds/${guildId}/m/bingo/threads/${id}/board`, 'POST'),
     answers: (guildId: string, id: string, answers: string) =>
-      apiCall<{ rescored: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/answers`, 'POST', { answers }),
+      apiCall<{ rescored: number; closed: boolean }>(`/guilds/${guildId}/m/bingo/threads/${id}/answers`, 'POST', { answers }),
     together: (guildId: string, id: string, mode: BingoTogetherMode) =>
       apiCall<{ granted: number; removed: number }>(`/guilds/${guildId}/m/bingo/threads/${id}/together`, 'POST', { mode }),
     setStatus: (guildId: string, id: string, status: BingoRoundStatus) =>

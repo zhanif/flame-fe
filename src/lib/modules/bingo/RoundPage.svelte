@@ -62,6 +62,9 @@
   let savingAnswers = $state(false);
   let exporting = $state(false);
   let previewAnswered = $state(false);
+  // The board card the bot drew and cached: the round view shows this PNG instead of redrawing the board,
+  // so switching to the answered view is a cached read, not a fresh render. Both variants are kept once loaded.
+  let cardUrls = $state<{ plain: string | null; answered: string | null }>({ plain: null, answered: null });
   let applying = $state(false);
   let togetherResult = $state<{ granted: number; removed: number } | null>(null);
   let deleting = $state(false);
@@ -90,6 +93,7 @@
 
   async function load() {
     try {
+      cardUrls = { plain: null, answered: null };
       const [result, designList, entriesResult, configResult] = await Promise.all([
         api.bingo.round(guildId, roundId),
         api.bingo.designs(guildId, { page: 1, limit: 100 }),
@@ -105,9 +109,23 @@
       mode = result.round.together_mode;
       designs = designList.designs;
       entries = entriesResult.entries ?? [];
+      if (!blank) void loadCard(false);
     } catch (e: any) {
       toast('error', e.message);
       onBack();
+    }
+  }
+
+  /** The bot's card for this round, fetched once per variant and kept until the round reloads. */
+  async function loadCard(answered: boolean) {
+    if (!current) return;
+    const key = answered ? 'answered' : 'plain';
+    if (cardUrls[key]) return;
+    try {
+      const data = await api.bingo.card(guildId, current.id, answered);
+      cardUrls = { ...cardUrls, [key]: `data:image/png;base64,${data}` };
+    } catch (e: any) {
+      toast('error', e.message);
     }
   }
 
@@ -118,13 +136,10 @@
     savingAnswers = true;
     try {
       const result = await api.bingo.answers(guildId, current.id, answers);
-      toast(
-        'success',
-        'Answers saved',
-        result.rescored
-          ? `${result.rescored} ${result.rescored === 1 ? 'entry was' : 'entries were'} rescored.`
-          : 'No entry needed a new score.',
-      );
+      const scoring = result.rescored
+        ? `${result.rescored} ${result.rescored === 1 ? 'entry was' : 'entries were'} rescored.`
+        : 'No entry needed a new score.';
+      toast('success', 'Answers saved', result.closed ? `The round is closed. ${scoring}` : scoring);
       await load();
     } catch (e: any) {
       toast('error', e.message);
@@ -205,7 +220,7 @@
       await api.bingo.setStatus(guildId, current.id, status);
       toast(
         'success',
-        status === 'closed' ? 'Round finalized' : status === 'open' ? 'Round reopened' : 'Thread ignored',
+        status === 'closed' ? 'Round finalized' : status === 'open' ? 'Round reopened' : 'Round ignored',
         status === 'open' ? 'Members can submit answers again.' : undefined,
       );
       await load();
@@ -272,7 +287,7 @@
   onConfirm={remove}
   onClose={() => (deleting = false)}
 >
-  Its submissions, its correct answers and its board are removed. The thread in Discord stays, and a scan of the forum would create the
+  Its submissions, its correct answers and its board are removed. The container in Discord stays, and a scan of the forum would create the
   round again.
 </ConfirmModal>
 
@@ -282,10 +297,10 @@
   <div class="space-y-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-start gap-2">
-        <Button variant="ghost" onclick={onBack} aria-label="Back to threads"><ArrowLeft class="h-4 w-4" /></Button>
+        <Button variant="ghost" onclick={onBack} aria-label="Back to rounds"><ArrowLeft class="h-4 w-4" /></Button>
         <div class="min-w-0">
           <p class="truncate font-mono text-sm font-semibold text-rose-300">{current.tag}</p>
-          <p class="truncate text-xs text-zinc-500" title={current.thread_name}>{current.thread_name}</p>
+          <p class="truncate text-xs text-zinc-500" title={current.channel_name}>{current.channel_name}</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -301,15 +316,18 @@
               { label: 'Participant Answers', onclick: () => void exportAnswers() },
             ]}
           />
-          <RowMenu
-            items={[
-              current.status === 'closed'
-                ? { label: 'Reopen round', icon: RotateCcw, onclick: () => void setStatus('open') }
-                : { label: 'Finalize round', icon: Check, disabled: current.status !== 'open', onclick: () => void setStatus('closed') },
-              { label: 'Delete round', icon: Trash2, danger: true, onclick: () => (deleting = true) },
-            ]}
-            label="Round actions"
-          />
+          {#if current.status === 'closed'}
+            <Button variant="secondary" onclick={() => void setStatus('open')}>
+              <RotateCcw class="h-3.5 w-3.5" />Reopen
+            </Button>
+          {:else}
+            <Button variant="secondary" disabled={current.status !== 'open'} onclick={() => void setStatus('closed')}>
+              <Check class="h-3.5 w-3.5" />Finalize
+            </Button>
+          {/if}
+          <Button variant="danger" onclick={() => (deleting = true)}>
+            <Trash2 class="h-3.5 w-3.5" />Delete
+          </Button>
         {/if}
       </div>
     </div>
@@ -338,7 +356,9 @@
               </p>
             {/if}
             <BingoAnswersGrid bind:value={answers} disabled={!isAdmin || blank} {points} />
-            <p class="mt-3 text-xs text-zinc-500">A wrong answer costs the same, a skipped bonus costs nothing.</p>
+            <p class="mt-3 text-xs text-zinc-500">
+              Saving rescored every entry and closes the round. A wrong answer costs the same, a skipped bonus costs nothing.
+            </p>
             {#if isAdmin}
               <div class="mt-4 flex justify-end border-t border-zinc-800/60 pt-4">
                 <Button
@@ -477,7 +497,11 @@
               <span class="{caps} text-zinc-500">Preview</span>
               <span class="text-xs text-zinc-500">What Discord posts</span>
             </div>
-            <BingoBoard board={board.board} answers={previewAnswered ? current.correct_answers : null} />
+            {#if cardUrls[previewAnswered ? 'answered' : 'plain']}
+              <img src={cardUrls[previewAnswered ? 'answered' : 'plain']!} alt="Board preview" class="w-full" />
+            {:else}
+              <BingoBoard board={board.board} answers={previewAnswered ? current.correct_answers : null} />
+            {/if}
             <p class="text-xs text-zinc-500">
               {previewAnswered
                 ? 'Green is Y, red is N, gray is a skipped bonus. The bands turn gray in this preview.'
@@ -489,7 +513,10 @@
                   variant="secondary"
                   class="w-full"
                   disabled={!current.has_answers}
-                  onclick={() => (previewAnswered = !previewAnswered)}
+                  onclick={() => {
+                    previewAnswered = !previewAnswered;
+                    void loadCard(previewAnswered);
+                  }}
                 >
                   {#if previewAnswered}
                     <EyeOff class="h-3.5 w-3.5" />Hide answered preview

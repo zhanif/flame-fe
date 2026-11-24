@@ -67,7 +67,7 @@
   <EmptyState
     kind="search"
     title="No submissions yet"
-    description="Members submit by sending their 12 answers in the round's thread. They show up here as they arrive."
+    description="Members submit by sending their 12 answers in the round. They show up here as they arrive."
   />
 {:else}
   <Card flush>

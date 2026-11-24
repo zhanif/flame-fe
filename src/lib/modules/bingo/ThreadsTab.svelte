@@ -13,7 +13,7 @@
   import { Check, MessageSquare, PencilRuler, RotateCcw, Trash2 } from '@lucide/svelte';
   import { untrack } from 'svelte';
 
-  // The rounds of this server: one per thread whose first message carried the tag.
+  // The rounds of this server: a thread in the forum (thread mode) or one started in the channel (channel mode).
   let { guildId, isAdmin, onOpen }: { guildId: string; isAdmin: boolean; onOpen: (roundId: string) => void } = $props();
 
   let rounds: BingoRound[] = $state([]);
@@ -52,7 +52,7 @@
   async function setStatus(round: BingoRound, status: BingoRoundStatus) {
     try {
       await api.bingo.setStatus(guildId, round.id, status);
-      toast('success', status === 'closed' ? 'Round closed' : status === 'ignored' ? 'Thread ignored' : 'Round reopened', round.tag);
+      toast('success', status === 'closed' ? 'Round closed' : status === 'ignored' ? 'Round ignored' : 'Round reopened', round.tag);
       await load();
     } catch (e: any) {
       toast('error', e.message);
@@ -86,7 +86,7 @@
   onConfirm={remove}
   onClose={() => (deleting = null)}
 >
-  Its submissions, its correct answers and its board are removed. The thread in Discord stays, and a scan of the forum would create the
+  Its submissions, its correct answers and its board are removed. The container in Discord stays, and a scan of the forum would create the
   round again.
 </ConfirmModal>
 
@@ -112,7 +112,7 @@
       <TableSkeleton
         columns={['w-16', 'flex-1', 'flex-1', 'w-28', 'w-24', '>w-20', '>w-24', '>w-12']}
         rows={limit}
-        headings={['#', 'Tag', 'Thread', 'Status', 'Design', 'Entries', 'Top score', '']}
+        headings={['#', 'Tag', 'Channel', 'Status', 'Design', 'Entries', 'Top score', '']}
       />
     </Card>
   {:else if total === 0}
@@ -121,7 +121,7 @@
       title={filter ? 'No rounds match' : 'No rounds yet'}
       description={filter
         ? 'Try another status.'
-        : 'Create a thread in the bingo forum whose first message carries the tag, then scan the forum from Settings if it was made before.'}
+        : 'Open a round: create a tagged thread in the bingo forum (thread mode), or run /bingo-manager start in the bingo channel (channel mode).'}
     />
   {:else}
     <Card flush>
@@ -131,7 +131,7 @@
             <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
               <th class="{th} w-16">#</th>
               <th class={th}>Tag</th>
-              <th class={th}>Thread</th>
+              <th class={th}>Channel</th>
               <th class="{th} w-28">Status</th>
               <th class="{th} w-24">Board</th>
               <th class="{th} w-20 text-right">Entries</th>
@@ -155,7 +155,7 @@
                     class="inline-flex max-w-[22rem] items-center gap-1.5 rounded-md bg-zinc-800/70 px-2 py-1 text-xs font-medium text-zinc-200 ring-1 ring-zinc-700/60"
                   >
                     <MessageSquare class="h-3 w-3 shrink-0 text-zinc-400" />
-                    <span class="truncate" title={round.thread_name}>{round.thread_name}</span>
+                    <span class="truncate" title={round.channel_name}>{round.channel_name}</span>
                   </span>
                 </td>
                 <td class="{cell} w-28"><span class="text-xs text-zinc-300">{statusLabel[round.status]}</span></td>

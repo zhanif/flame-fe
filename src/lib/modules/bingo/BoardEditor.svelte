@@ -79,7 +79,7 @@
   ]);
   const roundOptions = $derived([
     { value: '', label: 'Not assigned' },
-    ...rounds.map(round => ({ value: round.id, label: round.tag, hint: round.thread_name })),
+    ...rounds.map(round => ({ value: round.id, label: round.tag, hint: round.channel_name })),
   ]);
   const selectedRound = $derived(rounds.find(round => round.id === roundId) ?? null);
   const locked = $derived(!!selectedRound && (selectedRound.entries ?? 0) >= 1);

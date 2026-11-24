@@ -37,16 +37,16 @@
       title: 'How a round works',
       steps: [
         {
-          text: 'A staff member opens a thread in the bingo forum whose first message carries the tag. The thread becomes a round on its own.',
+          text: 'Thread mode: a staff member creates a thread in the bingo forum whose first message carries the tag, and the thread becomes a round on its own. Channel mode: a moderator runs /bingo-manager start <tag> and the round opens in the bingo channel.',
         },
         {
-          text: 'Design the board in the Designs tab: the 12 questions, their points and the look of the card. Assign the design to a round when it is ready, then post it in the thread so members see what they are answering.',
+          text: 'Design the board in the Designs tab: the 12 questions, their points and the look of the card. Assign the design to a round when it is ready, then post it so members see what they are answering.',
         },
         {
-          text: 'Members submit by sending their 12 answers in the thread, for example Y N Y N Y Y N N Y - - Y. A valid one is recorded at once and the first message of a member is their entry; a later one is refused until the earlier message is deleted.',
+          text: 'Members submit by sending their 12 answers (in channel mode, a message that opens with the round tag). A valid one is recorded at once and the first message of a member is their entry; a later one is refused until the earlier message is deleted.',
         },
         {
-          text: 'Set the correct answers when they are known. Every entry is rescored and the table is ready, and /bingo view shows it in Discord.',
+          text: 'Set the correct answers when they are known. Every entry is rescored and the table is ready, and /bingo view shows it in Discord. In channel mode, /bingo-manager stop closes the round.',
         },
       ],
     },
@@ -66,11 +66,13 @@
     settings: {
       title: 'How detection works',
       steps: [
-        { text: 'The forum decides where rounds live: only threads in that forum are looked at.' },
         {
-          text: "The tag pattern is a regular expression tested against a thread's first message. The first match is the round tag, so the pattern decides which threads count and what the round is called.",
+          text: "Thread mode reads threads in the bingo forum: the tag pattern is a regular expression tested against a thread's first message, and the first match is the round tag.",
         },
-        { text: 'Threads made before the module was installed are picked up by scanning the forum once.' },
+        {
+          text: 'Channel mode holds one round at a time in the bingo channel. A moderator opens it with /bingo-manager start <tag> and closes it with /bingo-manager stop; members submit a message that opens with the tag.',
+        },
+        { text: 'Threads made before the module was installed are picked up by scanning the forum once (thread mode only).' },
       ],
     },
   };
@@ -113,7 +115,7 @@
   }
 </script>
 
-<PageHeader module="bingo" description="Bingo rounds in a forum thread" />
+<PageHeader module="bingo" description="Bingo rounds in a forum or a channel" />
 
 <div class="space-y-5">
   {#if roundParam.value}
@@ -144,7 +146,7 @@
       <Tabs
         bind:value={tabParam.value}
         tabs={[
-          { id: 'threads', label: 'Threads', icon: Grid3x3 },
+          { id: 'threads', label: 'Rounds', icon: Grid3x3 },
           { id: 'designs', label: 'Designs', icon: Palette },
           { id: 'settings', label: 'Settings', icon: Settings },
         ]}
@@ -157,9 +159,11 @@
           <Button variant="secondary" onclick={() => (info = !info)} aria-expanded={info}><Info class="w-3.5 h-3.5" />Info</Button>
         {/if}
         {#if isAdmin && tab === 'settings'}
-          <Button variant="secondary" onclick={() => settingsTab?.rescan()} disabled={!bingoCanRescan || bingoRescanning}>
-            <RefreshCw class="h-3.5 w-3.5" />{bingoRescanning ? 'Scanning…' : 'Scan forum'}
-          </Button>
+          {#if config?.mode === 'thread'}
+            <Button variant="secondary" onclick={() => settingsTab?.rescan()} disabled={!bingoCanRescan || bingoRescanning}>
+              <RefreshCw class="h-3.5 w-3.5" />{bingoRescanning ? 'Scanning…' : 'Scan forum'}
+            </Button>
+          {/if}
           <SaveButton onclick={() => settingsTab?.save()} disabled={!bingoDirty} saving={bingoSaving} />
         {/if}
       </div>
@@ -177,6 +181,7 @@
       <BingoSkeleton view={tab === 'settings' ? 'settings' : tab === 'designs' ? 'designs' : 'threads'} />
     {:else if tab === 'settings'}
       <SettingsTab
+        bind:this={settingsTab}
         {guildId}
         {config}
         {isAdmin}
