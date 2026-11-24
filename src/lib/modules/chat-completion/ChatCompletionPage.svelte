@@ -25,7 +25,7 @@
     type ChatCompletionView,
     type DiscordChannel,
   } from '$lib/api/endpoints';
-  import LineChart from '$lib/modules/chat-completion/LineChart.svelte';
+  import BarChart from '$lib/modules/chat-completion/BarChart.svelte';
   import ChatCompletionSkeleton from '$lib/modules/chat-completion/ChatCompletionSkeleton.svelte';
   import { onlyDecimal, onlyDigits, restrictTo } from '$lib/number-input';
   import { toast } from '$lib/stores/toast.svelte';
@@ -545,7 +545,7 @@
           {#if stats.series.length === 0}
             <p class="py-6 text-center text-sm text-zinc-500">No answers in this range yet.</p>
           {:else}
-            <LineChart labels={stats.series.map(s => s.label)} data={stats.series.map(s => s.count)} />
+            <BarChart labels={stats.series.map(s => s.label)} data={stats.series.map(s => s.count)} />
           {/if}
         </Card>
 
