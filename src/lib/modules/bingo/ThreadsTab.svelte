@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Badge from '$lib/components/Badge.svelte';
   import Card from '$lib/components/Card.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -75,6 +76,7 @@
   }
 
   const statusLabel = { open: 'Open', closed: 'Closed', ignored: 'Ignored' } as const;
+  const statusTone = { open: 'success', closed: 'neutral', ignored: 'warning' } as const;
 </script>
 
 <ConfirmModal
@@ -110,9 +112,10 @@
   {#if !loaded}
     <Card flush>
       <TableSkeleton
-        columns={['w-16', 'flex-1', 'flex-1', 'w-28', 'w-24', '>w-20', '>w-24', '>w-12']}
+        columns={['w-16', 'flex-1', 'flex-1', 'w-28', 'w-24', '>w-20', '>w-32', '>w-12']}
         rows={limit}
-        headings={['#', 'Tag', 'Channel', 'Status', 'Design', 'Entries', 'Top score', '']}
+        headings={['#', 'Tag', 'Channel', 'Status', 'Board', 'Entries', 'Top score', '']}
+        kinds={['bar', 'bar', 'bar', 'pill', 'bar', 'bar', 'bar', 'action']}
       />
     </Card>
   {:else if total === 0}
@@ -158,7 +161,7 @@
                     <span class="truncate" title={round.channel_name}>{round.channel_name}</span>
                   </span>
                 </td>
-                <td class="{cell} w-28"><span class="text-xs text-zinc-300">{statusLabel[round.status]}</span></td>
+                <td class="{cell} w-28"><Badge tone={statusTone[round.status]}>{statusLabel[round.status]}</Badge></td>
                 <td class="{cell} w-24">
                   <span class="text-xs {round.board_ready ? 'text-zinc-300' : round.has_design ? 'text-amber-400' : 'text-zinc-500'}">
                     {round.board_ready ? 'Ready' : round.has_design ? 'Draft' : 'None'}
