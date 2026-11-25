@@ -178,7 +178,7 @@
       <Card flush>
         {#if !loaded}
           <TableSkeleton
-            columns={['w-16', 'flex-1', 'w-40', 'w-44', 'w-16']}
+            columns={['w-16', 'flex-1', 'w-52', 'w-56', 'w-16']}
             headings={['#', 'Design', 'Round', 'Updated', '']}
             kinds={['bar', 'bar', 'pill', 'bar', 'action']}
             rows={4}
@@ -190,8 +190,8 @@
               <tr class="border-b border-zinc-800/40 bg-zinc-800/20">
                 <th class="{th} w-16">#</th>
                 <th class={th}>Design</th>
-                <th class="{th} w-40">Round</th>
-                <th class="{th} w-44">Updated</th>
+                <th class="{th} w-52">Round</th>
+                <th class="{th} w-56">Updated</th>
                 <th class="{th} w-16"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
