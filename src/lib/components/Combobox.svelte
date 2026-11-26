@@ -30,6 +30,7 @@
     placeholder = 'Search...',
     label,
     disabled = false,
+    onchange,
     id,
     class: className = '',
   }: {
@@ -38,6 +39,7 @@
     placeholder?: string;
     label?: string;
     disabled?: boolean;
+    onchange?: () => void;
     id?: string;
     class?: string;
   } = $props();
@@ -48,6 +50,10 @@
   let container: HTMLDivElement | undefined = $state();
   let input: HTMLInputElement | undefined = $state();
   let list: HTMLDivElement | undefined = $state();
+  // The list floats with `position: fixed` so no ancestor's `overflow` (a table or a flush card)
+  // can clip it, and it is measured from the field each time it opens or the page scrolls.
+  let rect: DOMRect | null = $state(null);
+  let above = $state(false);
 
   const selected = $derived(options.find(o => o.value === value));
   const matches = $derived.by(() => {
@@ -64,12 +70,35 @@
       0,
       options.findIndex(o => o.value === value),
     );
+    measure();
     queueMicrotask(() => list?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'center' }));
   }
 
+  function measure() {
+    if (!container) return;
+    const r = container.getBoundingClientRect();
+    rect = r;
+    // 300 is roughly the list's tallest size plus its gap: flip up when there is no room below.
+    above = r.bottom + 300 > window.innerHeight && r.top > window.innerHeight - r.bottom;
+  }
+
+  $effect(() => {
+    if (!open) return;
+    const update = () => measure();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  });
+
   function pick(option: Option) {
     if (option.disabled) return;
-    value = option.value;
+    if (value !== option.value) {
+      value = option.value;
+      onchange?.();
+    }
     open = false;
     query = '';
     input?.blur();
@@ -125,12 +154,15 @@
     />
   </div>
 
-  {#if open && !disabled}
+  {#if open && !disabled && rect}
     <div
       bind:this={list}
       id="{id}-list"
       role="listbox"
-      class="absolute top-full left-0 right-0 mt-1.5 z-40 max-h-64 overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 p-1 shadow-lg shadow-black/30"
+      style="position: fixed; left: {rect.left}px; width: {rect.width}px; {above
+        ? `bottom: ${window.innerHeight - rect.top + 6}px`
+        : `top: ${rect.bottom + 6}px`};"
+      class="z-50 max-h-64 overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 p-1 shadow-lg shadow-black/30"
     >
       {#each matches as option, i (option.value)}
         <button
