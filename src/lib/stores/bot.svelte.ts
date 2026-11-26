@@ -38,7 +38,7 @@ let _guild: GuildLook | null = $state(null);
 
 export const bot = {
   get name() {
-    return _guild?.name ?? _bot?.name ?? 'the bot';
+    return _guild?.name ?? _bot?.name ?? 'The Bot';
   },
   get avatar() {
     return _guild?.avatar_url ?? _bot?.avatar_url ?? null;
