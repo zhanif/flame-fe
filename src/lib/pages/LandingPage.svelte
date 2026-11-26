@@ -58,7 +58,7 @@
           class="w-24 h-24 rounded-full mx-auto mb-6 ring-4 ring-orange-500/30 shadow-lg shadow-orange-500/20"
         />
       {:else}
-        <div class="mx-auto mb-6"><Tile icon={Flame} tone="orange" size="lg" /></div>
+        <div class="mb-6 flex justify-center"><Tile icon={Flame} tone="orange" size="lg" /></div>
       {/if}
       <h1 class="font-display text-5xl font-extrabold tracking-tight mb-3 text-orange-400">{bot.name}</h1>
       <p class="text-sm text-zinc-400 mb-7 leading-relaxed">
