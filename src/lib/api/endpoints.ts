@@ -101,6 +101,8 @@ export interface DiscordChannel {
   type: number;
   /** For a thread: the channel it lives in. */
   parent_name: string | null;
+  /** A forum's own tags (id and name); empty for anything else. */
+  tags?: { id: string; name: string }[];
   /** Why the bot cannot manage the channel's permissions (View Channel and Manage Roles in it), or null when it can. */
   problem?: string | null;
 }
@@ -659,6 +661,212 @@ export interface BingoEntries {
   pagination: Pagination;
 }
 
+export interface InvasionOverview {
+  total_players: number;
+  total_items: number;
+  total_rounds: number;
+  total_round_players: number;
+  total_actions: number;
+  total_transactions: number;
+  rounds_by_status: Record<string, number>;
+  players_by_type: Record<string, number>;
+  items_by_rarity: Record<string, number>;
+}
+
+export type InvasionChannelType = 'thread' | 'channel';
+export type InvasionLevellingMode = 'schema' | 'built_in';
+
+export interface InvasionLevelRole {
+  role_id: string;
+  level: number;
+}
+
+export interface InvasionConfig {
+  channel_type: InvasionChannelType;
+  channel_id: string | null;
+  active_tag_id: string | null;
+  levelling_mode: InvasionLevellingMode;
+  level_roles: InvasionLevelRole[];
+  participant_role_id: string | null;
+  freeze_transactions: boolean;
+  alias_threshold: number;
+  warnings: string[];
+}
+
+export interface InvasionEmoji {
+  raw: string | null;
+  raw_disabled: string | null;
+  discord: string | null;
+  discord_disabled: string | null;
+}
+
+export type InvasionEffectType = 'instant_self' | 'instant_target' | 'buff' | 'debuff' | 'polarity';
+export type InvasionEffectDomain =
+  | 'defensive'
+  | 'offensive'
+  | 'perception'
+  | 'amplifier'
+  | 'debilitator'
+  | 'control'
+  | 'cleanser'
+  | 'denial'
+  | 'immunity'
+  | 'revival'
+  | 'decisive';
+export type InvasionEffectStacking = 'separate' | 'refresh' | 'replace' | 'increase' | 'increase_entity_reset' | 'none';
+export type InvasionEffectFamily = 'proc_chance' | 'turn_chance' | 'cleansable';
+export type InvasionEffectValueType = 'number' | 'percent' | 'multiplier';
+export type InvasionItemType = 'consumable' | 'technique' | 'tool' | 'material';
+export type InvasionShopResetType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export type InvasionRequirement =
+  | { type: 'role'; role_id: string }
+  | { type: 'item'; item_key: string }
+  | { type: 'and'; requirements: InvasionRequirement[] }
+  | { type: 'or'; requirements: InvasionRequirement[] };
+
+export interface InvasionAffinity {
+  id: string;
+  guild_id: string;
+  name: string;
+  /** Ids of the base elements this one combines; empty for a base element. */
+  composite: string[];
+  emoji: InvasionEmoji;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvasionRarity {
+  id: string;
+  guild_id: string;
+  name: string;
+  /** Higher is rarer. */
+  level: number;
+  emoji: InvasionEmoji;
+  /** Seeds a new item's transaction props; an item may still override them. */
+  default_shop_price: number;
+  default_shop_stocks: number | null;
+  default_shop_reset: InvasionShopResetType | null;
+  default_reward_chance: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvasionItemEffect {
+  id: string;
+  guild_id: string;
+  name: string;
+  description: string | null;
+  emoji: InvasionEmoji;
+  type: InvasionEffectType;
+  families: InvasionEffectFamily[];
+  domain: InvasionEffectDomain;
+  stacking_type: InvasionEffectStacking;
+  rarity_id: string | null;
+  default_turns: number | null;
+  default_value: number;
+  default_value_type: InvasionEffectValueType;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvasionItemEffectRef {
+  effect_id: string;
+  value: number;
+  value_type: InvasionEffectValueType;
+  /** Turns the effect stays on the target from this item; 0 keeps it permanently, 1 applies on the turn it is used. */
+  lasting_turns: number;
+}
+
+export interface InvasionItem {
+  id: string;
+  guild_id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  rarity_id: string | null;
+  type: InvasionItemType;
+  price: number;
+  aliases: string[];
+  requirements: InvasionRequirement[];
+  cooldown: number;
+  affinity_id: string | null;
+  mana_cost: number;
+  /** Hit chance, 0 to 100. 100 means the item's effects always apply. */
+  accuracy: number;
+  effects: InvasionItemEffectRef[];
+  is_purchasable: boolean;
+  is_rewardable: boolean;
+  is_starter: boolean;
+  shop_stocks: number | null;
+  shop_reset_type: InvasionShopResetType | null;
+  /** Percent chance (0-100) the item drops when awarded. Only meaningful while rewardable. */
+  reward_chance: number;
+  wishlist_count: number;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+}
+
+export interface InvasionItemInput {
+  key?: string;
+  name: string;
+  description?: string | null;
+  rarity_id: string;
+  type: InvasionItemType;
+  aliases?: string[];
+  price?: number;
+  cooldown?: number;
+  affinity_id?: string | null;
+  mana_cost?: number;
+  /** Hit chance, 0 to 100. Missing means 100 (always applies). */
+  accuracy?: number;
+  effects?: InvasionItemEffectRef[];
+  requirements?: InvasionRequirement[];
+  is_purchasable?: boolean;
+  is_rewardable?: boolean;
+  is_starter?: boolean;
+  shop_stocks?: number | null;
+  shop_reset_type?: InvasionShopResetType | null;
+  reward_chance?: number;
+}
+
+export interface InvasionItemMeta {
+  affinities: InvasionAffinity[];
+  rarities: InvasionRarity[];
+  effects: InvasionItemEffect[];
+}
+
+export interface InvasionRarityInput {
+  name: string;
+  level: number;
+  emoji?: Partial<InvasionEmoji>;
+  default_shop_price?: number;
+  default_shop_stocks?: number | null;
+  default_shop_reset?: InvasionShopResetType | null;
+  default_reward_chance?: number;
+}
+
+export interface InvasionAffinityInput {
+  name: string;
+  composite?: string[];
+  emoji?: Partial<InvasionEmoji>;
+}
+
+export interface InvasionItemEffectInput {
+  name: string;
+  description?: string | null;
+  emoji?: Partial<InvasionEmoji>;
+  type: InvasionEffectType;
+  families?: InvasionEffectFamily[];
+  domain: InvasionEffectDomain;
+  stacking_type: InvasionEffectStacking;
+  rarity_id?: string | null;
+  default_turns?: number | null;
+  default_value?: number;
+  default_value_type?: InvasionEffectValueType;
+}
+
 export interface AuditFilters {
   actions: string[];
   actors: UserProfile[];
@@ -886,6 +1094,36 @@ export const api = {
       apiCall<{ changes: RoleColorChange[]; pagination: Pagination }>(
         `/guilds/${guildId}/m/role-colors/changes?page=${query.page}&limit=${query.limit}${query.colorId ? `&color_id=${query.colorId}` : ''}`,
       ),
+  },
+  invasion: {
+    overview: (guildId: string) => apiCall<InvasionOverview>(`/guilds/${guildId}/m/invasion/overview`),
+    config: (guildId: string) => apiCall<InvasionConfig>(`/guilds/${guildId}/m/invasion/config`),
+    saveConfig: (guildId: string, patch: Record<string, unknown>) =>
+      apiCall<InvasionConfig>(`/guilds/${guildId}/m/invasion/config`, 'PUT', patch),
+    itemMeta: (guildId: string) => apiCall<InvasionItemMeta>(`/guilds/${guildId}/m/invasion/items/meta`),
+    items: (guildId: string) => apiCall<InvasionItem[]>(`/guilds/${guildId}/m/invasion/items`),
+    createItem: (guildId: string, input: InvasionItemInput) => apiCall<InvasionItem>(`/guilds/${guildId}/m/invasion/items`, 'POST', input),
+    updateItem: (guildId: string, id: string, input: InvasionItemInput) =>
+      apiCall<InvasionItem>(`/guilds/${guildId}/m/invasion/items/${id}`, 'PUT', input),
+    removeItem: (guildId: string, id: string) => apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/invasion/items/${id}`, 'DELETE'),
+    createRarity: (guildId: string, input: InvasionRarityInput) =>
+      apiCall<InvasionRarity>(`/guilds/${guildId}/m/invasion/items/meta/rarities`, 'POST', input),
+    updateRarity: (guildId: string, id: string, input: InvasionRarityInput) =>
+      apiCall<InvasionRarity>(`/guilds/${guildId}/m/invasion/items/meta/rarities/${id}`, 'PUT', input),
+    removeRarity: (guildId: string, id: string) =>
+      apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/invasion/items/meta/rarities/${id}`, 'DELETE'),
+    createAffinity: (guildId: string, input: InvasionAffinityInput) =>
+      apiCall<InvasionAffinity>(`/guilds/${guildId}/m/invasion/items/meta/affinities`, 'POST', input),
+    updateAffinity: (guildId: string, id: string, input: InvasionAffinityInput) =>
+      apiCall<InvasionAffinity>(`/guilds/${guildId}/m/invasion/items/meta/affinities/${id}`, 'PUT', input),
+    removeAffinity: (guildId: string, id: string) =>
+      apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/invasion/items/meta/affinities/${id}`, 'DELETE'),
+    createEffect: (guildId: string, input: InvasionItemEffectInput) =>
+      apiCall<InvasionItemEffect>(`/guilds/${guildId}/m/invasion/items/meta/effects`, 'POST', input),
+    updateEffect: (guildId: string, id: string, input: InvasionItemEffectInput) =>
+      apiCall<InvasionItemEffect>(`/guilds/${guildId}/m/invasion/items/meta/effects/${id}`, 'PUT', input),
+    removeEffect: (guildId: string, id: string) =>
+      apiCall<{ removed: boolean }>(`/guilds/${guildId}/m/invasion/items/meta/effects/${id}`, 'DELETE'),
   },
   bingo: {
     config: (guildId: string) => apiCall<BingoConfig>(`/guilds/${guildId}/m/bingo/config`),

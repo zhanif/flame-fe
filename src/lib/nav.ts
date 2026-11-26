@@ -16,6 +16,7 @@ import {
   Terminal,
   Timer,
   Grid3x3,
+  Swords,
 } from '@lucide/svelte';
 import { type Component, getContext, setContext } from 'svelte';
 
@@ -47,6 +48,7 @@ export const MODULE_PAGES: Record<string, PageMeta> = {
   'role-colors': { label: 'Role Colors', icon: Palette, tone: 'lime', adminOnly: false },
   'chat-completion': { label: 'Chat Completion', icon: Sparkles, tone: 'vermilion', adminOnly: false },
   bingo: { label: 'Bingo', icon: Grid3x3, tone: 'rose', adminOnly: false },
+  invasion: { label: 'Invasion', icon: Swords, tone: 'blue', adminOnly: false },
 };
 
 /** The color of an audit action (`booster.role.save`, `quote.delete`...): the color of the page it

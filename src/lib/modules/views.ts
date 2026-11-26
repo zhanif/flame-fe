@@ -4,6 +4,7 @@ import AutoremoverPage from '$lib/modules/autoremover/AutoremoverPage.svelte';
 import BingoPage from '$lib/modules/bingo/BingoPage.svelte';
 import BoosterPage from '$lib/modules/booster/BoosterPage.svelte';
 import ChatCompletionPage from '$lib/modules/chat-completion/ChatCompletionPage.svelte';
+import InvasionPage from '$lib/modules/invasion/InvasionPage.svelte';
 import OcrDetectionPage from '$lib/modules/ocr-detection/OcrDetectionPage.svelte';
 import FileSubmissionsPage from '$lib/modules/file-submissions/FileSubmissionsPage.svelte';
 import RoleColorsPage from '$lib/modules/role-colors/RoleColorsPage.svelte';
@@ -23,4 +24,5 @@ export const MODULE_VIEWS: Record<string, Component<{ guildId: string; isAdmin: 
   'file-submissions': FileSubmissionsPage,
   'chat-completion': ChatCompletionPage,
   bingo: BingoPage,
+  invasion: InvasionPage,
 };

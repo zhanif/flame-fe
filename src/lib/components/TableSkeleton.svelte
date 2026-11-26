@@ -1,15 +1,15 @@
 <script lang="ts">
   import { caps } from '$lib/ui';
 
-  type Kind = 'bar' | 'thumb' | 'actor' | 'pill' | 'actions' | 'action' | 'toggle';
+  type Kind = 'bar' | 'text' | 'thumb' | 'actor' | 'pill' | 'actions' | 'action' | 'toggle';
 
   // One width class per column of the real table (`w-24`, `flex-1`, …); prefix
   // with `>` for a right-aligned column. Cells mirror the real table: same
   // widths, `px-5` per cell, header `h-10`, rows `h-11` (or `rowHeight`).
   // When the page already knows more, say so and the skeleton follows:
   // `headings` are the real column titles (shown as text, not bars), and `kinds`
-  // shapes a column like what it will hold (a preview square, a member with an
-  // avatar, a status pill, the row's action buttons).
+  // shapes a column like what it will hold (a two-line text cell, a preview square,
+  // a member with an avatar, a status pill, the row's action buttons).
   let {
     columns,
     rows = 4,
@@ -48,7 +48,12 @@
             ? 'justify-end'
             : ''}"
         >
-          {#if kind === 'thumb'}
+          {#if kind === 'text'}
+            <div class="w-full space-y-1.5">
+              <div class="h-3.5 w-2/3 max-w-[10rem] rounded bg-zinc-800/40 animate-pulse"></div>
+              <div class="h-2.5 w-1/2 max-w-[7rem] rounded bg-zinc-800/30 animate-pulse"></div>
+            </div>
+          {:else if kind === 'thumb'}
             <div class="h-14 w-14 rounded-lg bg-zinc-800/40 animate-pulse"></div>
           {:else if kind === 'actor'}
             <div class="flex items-center gap-3">
@@ -66,7 +71,7 @@
             <div class="h-7 w-7 rounded-lg bg-zinc-800/40 animate-pulse"></div>
           {:else if kind === 'actions'}
             <div class="flex gap-1">
-              {#each [0, 1, 2] as n (n)}<div class="h-7 w-7 rounded-lg bg-zinc-800/40 animate-pulse"></div>{/each}
+              {#each [0, 1] as n (n)}<div class="h-7 w-7 rounded-lg bg-zinc-800/40 animate-pulse"></div>{/each}
             </div>
           {:else}
             <div class="h-3 rounded bg-zinc-800/40 animate-pulse {col.right ? 'w-8' : BARS[(row + c) % BARS.length]}"></div>

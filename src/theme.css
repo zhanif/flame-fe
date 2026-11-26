@@ -120,6 +120,16 @@
   background: rgb(var(--zinc-600));
 }
 
+/* A scrollable pane whose scrollbar is hidden: the overflow is hinted at with a label instead. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Floating panels and their items (bits-ui Select, Popover, RangeCalendar). They are
    styled by data attributes here, which twind's variants cannot express reliably. */
 @keyframes pop-in {

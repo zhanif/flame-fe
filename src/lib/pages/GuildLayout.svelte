@@ -68,7 +68,11 @@
     moduleId && MODULE_VIEWS[moduleId] && moduleCatalog.entries.some(m => m.id === moduleId && m.installed) ? moduleId : null,
   );
   const current = $derived(activeModule ? `module:${activeModule}` : corePage);
-  providePageTone(() => (activeModule ? MODULE_PAGES[activeModule]?.tone : PAGES[corePage].tone) ?? 'orange');
+  // While a module page loads, its id is already in the address but the catalog is not ready, so `activeModule`
+  // is still null: use the module's own tone anyway, so the page skeleton matches the top bar (not the dashboard's).
+  providePageTone(
+    () => (moduleId && (moduleCatalog.loading || activeModule) ? MODULE_PAGES[moduleId]?.tone : PAGES[corePage].tone) ?? 'orange',
+  );
 
   const sections = $derived(
     SECTIONS.map(section => ({
@@ -173,7 +177,7 @@
         <div aria-hidden="true">
           <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
           {#if moduleId}
-            <ModulePageSkeleton module={moduleId} {guildId} />
+            <ModulePageSkeleton module={moduleId} {guildId} {isAdmin} />
           {:else if page === 'settings'}
             <SettingsSkeleton />
           {:else}
@@ -193,7 +197,7 @@
         <div aria-hidden="true">
           <PageHeaderSkeleton page={moduleId ? undefined : page} module={moduleId ?? undefined} />
           {#if moduleId}
-            <ModulePageSkeleton module={moduleId} {guildId} />
+            <ModulePageSkeleton module={moduleId} {guildId} {isAdmin} />
           {:else if page === 'settings'}
             <SettingsSkeleton />
           {:else}
