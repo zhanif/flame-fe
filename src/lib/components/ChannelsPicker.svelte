@@ -1,7 +1,7 @@
 <script lang="ts">
   import ChipPicker, { type ChipItem } from '$lib/components/ChipPicker.svelte';
   import type { DiscordChannel } from '$lib/api/endpoints';
-  import { channelIcon } from '$lib/channel-icons';
+  import { channelIcon } from '$lib/utils/channel-icons';
 
   // Several channels, threads, forums or categories at once, as chips (one is ChannelPicker, a
   // dropdown). `max` is the plan limit: a server that has reached it removes a chip to pick another.

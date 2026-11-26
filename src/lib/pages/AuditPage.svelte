@@ -15,7 +15,7 @@
   import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlNumber, urlParam } from '$lib/url-param';
+  import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { actionTone } from '$lib/nav';
   import { td, th } from '$lib/ui';
 

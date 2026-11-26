@@ -11,7 +11,7 @@
   import SettingsTab from '$lib/modules/bingo/SettingsTab.svelte';
   import ThreadsTab from '$lib/modules/bingo/ThreadsTab.svelte';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlParam } from '$lib/url-param';
+  import { urlParam } from '$lib/utils/url-param';
   import { Grid3x3, Info, Palette, Plus, RefreshCw, Settings } from '@lucide/svelte';
   import SaveButton from '$lib/components/SaveButton.svelte';
   import { onMount } from 'svelte';

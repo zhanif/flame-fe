@@ -1,8 +1,8 @@
 <script lang="ts">
   import Combobox from '$lib/components/Combobox.svelte';
   import type { DiscordChannel } from '$lib/api/endpoints';
-  import { shortChannelProblem } from '$lib/problems';
-  import { channelIcon } from '$lib/channel-icons';
+  import { shortChannelProblem } from '$lib/utils/problems';
+  import { channelIcon } from '$lib/utils/channel-icons';
 
   // Choosing ONE channel or thread: a dropdown you can type in to search. The first entry (`none`)
   // clears the choice. (Picking several would be a chip box, like RolePicker.)

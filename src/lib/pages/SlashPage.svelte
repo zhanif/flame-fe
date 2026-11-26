@@ -12,7 +12,7 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type SlashCommand, type SlashOption } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlNumber, urlParam } from '$lib/url-param';
+  import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { pageTone } from '$lib/nav';
   import { moduleCatalog } from '$lib/stores/modules.svelte';
   import { td, th, toneText } from '$lib/ui';

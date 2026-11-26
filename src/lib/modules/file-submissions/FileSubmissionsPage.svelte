@@ -33,11 +33,11 @@
     type FileSubmissionGroup,
     type FileSubmissionRow,
   } from '$lib/api/endpoints';
-  import { onlyCommandName, onlyDigits, restrictTo } from '$lib/number-input';
+  import { onlyCommandName, onlyDigits, restrictTo } from '$lib/utils/number-input';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps, label, td, th, toneText } from '$lib/ui';
-  import { urlParam } from '$lib/url-param';
+  import { urlParam } from '$lib/utils/url-param';
   import {
     Check,
     ChevronRight,

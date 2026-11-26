@@ -19,10 +19,10 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import { api, type DiscordRole, type RoleColorChange, type RoleColorEntry, type RoleColors } from '$lib/api/endpoints';
-  import { onlyCommandName, restrictTo } from '$lib/number-input';
+  import { onlyCommandName, restrictTo } from '$lib/utils/number-input';
   import { session } from '$lib/stores/session.svelte';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlParam } from '$lib/url-param';
+  import { urlParam } from '$lib/utils/url-param';
   import { caps, label, td, th, toneText } from '$lib/ui';
   import { Check, Eraser, Paintbrush, Pencil, Plus, ScrollText, Trash2, TriangleAlert, Undo2 } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';

@@ -22,10 +22,10 @@
   import Toggle from '$lib/components/Toggle.svelte';
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import { api, type AutoremoverConfig, type AutoremoverItem, type AutoremoverKind, type DiscordChannel } from '$lib/api/endpoints';
-  import { formatDuration } from '$lib/duration';
-  import { onlyDigits, restrictTo } from '$lib/number-input';
+  import { formatDuration } from '$lib/utils/duration';
+  import { onlyDigits, restrictTo } from '$lib/utils/number-input';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlNumber, urlParam } from '$lib/url-param';
+  import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { label, td, th } from '$lib/ui';
   import { ExternalLink, Info, ListChecks, ScrollText, Settings, Timer, X } from '@lucide/svelte';
   import { onDestroy, onMount, untrack } from 'svelte';

@@ -10,7 +10,7 @@
   import { api, type ModuleEntry } from '$lib/api/endpoints';
   import { router } from '$lib/stores/router.svelte';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlParam } from '$lib/url-param';
+  import { urlParam } from '$lib/utils/url-param';
   import { MODULE_PAGES } from '$lib/nav';
   import { MODULE_VIEWS } from '$lib/modules/views';
   import { caps, toneFor, toneText } from '$lib/ui';

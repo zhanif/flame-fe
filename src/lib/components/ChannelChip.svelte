@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { DiscordChannel } from '$lib/api/endpoints';
-  import { channelIcon } from '$lib/channel-icons';
+  import { channelIcon } from '$lib/utils/channel-icons';
 
   // A channel as a small chip with an icon for its kind; `missing` when it was deleted.
   let { channel, missing = 'Deleted channel' }: { channel?: DiscordChannel; missing?: string } = $props();

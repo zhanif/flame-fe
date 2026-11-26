@@ -1,6 +1,6 @@
 <script lang="ts">
   import { caps, control } from '$lib/ui';
-  import { onlyHexColor, restrictTo } from '$lib/number-input';
+  import { onlyHexColor, restrictTo } from '$lib/utils/number-input';
   import { Plus, X } from '@lucide/svelte';
 
   // One color to pick, kept compact: a swatch that opens the system color picker, a hex box for exact values

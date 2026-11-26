@@ -1,7 +1,7 @@
 <script lang="ts">
   import ChipPicker from '$lib/components/ChipPicker.svelte';
   import type { DiscordRole } from '$lib/api/endpoints';
-  import { problemKind, shortRoleProblem } from '$lib/problems';
+  import { problemKind, shortRoleProblem } from '$lib/utils/problems';
   import { Link2, Lock } from '@lucide/svelte';
 
   // Several roles at once, as colored chips. Everything but the role list goes straight to

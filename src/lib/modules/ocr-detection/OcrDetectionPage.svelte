@@ -23,10 +23,10 @@
   import WarningBanner from '$lib/components/WarningBanner.svelte';
   import ActorCell from '$lib/components/ActorCell.svelte';
   import { api, type DiscordChannel, type OcrDetectionConfig, type OcrDetectionItem, type OcrTerms } from '$lib/api/endpoints';
-  import { onlyDecimal, restrictTo } from '$lib/number-input';
+  import { onlyDecimal, restrictTo } from '$lib/utils/number-input';
   import { formatTerms, parseTerms, termsProblem } from './blocklist-text';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlNumber, urlParam } from '$lib/url-param';
+  import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { label, td, th } from '$lib/ui';
   import { Info, ListX, RotateCcw, ScanText, ScrollText, Settings, Eye, Trash2, X, ExternalLink } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';

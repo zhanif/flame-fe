@@ -1,7 +1,7 @@
 <script lang="ts">
   import Combobox from '$lib/components/Combobox.svelte';
   import type { DiscordRole } from '$lib/api/endpoints';
-  import { problemKind, shortRoleProblem } from '$lib/problems';
+  import { problemKind, shortRoleProblem } from '$lib/utils/problems';
   import { Link2, Lock } from '@lucide/svelte';
 
   // Choosing ONE role: a dropdown you can type in to search (several roles at once is

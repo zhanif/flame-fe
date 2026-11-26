@@ -1,7 +1,8 @@
 <script lang="ts">
   import ChatCompletionSkeleton from '$lib/modules/chat-completion/ChatCompletionSkeleton.svelte';
   import BingoSkeleton from '$lib/modules/bingo/BingoSkeleton.svelte';
-  import { urlParam } from '$lib/url-param';
+  import InvasionPageSkeleton from '$lib/modules/invasion/InvasionPageSkeleton.svelte';
+  import { urlParam } from '$lib/utils/url-param';
   import Card from './Card.svelte';
   import ControlSkeleton from './ControlSkeleton.svelte';
   import TableSkeleton from './TableSkeleton.svelte';
@@ -9,7 +10,7 @@
   // The body of a module page while the page itself cannot be shown yet (the list of installed modules is
   // still loading). The address says which module it is, so the skeleton has that module's shape: a
   // breadcrumb and long panels for File Submissions, tabs over a table for the others.
-  let { module, guildId }: { module: string; guildId: string } = $props();
+  let { module, guildId, isAdmin = false }: { module: string; guildId: string; isAdmin?: boolean } = $props();
 
   const PANELS = ['file-submissions'];
   const TABS: Record<string, number[]> = {
@@ -106,6 +107,8 @@
       </div>
       <BingoSkeleton view={bingoView} />
     {/if}
+  {:else if module === 'invasion'}
+    <InvasionPageSkeleton {isAdmin} />
   {:else}
     <div class="flex items-center justify-between gap-3 flex-wrap">
       {#if (TABS[module] ?? [28, 28]).length}

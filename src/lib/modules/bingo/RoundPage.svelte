@@ -15,7 +15,7 @@
   import EntriesTab from '$lib/modules/bingo/EntriesTab.svelte';
   import { boardExporter } from '$lib/modules/bingo/board-export';
   import { missingQuestions, QUESTION_COUNT } from '$lib/modules/bingo/board';
-  import { urlParam } from '$lib/url-param';
+  import { urlParam } from '$lib/utils/url-param';
   import { toast } from '$lib/stores/toast.svelte';
   import { caps } from '$lib/ui';
   import {

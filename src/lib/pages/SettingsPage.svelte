@@ -11,7 +11,7 @@
   import RolePicker from '$lib/components/RolePicker.svelte';
   import { api, type DiscordRole, type GuildSettings } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
-  import { timeIn, timezoneOptions } from '$lib/timezones';
+  import { timeIn, timezoneOptions } from '$lib/utils/timezones';
   import { control, label } from '$lib/ui';
   import { Globe, Lock, ShieldCheck } from '@lucide/svelte';
   import { onDestroy, onMount } from 'svelte';

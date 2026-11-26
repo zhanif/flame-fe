@@ -31,7 +31,7 @@
     type DiscordRole,
   } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlNumber, urlParam } from '$lib/url-param';
+  import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { caps, label, td, th, toneText } from '$lib/ui';
   import { Check, ExternalLink, FileText, Info, Megaphone, Pencil, Plus, Send, Trash2, ScrollText } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';

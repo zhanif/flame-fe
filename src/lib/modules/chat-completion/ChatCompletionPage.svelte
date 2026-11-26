@@ -27,10 +27,10 @@
   } from '$lib/api/endpoints';
   import BarChart from '$lib/modules/chat-completion/BarChart.svelte';
   import ChatCompletionSkeleton from '$lib/modules/chat-completion/ChatCompletionSkeleton.svelte';
-  import { onlyDecimal, onlyDigits, restrictTo } from '$lib/number-input';
+  import { onlyDecimal, onlyDigits, restrictTo } from '$lib/utils/number-input';
   import { toast } from '$lib/stores/toast.svelte';
   import { td, th } from '$lib/ui';
-  import { urlParam } from '$lib/url-param';
+  import { urlParam } from '$lib/utils/url-param';
   import {
     BarChart3,
     Brain,

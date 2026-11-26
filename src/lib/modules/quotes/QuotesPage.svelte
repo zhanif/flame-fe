@@ -19,7 +19,7 @@
   import TableSkeleton from '$lib/components/TableSkeleton.svelte';
   import { api, type DiscordChannel, type QuoteEntry } from '$lib/api/endpoints';
   import { toast } from '$lib/stores/toast.svelte';
-  import { urlNumber, urlParam } from '$lib/url-param';
+  import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { label, td, th } from '$lib/ui';
   import { Info, Megaphone, Quote, ScrollText, Search, Settings, Trash2 } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';

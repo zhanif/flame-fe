@@ -9,7 +9,7 @@
 
 <script lang="ts">
   import type { AnnouncementField } from '$lib/api/endpoints';
-  import { renderMarkdown } from '$lib/discord-markdown';
+  import { renderMarkdown } from '$lib/utils/discord-markdown';
   import { bot } from '$lib/stores/bot.svelte';
 
   // How an announcement looks in Discord, as the bot sends it: the mentions line, the message text, then the embed
