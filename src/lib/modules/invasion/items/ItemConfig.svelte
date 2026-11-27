@@ -28,7 +28,8 @@
   import { caps, label, tile, toneText } from '$lib/ui';
   import { titleCase } from '$lib/utils/string';
   import { urlParam } from '$lib/utils/url-param';
-  import { Coins, Flame, Layers, Pencil, Plus, Settings2, Smile, Sparkles, Trash2 } from '@lucide/svelte';
+  import { Boxes, Coins, Flame, Gift, Layers, Pencil, Plus, RefreshCw, Settings2, Smile, Sparkles, Trash2 } from '@lucide/svelte';
+  import type { Component } from 'svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { slide } from 'svelte/transition';
@@ -98,15 +99,14 @@
   );
   const glyph = (emoji: InvasionEmoji | null | undefined) => emoji?.raw || emoji?.discord || '';
   const affinityName = (id: string) => affinities.find(affinity => affinity.id === id)?.name ?? '?';
-  // The transaction defaults a rarity seeds a new item with, shown as a short muted line.
-  const rarityDefaults = (row: InvasionRarity): string => {
-    const parts: string[] = [];
-    if (row.default_shop_price) parts.push(`${row.default_shop_price} coin price`);
-    if (row.default_shop_stocks !== null) parts.push(`${row.default_shop_stocks} stock`);
-    if (row.default_shop_reset) parts.push(`${SHOP_RESET_LABELS[row.default_shop_reset]} restock`);
-    if (row.default_reward_chance) parts.push(`${row.default_reward_chance}% reward`);
-    return parts.join(' · ');
-  };
+  // The transaction defaults a rarity seeds a new item with, always the same four slots so the
+  // inline columns line up from one rarity to the next; `value` is empty when it is left unset.
+  const rarityDefaults = (row: InvasionRarity): { label: string; value: string; icon: Component }[] => [
+    { label: 'Price', value: row.default_shop_price ? String(row.default_shop_price) : '', icon: Coins },
+    { label: 'Stock', value: row.default_shop_stocks !== null ? String(row.default_shop_stocks) : '', icon: Boxes },
+    { label: 'Restock', value: row.default_shop_reset ? SHOP_RESET_LABELS[row.default_shop_reset] : '', icon: RefreshCw },
+    { label: 'Reward', value: row.default_reward_chance ? `${row.default_reward_chance}%` : '', icon: Gift },
+  ];
 
   let mode: 'new' | 'edit' | null = $state(null);
   let editKind: Kind | null = $state(null);
@@ -351,38 +351,34 @@
 {/snippet}
 
 {#snippet rarityFields()}
-  {@const preview = emoji.raw || emoji.discord || ''}
-  <div class="flex items-center gap-3">
-    <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl {tile[tone()]}">
-      {#if preview}{preview}{:else}<Sparkles class="h-5 w-5" />{/if}
+  <div class="mt-4">
+    <div class="flex items-center gap-2">
+      <Settings2 class="h-4 w-4 {toneText[tone()]}" />
+      <p class="{caps} text-zinc-300">General</p>
     </div>
-    <div class="min-w-0">
-      <p class="truncate text-sm font-semibold text-zinc-100">{rName.trim() || 'New rarity'}</p>
-      <p class="mt-0.5 text-xs text-zinc-500">Level {rLevel || '1'} tier</p>
-    </div>
-  </div>
-
-  <div class="mt-4 grid gap-4 sm:grid-cols-2">
-    <div>
-      <span class={label}>Name</span>
-      <Input bind:value={rName} maxlength={50} placeholder="C" aria-label="Rarity name" />
-    </div>
-    <div>
-      <span class={label}>Level</span>
-      <Input
-        bind:value={rLevel}
-        inputmode="numeric"
-        maxlength={3}
-        aria-label="Rarity level"
-        oninput={restrictTo(onlyDigits, v => (rLevel = v))}
-      />
+    <p class="mt-1 text-xs text-zinc-500">The name and level this rarity is shown with.</p>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      <div>
+        <span class={label}>Name</span>
+        <Input bind:value={rName} maxlength={50} placeholder="C" aria-label="Rarity name" />
+      </div>
+      <div>
+        <span class={label}>Level</span>
+        <Input
+          bind:value={rLevel}
+          inputmode="numeric"
+          maxlength={3}
+          aria-label="Rarity level"
+          oninput={restrictTo(onlyDigits, v => (rLevel = v))}
+        />
+      </div>
     </div>
   </div>
 
   <div class="mt-4 border-t border-zinc-800/40 pt-4">
     <div class="flex items-center gap-2">
       <Coins class="h-4 w-4 {toneText[tone()]}" />
-      <p class="{caps} text-zinc-300">Item defaults</p>
+      <p class="{caps} text-zinc-300">Shop defaults</p>
     </div>
     <p class="mt-1 text-xs text-zinc-500">What a new item of this rarity starts with. An item can still override them.</p>
     <div class="mt-3 grid gap-4 sm:grid-cols-2">
@@ -544,17 +540,20 @@
               <p class="text-xs text-zinc-500">No rarities yet. Add one to organise items by tier.</p>
             {:else}
               {#each rarities as row (row.id)}
-                <div class="rounded-xl bg-zinc-800/20 px-3 py-2.5 ring-1 ring-zinc-800/60">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        {#if glyph(row.emoji)}<span>{glyph(row.emoji)}</span>{/if}
-                        <Badge tone="neutral">Level {row.level}</Badge>
-                        <span class="truncate text-sm font-medium text-zinc-200">{row.name}</span>
-                      </div>
-                      {#if rarityDefaults(row)}
-                        <p class="mt-1 truncate text-xs text-zinc-500" title={rarityDefaults(row)}>{rarityDefaults(row)}</p>
-                      {/if}
+                {@const stats = rarityDefaults(row)}
+                <div class="overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-zinc-800/60">
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <span class="truncate text-sm font-medium text-zinc-200">{row.name}</span>
+                      <Badge tone="neutral">Level {row.level}</Badge>
+                    </div>
+                    <div class="grid w-full grid-cols-2 gap-x-4 gap-y-1 sm:ml-auto sm:w-auto sm:grid-cols-[4rem_3rem_5rem_4rem]">
+                      {#each stats as stat (stat.label)}
+                        <span class="inline-flex items-center gap-1.5 whitespace-nowrap" title={stat.label}>
+                          <stat.icon class="h-3.5 w-3.5 shrink-0 {stat.value ? 'text-zinc-400' : 'text-zinc-600'}" />
+                          <span class="text-[11px] {stat.value ? 'text-zinc-300' : 'text-zinc-600'}">{stat.value || '-'}</span>
+                        </span>
+                      {/each}
                     </div>
                     {#if isAdmin}
                       <div class="flex shrink-0 gap-1">
@@ -578,7 +577,7 @@
                     {/if}
                   </div>
                   {#if isOpen('rarity', row.id)}
-                    <div class="mt-3 border-t border-zinc-800/40 pt-3" transition:slide={{ duration: 220, easing: cubicOut }}>
+                    <div class="border-t border-zinc-800/50 p-3" transition:slide={{ duration: 220, easing: cubicOut }}>
                       {@render rarityFields()}
                       {@render formActions('Save changes', rName.trim().length > 0)}
                     </div>
@@ -625,13 +624,11 @@
               <p class="text-xs text-zinc-500">No elements yet. Add one to attune items to.</p>
             {:else}
               {#each affinities as row (row.id)}
-                <div class="rounded-xl bg-zinc-800/20 px-3 py-2.5 ring-1 ring-zinc-800/60">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                      <p class="flex items-center gap-2 text-sm font-medium text-zinc-200">
-                        {#if glyph(row.emoji)}<span>{glyph(row.emoji)}</span>{/if}<span class="truncate">{titleCase(row.name)}</span>
-                      </p>
-                      <p class="mt-0.5 text-xs text-zinc-500">
+                <div class="overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-zinc-800/60">
+                  <div class="flex items-center gap-3 px-3 py-2.5">
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-medium text-zinc-200">{titleCase(row.name)}</p>
+                      <p class="mt-0.5 truncate text-xs text-zinc-500">
                         {row.composite.length ? `Built from ${row.composite.map(affinityName).map(titleCase).join(' + ')}` : 'Base element'}
                       </p>
                     </div>
@@ -657,7 +654,7 @@
                     {/if}
                   </div>
                   {#if isOpen('affinity', row.id)}
-                    <div class="mt-3 border-t border-zinc-800/40 pt-3" transition:slide={{ duration: 220, easing: cubicOut }}>
+                    <div class="border-t border-zinc-800/50 p-3" transition:slide={{ duration: 220, easing: cubicOut }}>
                       {@render affinityFields()}
                       {@render formActions('Save changes', aName.trim().length > 0)}
                     </div>

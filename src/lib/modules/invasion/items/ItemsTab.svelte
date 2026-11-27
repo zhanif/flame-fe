@@ -31,7 +31,7 @@
   } from '$lib/api/endpoints';
   import { onlyDecimal, onlyDigits, restrictTo } from '$lib/utils/number-input';
   import { toast } from '$lib/stores/toast.svelte';
-  import { caps, control, label, td, th, toneText, type Tone } from '$lib/ui';
+  import { caps, control, label, td, th, tile, toneText, type Tone } from '$lib/ui';
   import { titleCase } from '$lib/utils/string';
   import { urlNumber, urlParam } from '$lib/utils/url-param';
   import { pageTone } from '$lib/nav';
@@ -396,12 +396,14 @@
     metricsOf(entries[0].item).forEach((metric, i) => {
       const raws = entries.map(entry => metricsOf(entry.item)[i].raw);
       const top = Math.max(...raws);
+      // A winner must stand alone: when two items tie on the top value, none of them is highlighted.
+      const leaders = raws.filter(raw => raw === top).length;
       rows.push({
         label: metric.label,
         values: entries.map((entry, j) => ({
           text: metricsOf(entry.item)[i].value,
           tone: entry.tone,
-          best: entries.length > 1 && top > 0 && raws[j] === top,
+          best: entries.length > 1 && top > 0 && leaders === 1 && raws[j] === top,
         })),
       });
     });
@@ -663,21 +665,43 @@
 
   function choosePurchasable(next: boolean) {
     purchasable = next;
-    if (!next) {
+    // Turning it on takes the rarity's shop defaults again: the fields were cleared when it was off, so
+    // the price, stock and restock should match the rarity rather than sit at zero.
+    if (next) shopDefaultsFromRarity();
+    else {
       price = '0';
       shopStocks = '';
       shopReset = '';
     }
   }
 
-  // Picking a rarity seeds the transaction fields from its defaults; an admin can still change them.
-  function applyRarityDefaults() {
+  // Taking a rarity's shop defaults: price, stock and restock. Used when a rarity is picked and when
+  // the item is made purchasable.
+  function shopDefaultsFromRarity() {
     const rarity = defs?.rarities.find(row => row.id === rarityId);
     if (!rarity) return;
     price = String(rarity.default_shop_price);
     shopStocks = rarity.default_shop_stocks === null ? '' : String(rarity.default_shop_stocks);
     shopReset = rarity.default_shop_reset ?? '';
+  }
+
+  // Taking a rarity's reward chance. Used when a rarity is picked and when the item is made rewardable.
+  function rewardDefaultsFromRarity() {
+    const rarity = defs?.rarities.find(row => row.id === rarityId);
+    if (!rarity) return;
     rewardChance = String(rarity.default_reward_chance);
+  }
+
+  function chooseRewardable(next: boolean) {
+    rewardable = next;
+    // Turning it on takes the rarity's reward chance again, the same way purchasable takes its shop defaults.
+    if (next) rewardDefaultsFromRarity();
+  }
+
+  // Picking a rarity seeds the transaction fields from its defaults; an admin can still change them.
+  function applyRarityDefaults() {
+    shopDefaultsFromRarity();
+    rewardDefaultsFromRarity();
   }
 
   const payload = (): InvasionItemInput => ({
@@ -843,7 +867,29 @@
 {/snippet}
 
 {#snippet form()}
-  <SegmentedControl bind:value={formParam.value} options={FORM_TABS} label="Item form section" />
+  <div class="flex items-center gap-1 border-b border-zinc-800/60" role="tablist" aria-label="Item form section">
+    {#each FORM_TABS as tab (tab.id)}
+      {@const active = formParam.value === tab.id}
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active}
+        onclick={() => (formParam.value = tab.id)}
+        class="relative -mb-px inline-flex cursor-pointer items-center gap-1.5 px-3 py-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-orange-500/50 {active
+          ? 'text-zinc-100'
+          : 'text-zinc-500 hover:text-zinc-300'}"
+      >
+        <tab.icon class="h-3.5 w-3.5 {active ? toneText[tone()] : ''}" />
+        {tab.label}
+        <span
+          class="absolute inset-x-1 -bottom-px h-0.5 rounded-full transition-colors {active
+            ? 'bg-current ' + toneText[tone()]
+            : 'bg-transparent'}"
+          aria-hidden="true"
+        ></span>
+      </button>
+    {/each}
+  </div>
   {#if formParam.value === 'general'}
     <div class="mt-5">
       <div class="grid gap-4 sm:grid-cols-2">
@@ -1058,7 +1104,7 @@
               {starter ? 'A starter item is never handed out as a reward.' : 'Can be awarded to players as a reward.'}
             </p>
           </div>
-          <Toggle on={rewardable} label="Rewardable" disabled={starter} onclick={() => (rewardable = !rewardable)} />
+          <Toggle on={rewardable} label="Rewardable" disabled={starter} onclick={() => chooseRewardable(!rewardable)} />
         </div>
         {#if rewardable && !starter}
           <div class="grid gap-4 sm:col-span-2 sm:grid-cols-3">
@@ -1226,15 +1272,16 @@
       <div class="mt-4 border-t border-zinc-800/40 pt-1">
         {#each comparisonRows as row (row.label)}
           <div class="border-b border-zinc-800/30 py-2 last:border-0">
-            <p class={label}>{row.label}</p>
+            <p class="{label} whitespace-nowrap">{row.label}</p>
             <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1">
               {#each row.values as value, i (i)}
-                <span class="flex items-center gap-1 text-xs tabular-nums">
-                  {#if row.values.length > 1}
-                    <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-current {toneText[value.tone]}"></span>
-                  {/if}
-                  <span class={value.best ? 'font-semibold text-emerald-400' : 'text-zinc-200'}>{value.text}</span>
-                </span>
+                <span
+                  class="rounded-md px-1.5 py-0.5 text-[11px] tabular-nums {tile[value.tone]} {value.best
+                    ? 'font-semibold brightness-125'
+                    : row.values.length > 1
+                      ? 'brightness-50'
+                      : ''}">{value.text}</span
+                >
               {/each}
             </div>
           </div>

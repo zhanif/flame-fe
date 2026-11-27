@@ -48,19 +48,44 @@
         </div>
       </div>
     </div>
+  {:else if section === 'rarity'}
+    <div class="mt-4 space-y-2">
+      {#each Array(6) as _}
+        <div class="rounded-xl bg-zinc-900 px-3 py-2.5 ring-1 ring-zinc-800/60">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div class="h-4 w-32 rounded bg-zinc-800/40 animate-pulse"></div>
+            <div class="grid w-full grid-cols-2 gap-x-4 gap-y-1 sm:ml-auto sm:w-auto sm:grid-cols-[4rem_3rem_5rem_4rem]">
+              {#each [0, 1, 2, 3] as n (n)}
+                <div class="flex items-center gap-1.5">
+                  <div class="h-3.5 w-3.5 shrink-0 rounded bg-zinc-800/40 animate-pulse"></div>
+                  <div class="h-3 w-8 rounded bg-zinc-800/30 animate-pulse"></div>
+                </div>
+              {/each}
+            </div>
+            {#if isAdmin}
+              <div class="flex shrink-0 gap-1">
+                {#each [0, 1] as n (n)}<div class="h-7 w-7 rounded-lg bg-zinc-800/40 animate-pulse"></div>{/each}
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/each}
+    </div>
   {:else}
     <div class="mt-4 space-y-2">
       {#each Array(6) as _}
-        <div class="flex items-start justify-between gap-2 rounded-xl bg-zinc-800/20 px-3 py-2.5 ring-1 ring-zinc-800/60">
-          <div class="min-w-0 space-y-1.5">
-            <div class="h-4 w-40 rounded bg-zinc-800/40 animate-pulse"></div>
-            <div class="h-3 w-24 rounded bg-zinc-800/30 animate-pulse"></div>
-          </div>
-          {#if isAdmin}
-            <div class="flex shrink-0 gap-1">
-              {#each [0, 1] as n (n)}<div class="h-7 w-7 rounded-lg bg-zinc-800/40 animate-pulse"></div>{/each}
+        <div class="overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-zinc-800/60">
+          <div class="flex items-center gap-3 px-3 py-2.5">
+            <div class="min-w-0 flex-1 space-y-1.5">
+              <div class="h-4 w-40 rounded bg-zinc-800/40 animate-pulse"></div>
+              <div class="h-3 w-24 rounded bg-zinc-800/30 animate-pulse"></div>
             </div>
-          {/if}
+            {#if isAdmin}
+              <div class="flex shrink-0 gap-1">
+                {#each [0, 1] as n (n)}<div class="h-7 w-7 rounded-lg bg-zinc-800/40 animate-pulse"></div>{/each}
+              </div>
+            {/if}
+          </div>
         </div>
       {/each}
     </div>
